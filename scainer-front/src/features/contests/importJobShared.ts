@@ -31,9 +31,10 @@ export function storageKey(contestId: string): string {
   return `scainer.importJob.${contestId}`;
 }
 
+/** localStorage — переживает F5; чистим только при финале job / 404. */
 export function readStoredJobId(contestId: string): string | null {
   try {
-    return sessionStorage.getItem(storageKey(contestId));
+    return localStorage.getItem(storageKey(contestId));
   } catch {
     return null;
   }
@@ -41,7 +42,7 @@ export function readStoredJobId(contestId: string): string | null {
 
 export function writeStoredJobId(contestId: string, jobId: string): void {
   try {
-    sessionStorage.setItem(storageKey(contestId), jobId);
+    localStorage.setItem(storageKey(contestId), jobId);
   } catch {
     /* ignore quota / private mode */
   }
@@ -49,7 +50,7 @@ export function writeStoredJobId(contestId: string, jobId: string): void {
 
 export function clearStoredJobId(contestId: string): void {
   try {
-    sessionStorage.removeItem(storageKey(contestId));
+    localStorage.removeItem(storageKey(contestId));
   } catch {
     /* ignore */
   }

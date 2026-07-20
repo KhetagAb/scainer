@@ -1,5 +1,23 @@
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+
+const SEEN_KEY = "scainer.contestLegend.seen";
+
+export function wasContestLegendSeen(): boolean {
+  try {
+    return localStorage.getItem(SEEN_KEY) === "1";
+  } catch {
+    return true;
+  }
+}
+
+export function markContestLegendSeen(): void {
+  try {
+    localStorage.setItem(SEEN_KEY, "1");
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
 
 type Props = {
   open: boolean;
@@ -8,9 +26,8 @@ type Props = {
 
 const COLOR_LEVELS: Array<{ level: string; label: string; hint: string }> = [
   { level: "level-0", label: "A", hint: "нет" },
-  { level: "level-low", label: "B", hint: "мало" },
-  { level: "level-high", label: "C", hint: "много" },
-  { level: "level-crit", label: "D", hint: "crit" },
+  { level: "level-low", label: "B", hint: ">15%" },
+  { level: "level-high", label: "C", hint: "≤15%" },
 ];
 
 function HeaderIcon() {
@@ -25,6 +42,21 @@ function HeaderIcon() {
 export default function ContestLegendModal({ open, onClose }: Props) {
   const titleId = useId();
   const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const [mounted, setMounted] = useState(open);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setMounted(true);
+      const id = requestAnimationFrame(() => {
+        requestAnimationFrame(() => setVisible(true));
+      });
+      return () => cancelAnimationFrame(id);
+    }
+    setVisible(false);
+    const t = window.setTimeout(() => setMounted(false), 220);
+    return () => window.clearTimeout(t);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -41,16 +73,22 @@ export default function ContestLegendModal({ open, onClose }: Props) {
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!mounted) return null;
 
   return createPortal(
     <div
-      className="modal-overlay"
+      className={
+        "modal-overlay modal-overlay--legend" +
+        (visible ? " modal-overlay--legend-visible" : "")
+      }
       role="presentation"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
-        className="form-card modal-card contest-legend-modal"
+        className={
+          "form-card modal-card contest-legend-modal" +
+          (visible ? " contest-legend-modal--visible" : "")
+        }
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -65,7 +103,7 @@ export default function ContestLegendModal({ open, onClose }: Props) {
                 Карточка контеста
               </h2>
               <p className="contest-legend-modal__subtitle">
-                Как читать процент подозрительности и цвета задач
+                Как читать цвета задач
               </p>
             </div>
           </div>
@@ -74,10 +112,9 @@ export default function ContestLegendModal({ open, onClose }: Props) {
         <div className="modal-card__scroll contest-legend-modal__body">
           <div className="legend-diagram">
             <div className="legend-diagram__card-wrap">
-              <div className="contest-card contest-card--heat-mid legend-diagram__card" aria-hidden>
+              <div className="contest-card legend-diagram__card" aria-hidden>
                 <div className="contest-card__top">
                   <span className="contest-card__name">День 01</span>
-                  <span className="score-badge contest-card__heat-badge level-mid">12%</span>
                 </div>
                 <div className="contest-stats contest-stats--meta-only">
                   <div className="contest-stats__left">
@@ -95,17 +132,10 @@ export default function ContestLegendModal({ open, onClose }: Props) {
             </div>
 
             <div className="legend-diagram__notes">
-              <aside className="legend-callout legend-callout--pct">
-                <p>
-                  <strong>%</strong> — взвешенный (<code>100 × Σ score / посылки</code>) процент
-                </p>
-                <p>подозрительности</p>
-              </aside>
-
               <aside className="legend-callout legend-callout--colors">
-                <p>
-                  <strong>Цвет</strong> — относительная (<code>count / max</code>) жара
-                  сигналов.
+                <p lang="ru">
+                  <strong>Цвет</strong> — доля подозрительных посылок задачи: чем больше сигналов
+                  по задаче — тем вероятнее ложноположительные срабатывания.
                 </p>
                 <ul className="legend-callout__swatches">
                   {COLOR_LEVELS.map((c) => (

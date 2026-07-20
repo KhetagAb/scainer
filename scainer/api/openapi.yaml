@@ -327,11 +327,6 @@ components:
         findingsCount:
           type: integer
           description: Число находок (подозрительных субъектов) после последнего Import
-        weightedSuspicionPercent:
-          type: number
-          nullable: true
-          description: >
-            100 * sum(finding.score) / submissionCount; null если посылок нет
 
     JobResponse:
       type: object
@@ -524,7 +519,7 @@ components:
 
     ProblemInfo:
       type: object
-      required: [id, name, excluded]
+      required: [id, name, excluded, submissionCount]
       properties:
         id:
           type: string
@@ -535,6 +530,9 @@ components:
         excluded:
           type: boolean
           description: Исключена ли из анализа
+        submissionCount:
+          type: integer
+          description: Число посылок по этой задаче в store
 
     ExcludedProblemsRequest:
       type: object

@@ -105,8 +105,10 @@ export function useParallelImportJobs({
         signal,
       );
 
-      clearStoredJobId(id);
-      // Прогресс-бар снимаем после onContestSettled — см. finishOne.
+      // Только после терминального статуса — иначе remount/F5 сотрёт jobId и resume сломается.
+      if (final.status === "succeeded" || final.status === "failed") {
+        clearStoredJobId(id);
+      }
 
       if (final.status === "failed") {
         setErrorById((prev) => ({
@@ -151,6 +153,7 @@ export function useParallelImportJobs({
       abortsRef.current.set(id, controller);
 
       let settledOk: boolean | null = null;
+      let jobIdWritten = false;
       try {
         setErrorById((prev) => {
           if (!(id in prev)) return prev;
@@ -170,11 +173,14 @@ export function useParallelImportJobs({
           throw new Error("сервер не вернул jobId");
         }
         writeStoredJobId(id, jobId);
+        jobIdWritten = true;
         settledOk = await watchJob(id, jobId, controller.signal);
       } catch (e) {
         if (isAbortError(e)) return;
-        clearStoredJobId(id);
         if ((e as { status?: number })?.status === 401) onUnauthorizedRef.current?.();
+        if ((e as { status?: number })?.status === 404 || !jobIdWritten) {
+          clearStoredJobId(id);
+        }
         setErrorById((prev) => ({
           ...prev,
           [id]: e instanceof Error ? e.message : String(e),
@@ -232,9 +238,12 @@ export function useParallelImportJobs({
         settledOk = await watchJob(id, jobId, controller.signal);
       } catch (e) {
         if (isAbortError(e)) return;
-        clearStoredJobId(id);
         if ((e as { status?: number })?.status === 401) onUnauthorizedRef.current?.();
-        if ((e as { status?: number })?.status === 404) return;
+        if ((e as { status?: number })?.status === 404) {
+          clearStoredJobId(id);
+          return;
+        }
+        // Сеть/прокси: jobId оставляем — после F5 resume подхватит снова.
         setErrorById((prev) => ({
           ...prev,
           [id]: e instanceof Error ? e.message : String(e),

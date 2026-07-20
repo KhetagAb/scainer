@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"scainer/internal/domain"
+	"scainer/internal/progress"
 	"scainer/internal/store"
 	ejudgeapi "scainer/pkg/ejudge"
 )
@@ -139,6 +140,103 @@ func TestImport_FullThenIncremental(t *testing.T) {
 	cur, ok, err = st.GetCursor(ctx, cursorKey(50501))
 	if err != nil || !ok || cur != "2" {
 		t.Fatalf("cursor unchanged = %q ok=%v err=%v", cur, ok, err)
+	}
+}
+
+func TestImport_ProgressAbsoluteIncludesStored(t *testing.T) {
+	fixture, err := os.ReadFile(filepath.Join("testdata", "list-runs.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/cgi-bin/new-master" && r.URL.Query().Get("action") == "list-runs-json":
+			first, _ := strconv.Atoi(r.URL.Query().Get("first_run"))
+			var envelope map[string]any
+			if err := json.Unmarshal(fixture, &envelope); err != nil {
+				http.Error(w, "bad fixture", 500)
+				return
+			}
+			result := envelope["result"].(map[string]any)
+			all := result["runs"].([]any)
+			var filtered []any
+			for _, item := range all {
+				run := item.(map[string]any)
+				id := int(run["run_id"].(float64))
+				if id >= first {
+					filtered = append(filtered, run)
+				}
+			}
+			// После курсора — ещё один «новый» ран.
+			if first > 0 {
+				filtered = []any{
+					map[string]any{
+						"run_id": 3, "user_login": "u", "prob_internal_name": "A",
+						"lang_name": "g++", "status_str": "OK",
+					},
+				}
+			}
+			result["runs"] = filtered
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(envelope)
+		case r.URL.Path == "/cgi-bin/master" && r.URL.Query().Get("action") == "contest-status-json":
+			writeJSON(w, map[string]any{
+				"ok": true,
+				"result": map[string]any{
+					"contest": map[string]any{"id": 50501, "name": "Тестовый контест"},
+				},
+			})
+		case r.URL.Path == "/cgi-bin/master" && r.URL.Query().Get("action") == "download-run":
+			_, _ = w.Write([]byte("src"))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(srv.Close)
+
+	client, err := ejudgeapi.New(srv.URL, "tok", time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	imp := &Importer{
+		cfg: ejudgeapi.Config{ContestID: 50501},
+		env: &ejudgeapi.Env{
+			Client:  client,
+			LangMap: map[string]domain.Lang{"g++": domain.LangCPP, "python3": domain.LangPython},
+		},
+	}
+	st := store.NewMem()
+	ctx := context.Background()
+
+	subs, err := imp.Import(ctx, st)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.Put(ctx, subs); err != nil {
+		t.Fatal(err)
+	}
+
+	var events []struct{ Done, Total int }
+	ctx = progress.With(ctx, func(e progress.Event) {
+		if e.Phase == "importing" {
+			events = append(events, struct{ Done, Total int }{e.Done, e.Total})
+		}
+	})
+	_, err = imp.Import(ctx, st)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(events) < 2 {
+		t.Fatalf("events = %+v", events)
+	}
+	// Уже 3 в store + 1 новый → старт 3/4, финиш 4/4.
+	if events[0].Done != 3 || events[0].Total != 4 {
+		t.Fatalf("first event = %+v, want Done=3 Total=4", events[0])
+	}
+	last := events[len(events)-1]
+	if last.Done != 4 || last.Total != 4 {
+		t.Fatalf("last event = %+v, want Done=4 Total=4", last)
 	}
 }
 

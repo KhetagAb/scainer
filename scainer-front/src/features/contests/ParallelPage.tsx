@@ -13,22 +13,23 @@ import helpIconUrl from "@/assets/help-icon.png";
 import importIconUrl from "@/assets/import-icon.png";
 import { authHeaders } from "@/features/auth/authStorage";
 import AddContestForm from "@/features/contests/AddContestForm";
-import ContestLegendModal from "@/features/contests/ContestLegendModal";
+import ContestLegendModal, {
+  markContestLegendSeen,
+  wasContestLegendSeen,
+} from "@/features/contests/ContestLegendModal";
 import ContestStats from "@/features/contests/ContestStats";
 import ImportProgressBar from "@/features/contests/ImportProgressBar";
 import { useSensitivity } from "@/features/contests/SensitivityContext";
 import { DEFAULT_PARALLELS } from "@/features/contests/parallels";
 import {
   UNGROUPED_PARALLEL,
-  compareContestsBySuspicion,
+  compareContestId,
   compactContestName,
-  formatSuspicionPercent,
-  suspicionLevel,
 } from "@/features/contests/contestHelpers";
 import {
   buildProblemSignalStats,
+  contestSpineFromProblemStats,
   findingsCountAboveThreshold,
-  weightedSuspicionFromFindings,
 } from "@/features/contests/problemSignalStats";
 import { useParallelImportJobs } from "@/features/contests/useParallelImportJobs";
 
@@ -42,7 +43,12 @@ export default function ParallelPage({ onUnauthorized }: Props) {
   const queryClient = useQueryClient();
   const parallelId = parallelIdParam ? decodeURIComponent(parallelIdParam) : UNGROUPED_PARALLEL;
   const { threshold } = useSensitivity();
-  const [legendOpen, setLegendOpen] = useState(false);
+  const [legendOpen, setLegendOpen] = useState(() => !wasContestLegendSeen());
+
+  const closeLegend = useCallback(() => {
+    markContestLegendSeen();
+    setLegendOpen(false);
+  }, []);
 
   const contestsQuery = useQuery({
     ...getContestsOptions({ headers: authHeaders() }),
@@ -149,9 +155,6 @@ export default function ParallelPage({ onUnauthorized }: Props) {
       const problems = (problemsQueries[i]?.data ?? []) as ProblemInfo[];
       const ready = Boolean(findingsQueries[i]?.isSuccess && problemsQueries[i]?.isSuccess);
       const submissionCount = c.submissionCount ?? 0;
-      const weighted = ready
-        ? weightedSuspicionFromFindings(findings, threshold, submissionCount)
-        : (c.weightedSuspicionPercent ?? null);
       const findingsCount = ready
         ? findingsCountAboveThreshold(findings, threshold)
         : (c.findingsCount ?? 0);
@@ -163,18 +166,17 @@ export default function ParallelPage({ onUnauthorized }: Props) {
         id: c.id,
         name: c.name,
         displayName: compactContestName(c.name),
-        heat: suspicionLevel(weighted),
+        spine: contestSpineFromProblemStats(problemStats),
         stats: {
           id: c.id,
           submissionCount,
           problemCount: c.problemCount,
           findingsCount,
-          weightedSuspicionPercent: weighted,
         },
         problemStats,
       };
     })
-    .sort((a, b) => compareContestsBySuspicion(a.stats, b.stats));
+    .sort((a, b) => compareContestId(a.id, b.id));
 
   const importLabel = importJobs.isRunning
     ? importJobs.batchProgress
@@ -229,23 +231,23 @@ export default function ParallelPage({ onUnauthorized }: Props) {
           <li key={c.id}>
             <Link
               to={`/contests/${encodeURIComponent(c.id)}`}
-              className={`contest-card contest-card--heat-${c.heat.replace("level-", "")}`}
+              className={
+                "contest-card" +
+                (c.spine === "green"
+                  ? " contest-card--spine-green"
+                  : c.spine === "yellow"
+                    ? " contest-card--spine-yellow"
+                    : "")
+              }
               title={c.name || c.id}
             >
               <div className="contest-card__top">
                 <span className="contest-card__name">{c.displayName || c.id}</span>
-                <span
-                  className={`score-badge contest-card__heat-badge ${c.heat}`}
-                  title="Взвешенный процент подозрительности"
-                >
-                  {formatSuspicionPercent(c.stats.weightedSuspicionPercent)}
-                </span>
               </div>
               {c.id !== c.name && <span className="contest-card__id">{c.id}</span>}
               <ContestStats
                 stats={c.stats}
                 problemStats={c.problemStats}
-                showBadge={false}
                 importProgress={
                   c.id in importJobs.progressById
                     ? importJobs.progressById[c.id]
@@ -281,7 +283,7 @@ export default function ParallelPage({ onUnauthorized }: Props) {
           aria-hidden
         />
       </button>
-      <ContestLegendModal open={legendOpen} onClose={() => setLegendOpen(false)} />
+      <ContestLegendModal open={legendOpen} onClose={closeLegend} />
     </>
   );
 }

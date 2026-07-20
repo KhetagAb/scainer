@@ -1,6 +1,6 @@
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
-import { SENSITIVITY_MARKS } from "@/features/contests/useParallelSensitivity";
+import { SENSITIVITY_MARKS } from "@/features/contests/useUserSensitivity";
 
 type Props = {
   threshold: number;

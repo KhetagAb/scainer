@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { RouterProvider, createBrowserRouter, Navigate } from "react-router-dom";
 import { client } from "@/client/client.gen";
 import { useSession } from "@/features/auth/SessionProvider";
@@ -20,41 +20,48 @@ function App() {
     });
   }, [username]);
 
-  const handleUnauthorized = () => {
+  const handleUnauthorized = useCallback(() => {
     clearToken();
     logout();
-  };
+  }, [logout]);
+
+  const loginRouter = useMemo(
+    () =>
+      createBrowserRouter([
+        { path: "/login", element: <LoginPage /> },
+        { path: "*", element: <Navigate to="/login" replace /> },
+      ]),
+    [],
+  );
+
+  const appRouter = useMemo(
+    () =>
+      createBrowserRouter([
+        {
+          element: <RootLayout />,
+          children: [
+            { path: "/", element: <ParallelsPage onUnauthorized={handleUnauthorized} /> },
+            {
+              path: "/parallels/:id",
+              element: <ParallelPage onUnauthorized={handleUnauthorized} />,
+            },
+            { path: "/contests/:id", element: <ContestPage onUnauthorized={handleUnauthorized} /> },
+            { path: "*", element: <NotFoundPage /> },
+          ],
+        },
+      ]),
+    [handleUnauthorized],
+  );
 
   if (isLoading) {
     return <div className="page-center">Загрузка…</div>;
   }
 
-  // Auth guard: перенаправляем на /login если не авторизован
   if (!username) {
-    const loginRouter = createBrowserRouter([
-      { path: "/login", element: <LoginPage /> },
-      { path: "*", element: <Navigate to="/login" replace /> },
-    ]);
     return <RouterProvider router={loginRouter} />;
   }
 
-  // Авторизованный маршрут
-  const router = createBrowserRouter([
-    {
-      element: <RootLayout />,
-      children: [
-        { path: "/", element: <ParallelsPage onUnauthorized={handleUnauthorized} /> },
-        {
-          path: "/parallels/:id",
-          element: <ParallelPage onUnauthorized={handleUnauthorized} />,
-        },
-        { path: "/contests/:id", element: <ContestPage onUnauthorized={handleUnauthorized} /> },
-        { path: "*", element: <NotFoundPage /> },
-      ],
-    },
-  ]);
-
-  return <RouterProvider router={router} />;
+  return <RouterProvider router={appRouter} />;
 }
 
 export default App;

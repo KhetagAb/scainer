@@ -1,8 +1,13 @@
 import { useMemo, useState, type ReactNode } from "react";
 import type { EvidenceView, FindingView, ReportData, SubmissionView } from "@/client/types.gen";
 import {
+  PROBLEM_SUSPICION_TOOLTIP,
+  problemSuspicionLevel,
+} from "@/features/contests/problemSignalStats";
+import {
   fmtScore,
   formatSignalCount,
+  formatSubmissionCount,
   problemDisplay,
   scoreLevel,
   searchBlob,
@@ -191,6 +196,8 @@ function CodePane({
 export function GroupTitle({
   groupBy,
   group,
+  suspiciousCount,
+  submissionCount,
 }: {
   groupBy: GroupBy;
   group: {
@@ -201,7 +208,16 @@ export function GroupTitle({
     problemName: string;
     visibleCount: number;
   };
+  /** Подозрительные посылки задачи (для groupBy=problem). */
+  suspiciousCount?: number;
+  submissionCount?: number;
 }) {
+  const sharePercent =
+    groupBy === "problem" && submissionCount != null && submissionCount > 0
+      ? (100 * (suspiciousCount ?? 0)) / submissionCount
+      : null;
+  const heat = sharePercent != null ? problemSuspicionLevel(sharePercent) : null;
+
   return (
     <h2 className="group-title">
       {groupBy === "problem" ? (
@@ -213,7 +229,21 @@ export function GroupTitle({
       ) : (
         <code>{group.key}</code>
       )}
-      <span className="group-count">{formatSignalCount(group.visibleCount)}</span>
+      {groupBy === "problem" && submissionCount != null ? (
+        <span
+          className={
+            "group-stats" +
+            (heat === "level-high"
+              ? " group-stats--high"
+              : heat === "level-low"
+                ? " group-stats--low"
+                : "")
+          }
+          title={PROBLEM_SUSPICION_TOOLTIP}
+        >
+          {formatSignalCount(suspiciousCount ?? 0)} / {formatSubmissionCount(submissionCount)}
+        </span>
+      ) : null}
     </h2>
   );
 }

@@ -1,5 +1,7 @@
 import type { FindingView, SubjectView } from "@/client/types.gen";
 
+const collator = new Intl.Collator("ru", { numeric: true, sensitivity: "base" });
+
 export type GroupBy = "problem" | "participant";
 
 export type FindingGroup = {
@@ -30,6 +32,16 @@ export function formatSignalCount(n: number): string {
   if (mod10 === 1 && mod100 !== 11) word = "сигнал";
   else if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) word = "сигнала";
   else word = "сигналов";
+  return `${n} ${word}`;
+}
+
+export function formatSubmissionCount(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  let word: string;
+  if (mod10 === 1 && mod100 !== 11) word = "посылка";
+  else if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) word = "посылки";
+  else word = "посылок";
   return `${n} ${word}`;
 }
 
@@ -91,14 +103,22 @@ export function uniqueDetectors(signals: FindingView["signals"]): string[] {
   return out;
 }
 
+type AccLike = {
+  contest: string;
+  contestName: string;
+  problem: string;
+  problemName: string;
+};
+
+function groupSortLabel(groupBy: GroupBy, key: string, g: AccLike): string {
+  if (groupBy === "problem") {
+    return g.problemName || g.problem || key;
+  }
+  return key;
+}
+
 export function groupFindings(findings: FindingView[], groupBy: GroupBy): FindingGroup[] {
-  type Acc = {
-    contest: string;
-    contestName: string;
-    problem: string;
-    problemName: string;
-    findings: FindingView[];
-  };
+  type Acc = AccLike & { findings: FindingView[] };
   const map = new Map<string, Acc>();
   const order: string[] = [];
 
@@ -136,7 +156,18 @@ export function groupFindings(findings: FindingView[], groupBy: GroupBy): Findin
     for (const p of parts) ensure(p).findings.push(f);
   }
 
-  order.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  // Блоки всегда лексикографически (имя задачи / участник), не по порядку появления.
+  order.sort((a, b) => {
+    const ga = map.get(a)!;
+    const gb = map.get(b)!;
+    const byLabel = collator.compare(groupSortLabel(groupBy, a, ga), groupSortLabel(groupBy, b, gb));
+    if (byLabel !== 0) return byLabel;
+    if (groupBy === "problem") {
+      const byProblem = collator.compare(ga.problem || a, gb.problem || b);
+      if (byProblem !== 0) return byProblem;
+    }
+    return collator.compare(a, b);
+  });
 
   return order.map((key) => {
     const g = map.get(key)!;

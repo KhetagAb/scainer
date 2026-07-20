@@ -4,16 +4,17 @@ import { Link, useParams, useNavigate, useSearchParams } from "react-router-dom"
 import {
   getContestFindingsOptions,
   getContestFindingsQueryKey,
+  getContestProblemsOptions,
+  getContestProblemsQueryKey,
   getContestsOptions,
 } from "@/client/@tanstack/react-query.gen";
-import type { FindingView, ReportData } from "@/client/types.gen";
+import type { ProblemInfo } from "@/client/types.gen";
 import { authHeaders } from "@/features/auth/authStorage";
 import ContestStats from "@/features/contests/ContestStats";
 import { UNGROUPED_PARALLEL } from "@/features/contests/contestHelpers";
 import { formatImportProgress } from "@/features/contests/importJobShared";
 import ImportProgressBar from "@/features/contests/ImportProgressBar";
-import { weightedSuspicionFromFindings } from "@/features/contests/problemSignalStats";
-import { useSensitivity } from "@/features/contests/SensitivityContext";
+import { problemSubmissionCountsMap } from "@/features/contests/problemSignalStats";
 import { useImportJob } from "@/features/contests/useImportJob";
 import FindingsPage from "@/features/findings/FindingsPage";
 import importIconUrl from "@/assets/import-icon.png";
@@ -43,7 +44,6 @@ export default function ContestPage({ onUnauthorized }: Props) {
   const contest = contestId
     ? contestsQuery.data?.find((c) => c.id === contestId)
     : undefined;
-  const { threshold } = useSensitivity();
 
   const findingsQuery = useQuery({
     ...getContestFindingsOptions({
@@ -52,6 +52,19 @@ export default function ContestPage({ onUnauthorized }: Props) {
     }),
     enabled: Boolean(contestId),
   });
+
+  const problemsQuery = useQuery({
+    ...getContestProblemsOptions({
+      path: { id: contestId ?? "" },
+      headers: authHeaders(),
+    }),
+    enabled: Boolean(contestId),
+  });
+
+  const problemSubmissionCounts = useMemo(
+    () => problemSubmissionCountsMap((problemsQuery.data ?? []) as ProblemInfo[]),
+    [problemsQuery.data],
+  );
 
   const refreshContests = useCallback(() => {
     void contestsQuery.refetch();
@@ -64,6 +77,12 @@ export default function ContestPage({ onUnauthorized }: Props) {
         contestsQuery.refetch(),
         queryClient.invalidateQueries({
           queryKey: getContestFindingsQueryKey({
+            path: { id: contestId },
+            headers: authHeaders(),
+          }),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: getContestProblemsQueryKey({
             path: { id: contestId },
             headers: authHeaders(),
           }),
@@ -83,20 +102,13 @@ export default function ContestPage({ onUnauthorized }: Props) {
 
   const headerStats = useMemo(() => {
     if (!contest) return null;
-    const report = findingsQuery.data as ReportData | undefined;
-    const findings = (report?.findings ?? []) as FindingView[];
-    const submissionCount = contest.submissionCount ?? 0;
-    const weighted = findingsQuery.isSuccess
-      ? weightedSuspicionFromFindings(findings, threshold, submissionCount)
-      : (contest.weightedSuspicionPercent ?? null);
     return {
       id: contest.id,
-      submissionCount,
+      submissionCount: contest.submissionCount ?? 0,
       problemCount: contest.problemCount,
       findingsCount: contest.findingsCount,
-      weightedSuspicionPercent: weighted,
     };
-  }, [contest, findingsQuery.data, findingsQuery.isSuccess, threshold]);
+  }, [contest]);
 
   if (!contestId) {
     navigate("/", { replace: true });
@@ -167,6 +179,7 @@ export default function ContestPage({ onUnauthorized }: Props) {
       <FindingsPage
         findingKey={searchParams.get("finding")}
         findingsQuery={findingsQuery}
+        problemSubmissionCounts={problemSubmissionCounts}
       />
     </>
   );

@@ -6,30 +6,62 @@ function isTerminal(status: JobState["status"]): boolean {
   return status === "succeeded" || status === "failed";
 }
 
+function isAbortError(e: unknown): boolean {
+  if (e instanceof DOMException && e.name === "AbortError") return true;
+  return e instanceof Error && e.name === "AbortError";
+}
+
+function abortError(): DOMException {
+  return new DOMException("Aborted", "AbortError");
+}
+
 /**
  * subscribeJobEvents читает SSE-поток GET /api/jobs/{jobId}/events через fetch+ReadableStream —
  * не нативный EventSource, потому что EventSource не умеет слать Authorization-заголовок (JWT),
  * а этот эндпоинт защищён тем же JWT-мидлваром, что и весь остальной /api.
  * Вызывает onEvent на каждое полученное состояние job'а и резолвится финальным состоянием, когда
- * поток закрывается (сервер сам закрывает его на succeeded/failed).
+ * job переходит в succeeded/failed.
  *
- * Если поток оборвался без терминального статуса (прокси, remount) — добираем снимок через getJob.
+ * Remount/F5/прокси часто рвут SSE без финала: тогда переподключаемся, пока job жив.
+ * Нельзя резолвить «успехом» на незавершённом state — caller сотрёт jobId из localStorage
+ * и после перезагрузки страницы resume сломается.
  */
 export async function subscribeJobEvents(
   jobId: string,
   onEvent: (state: JobState) => void,
   signal?: AbortSignal,
 ): Promise<JobState> {
+  for (;;) {
+    if (signal?.aborted) throw abortError();
+
+    const terminal = await readProgressStream(jobId, onEvent, signal);
+    if (terminal) return terminal;
+
+    // Поток оборвался, job ещё running — короткая пауза и снова SSE.
+    await wait(300, signal);
+  }
+}
+
+async function readProgressStream(
+  jobId: string,
+  onEvent: (state: JobState) => void,
+  signal?: AbortSignal,
+): Promise<JobState | null> {
   const res = await fetch(`/api/jobs/${encodeURIComponent(jobId)}/events`, {
     headers: authHeaders(),
     signal,
   });
   if (!res.ok || !res.body) {
-    const err = new Error(`не удалось открыть поток прогресса: HTTP ${res.status}`) as Error & {
-      status?: number;
-    };
-    err.status = res.status;
-    throw err;
+    if (res.status === 404) {
+      const err = new Error(`не удалось открыть поток прогресса: HTTP 404`) as Error & {
+        status?: number;
+      };
+      err.status = 404;
+      throw err;
+    }
+    // Временный сбой прокси — пусть верхний цикл переподключится через snapshot.
+    const snap = await snapshotJob(jobId, onEvent, signal);
+    return snap && isTerminal(snap.status) ? snap : null;
   }
 
   const reader = res.body.getReader();
@@ -37,38 +69,81 @@ export async function subscribeJobEvents(
   let buffer = "";
   let last: JobState | null = null;
 
-  for (;;) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
 
-    let sep: number;
-    while ((sep = buffer.indexOf("\n\n")) !== -1) {
-      const rawEvent = buffer.slice(0, sep);
-      buffer = buffer.slice(sep + 2);
-      const state = parseProgressEvent(rawEvent);
-      if (state) {
-        last = state;
-        onEvent(state);
+      let sep: number;
+      while ((sep = buffer.indexOf("\n\n")) !== -1) {
+        const rawEvent = buffer.slice(0, sep);
+        buffer = buffer.slice(sep + 2);
+        const state = parseProgressEvent(rawEvent);
+        if (state) {
+          last = state;
+          onEvent(state);
+          if (isTerminal(state.status)) {
+            return state;
+          }
+        }
       }
     }
+  } catch (e) {
+    if (isAbortError(e) || signal?.aborted) throw abortError();
+    throw e;
   }
+
+  if (signal?.aborted) throw abortError();
 
   if (last && isTerminal(last.status)) {
     return last;
   }
 
-  // Поток закрылся без финала — уточняем через snapshot (частый артефакт при remount/прокси).
+  const snap = await snapshotJob(jobId, onEvent, signal);
+  if (snap && isTerminal(snap.status)) {
+    return snap;
+  }
+  // Job ещё идёт (или исчез) — null = переподключиться / выйти по 404 на следующем круге.
+  return null;
+}
+
+async function snapshotJob(
+  jobId: string,
+  onEvent: (state: JobState) => void,
+  signal?: AbortSignal,
+): Promise<JobState | null> {
+  if (signal?.aborted) throw abortError();
   const snap = await getJob({
     path: { jobId },
     headers: authHeaders(),
   });
-  if (snap.data && isTerminal(snap.data.status)) {
-    onEvent(snap.data);
-    return snap.data;
+  if (signal?.aborted) throw abortError();
+  if (snap.response.status === 404 || !snap.data) {
+    const err = new Error("job not found") as Error & { status?: number };
+    err.status = 404;
+    throw err;
   }
-  if (last) return last;
-  throw new Error("поток прогресса закрылся, не дождавшись финального состояния");
+  onEvent(snap.data);
+  return snap.data;
+}
+
+function wait(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(abortError());
+      return;
+    }
+    const t = window.setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      window.clearTimeout(t);
+      reject(abortError());
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
 }
 
 function parseProgressEvent(raw: string): JobState | null {

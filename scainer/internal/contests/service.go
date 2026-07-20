@@ -39,10 +39,9 @@ type Registration struct {
 }
 
 type ContestStatistic struct {
-	SubmissionCount          int
-	ProblemCount             int
-	FindingsCount            int
-	WeightedSuspicionPercent *float64 // nil если посылок нет
+	SubmissionCount int
+	ProblemCount    int
+	FindingsCount   int
 }
 
 type Contest struct {
@@ -56,9 +55,10 @@ type Contest struct {
 }
 
 type ProblemInfo struct {
-	ID       domain.ProblemID
-	Name     string
-	Excluded bool
+	ID              domain.ProblemID
+	Name            string
+	Excluded        bool
+	SubmissionCount int
 }
 
 type ImportResult struct {
@@ -210,11 +210,9 @@ func (s *Service) enrichStats(ctx context.Context, contest *Contest) error {
 	}
 	if !ok {
 		contest.Statistic.FindingsCount = 0
-		contest.Statistic.WeightedSuspicionPercent = weightedSuspicionPercent(nil, subs)
 		return nil
 	}
 	contest.Statistic.FindingsCount = len(snap.Findings)
-	contest.Statistic.WeightedSuspicionPercent = weightedSuspicionPercent(snap.Findings, subs)
 	return nil
 }
 
@@ -228,18 +226,6 @@ func countStore(ctx context.Context, st store.Store, id domain.ContestID) (submi
 		submissions += len(list)
 	}
 	return submissions, problems, nil
-}
-
-func weightedSuspicionPercent(findings []domain.Finding, submissionCount int) *float64 {
-	if submissionCount == 0 {
-		return nil
-	}
-	var sum float64
-	for _, f := range findings {
-		sum += f.Score
-	}
-	pct := 100 * sum / float64(submissionCount)
-	return &pct
 }
 
 func (s *Service) SetParallel(ctx context.Context, id domain.ContestID, parallelID domain.ParallelID, parallelName string) error {
@@ -409,9 +395,10 @@ func (s *Service) Problems(ctx context.Context, id domain.ContestID) ([]ProblemI
 		}
 
 		out = append(out, ProblemInfo{
-			ID:       probID,
-			Name:     problemName,
-			Excluded: excluded[probID],
+			ID:              probID,
+			Name:            problemName,
+			Excluded:        excluded[probID],
+			SubmissionCount: len(subs),
 		})
 	}
 	return out, nil

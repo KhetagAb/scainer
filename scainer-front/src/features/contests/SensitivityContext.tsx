@@ -6,8 +6,8 @@ import { authHeaders } from "@/features/auth/authStorage";
 import { UNGROUPED_PARALLEL } from "@/features/contests/contestHelpers";
 import {
   DEFAULT_SENSITIVITY,
-  useParallelSensitivity,
-} from "@/features/contests/useParallelSensitivity";
+  useUserSensitivity,
+} from "@/features/contests/useUserSensitivity";
 import type { GroupBy } from "@/features/findings/reportModel";
 import {
   DEFAULT_GROUP_BY,
@@ -34,7 +34,7 @@ const SensitivityContext = createContext<SensitivityContextValue>({
   setGroupBy: () => {},
 });
 
-/** parallelId из URL: /parallels/:id или parallel контеста /contests/:id. */
+/** parallelId из URL: /parallels/:id или parallel контеста /contests/:id (для groupBy). */
 function useSensitivityScope(): { parallelId: string | null; onContestPage: boolean } {
   const { pathname } = useLocation();
   const contestsQuery = useQuery({
@@ -72,9 +72,7 @@ function useSensitivityScope(): { parallelId: string | null; onContestPage: bool
 
 export function SensitivityProvider({ children }: { children: ReactNode }) {
   const { parallelId: scopeParallelId, onContestPage } = useSensitivityScope();
-  const { threshold, setThreshold } = useParallelSensitivity(
-    scopeParallelId ?? UNGROUPED_PARALLEL,
-  );
+  const { threshold, setThreshold } = useUserSensitivity();
   const { groupBy, setGroupBy } = useParallelFindingsGroupBy(
     scopeParallelId ?? UNGROUPED_PARALLEL,
   );

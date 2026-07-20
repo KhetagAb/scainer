@@ -523,9 +523,6 @@ func TestListStatsZeroBeforeImport(t *testing.T) {
 	if got.Statistic.SubmissionCount != 0 || got.Statistic.ProblemCount != 0 || got.Statistic.FindingsCount != 0 {
 		t.Fatalf("counts: got subs=%d problems=%d findings=%d", got.Statistic.SubmissionCount, got.Statistic.ProblemCount, got.Statistic.FindingsCount)
 	}
-	if got.Statistic.WeightedSuspicionPercent != nil {
-		t.Fatalf("percent: want nil, got %v", *got.Statistic.WeightedSuspicionPercent)
-	}
 }
 
 func TestListEnrichStats(t *testing.T) {
@@ -570,10 +567,6 @@ func TestListEnrichStats(t *testing.T) {
 	}
 	if got.Statistic.FindingsCount != 2 {
 		t.Fatalf("FindingsCount: got %d want 2", got.Statistic.FindingsCount)
-	}
-	// 100 * (0.5+1.0) / 3 = 50
-	if got.Statistic.WeightedSuspicionPercent == nil || *got.Statistic.WeightedSuspicionPercent != 50 {
-		t.Fatalf("WeightedSuspicionPercent: got %v want 50", got.Statistic.WeightedSuspicionPercent)
 	}
 }
 

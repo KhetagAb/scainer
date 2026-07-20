@@ -151,9 +151,10 @@ func (s *Server) GetContestProblems(c echo.Context, id server.ContestID) error {
 	out := make([]server.ProblemInfo, 0, len(problems))
 	for _, p := range problems {
 		out = append(out, server.ProblemInfo{
-			Id:       string(p.ID),
-			Name:     p.Name,
-			Excluded: p.Excluded,
+			Id:              string(p.ID),
+			Name:            p.Name,
+			Excluded:        p.Excluded,
+			SubmissionCount: p.SubmissionCount,
 		})
 	}
 	return c.JSON(http.StatusOK, out)
@@ -297,10 +298,6 @@ func toContestInfo(contest contests.Contest) server.ContestInfo {
 		SubmissionCount: intPtr(st.SubmissionCount),
 		ProblemCount:    intPtr(st.ProblemCount),
 		FindingsCount:   intPtr(st.FindingsCount),
-	}
-	if st.WeightedSuspicionPercent != nil {
-		v := float32(*st.WeightedSuspicionPercent)
-		out.WeightedSuspicionPercent = &v
 	}
 	return out
 }

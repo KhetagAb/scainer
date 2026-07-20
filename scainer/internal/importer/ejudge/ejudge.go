@@ -103,7 +103,12 @@ func (i *Importer) Import(ctx context.Context, s store.Store) ([]domain.Submissi
 
 	subs := make([]domain.Submission, 0, len(runs))
 	maxRunID := -1
-	total := len(runs)
+	base := countContestSubmissions(ctx, s, domain.ContestID(strconv.Itoa(contestID)))
+	batch := len(runs)
+	total := base + batch
+
+	// Абсолютный прогресс: уже в store + текущая догрузка (в случае инкрементального импорта).
+	progress.Report(ctx, progress.Event{Phase: "importing", Done: base, Total: total})
 	for idx, run := range runs {
 		if run.RunId == nil {
 			return nil, fmt.Errorf("ejudge: ран без run_id")
@@ -112,7 +117,7 @@ func (i *Importer) Import(ctx context.Context, s store.Store) ([]domain.Submissi
 		// Без участника пропускаем. Курсор двигаем только после успешного импорта —
 		// иначе пропуски «сжигают» курсор, и повторный импорт уже ничего не видит.
 		if (run.UserLogin == nil || *run.UserLogin == "") && (run.UserName == nil || *run.UserName == "") {
-			progress.Report(ctx, progress.Event{Phase: "importing", Done: idx + 1, Total: total})
+			progress.Report(ctx, progress.Event{Phase: "importing", Done: base + idx + 1, Total: total})
 			continue
 		}
 
@@ -132,7 +137,7 @@ func (i *Importer) Import(ctx context.Context, s store.Store) ([]domain.Submissi
 		if runID > maxRunID {
 			maxRunID = runID
 		}
-		progress.Report(ctx, progress.Event{Phase: "importing", Done: idx + 1, Total: total})
+		progress.Report(ctx, progress.Event{Phase: "importing", Done: base + idx + 1, Total: total})
 	}
 
 	if maxRunID >= 0 {
@@ -141,6 +146,18 @@ func (i *Importer) Import(ctx context.Context, s store.Store) ([]domain.Submissi
 		}
 	}
 	return subs, nil
+}
+
+func countContestSubmissions(ctx context.Context, s store.Store, contest domain.ContestID) int {
+	byProblem, err := s.ByProblem(ctx, contest)
+	if err != nil {
+		return 0
+	}
+	n := 0
+	for _, list := range byProblem {
+		n += len(list)
+	}
+	return n
 }
 
 func truncate(b []byte, n int) string {

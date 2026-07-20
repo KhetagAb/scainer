@@ -25,7 +25,7 @@ type UseImportJobOptions = {
 
 /**
  * useImportJob — POST …/import → jobId + SSE-прогресс.
- * jobId кладётся в sessionStorage, чтобы после ухода со страницы подписка возобновлялась.
+ * jobId кладётся в localStorage, чтобы после F5 подписка возобновлялась.
  */
 export function useImportJob(
   onUnauthorized?: () => void,
@@ -59,7 +59,9 @@ export function useImportJob(
         signal,
       );
 
-      clearStoredJobId(id);
+      if (final.status === "succeeded" || final.status === "failed") {
+        clearStoredJobId(id);
+      }
 
       if (final.status === "failed") {
         setError(final.error || "импорт завершился с ошибкой");
@@ -81,6 +83,7 @@ export function useImportJob(
 
       const controller = new AbortController();
       abortRef.current = controller;
+      let jobIdWritten = false;
       try {
         const res = await postContestImport({
           path: { id },
@@ -93,13 +96,16 @@ export function useImportJob(
         }
 
         writeStoredJobId(id, jobId);
+        jobIdWritten = true;
         const ok = await watchJob(id, jobId, controller.signal);
         onSettledRef.current?.(ok);
         return ok;
       } catch (e) {
         if (isAbortError(e)) return false;
-        clearStoredJobId(id);
         if ((e as { status?: number })?.status === 401) onUnauthorized?.();
+        if ((e as { status?: number })?.status === 404 || !jobIdWritten) {
+          clearStoredJobId(id);
+        }
         setError(e instanceof Error ? e.message : String(e));
         onSettledRef.current?.(false);
         return false;
@@ -158,9 +164,11 @@ export function useImportJob(
         if (!cancelled) onSettledRef.current?.(ok);
       } catch (e) {
         if (cancelled || isAbortError(e)) return;
-        clearStoredJobId(contestId);
         if ((e as { status?: number })?.status === 401) onUnauthorized?.();
-        if ((e as { status?: number })?.status === 404) return;
+        if ((e as { status?: number })?.status === 404) {
+          clearStoredJobId(contestId);
+          return;
+        }
         setError(e instanceof Error ? e.message : String(e));
         onSettledRef.current?.(false);
       } finally {

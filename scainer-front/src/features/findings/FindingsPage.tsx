@@ -1,7 +1,11 @@
 import { useMemo, useState, useEffect } from "react";
 import type { UseQueryResult } from "@tanstack/react-query";
-import type { ReportData } from "@/client/types.gen";
+import type { FindingView, ReportData, SubmissionView } from "@/client/types.gen";
 import { useSensitivity } from "@/features/contests/SensitivityContext";
+import { collator } from "@/features/contests/contestHelpers";
+import {
+  countSuspiciousSubmissionsForProblem,
+} from "@/features/contests/problemSignalStats";
 import {
   FindingCard,
   GroupTitle,
@@ -13,6 +17,8 @@ type Props = {
   findingKey?: string | null;
   /** Shared query from ContestPage so header chips reuse the same cache. */
   findingsQuery: UseQueryResult<unknown>;
+  /** problemId → число посылок в store. */
+  problemSubmissionCounts: Record<string, number>;
 };
 
 type HiddenMeta = {
@@ -22,16 +28,37 @@ type HiddenMeta = {
   problemName: string;
 };
 
-export default function FindingsPage({ findingKey, findingsQuery }: Props) {
+export default function FindingsPage({
+  findingKey,
+  findingsQuery,
+  problemSubmissionCounts,
+}: Props) {
   const { threshold, groupBy } = useSensitivity();
   const [query, setQuery] = useState("");
   const [hiddenGroups, setHiddenGroups] = useState<Record<string, HiddenMeta>>({});
 
   const data = findingsQuery.data as ReportData | undefined;
   const findings = data?.findings ?? [];
-  const submissions = data?.submissions ?? {};
+  const submissions = (data?.submissions ?? {}) as Record<string, SubmissionView>;
   const groups = useMemo(() => groupFindings(findings, groupBy), [findings, groupBy]);
   const visibleKeys = useFilteredVisibility(findings, query, threshold);
+
+  const groupProblemStats = useMemo(() => {
+    const map = new Map<string, { suspicious: number; submissions: number }>();
+    if (groupBy !== "problem") return map;
+    for (const g of groups) {
+      const submissions = problemSubmissionCounts[g.problem] ?? 0;
+      map.set(g.key, {
+        suspicious: countSuspiciousSubmissionsForProblem(
+          g.findings as FindingView[],
+          threshold,
+          g.problem,
+        ),
+        submissions,
+      });
+    }
+    return map;
+  }, [groups, groupBy, threshold, problemSubmissionCounts]);
 
   useEffect(() => {
     setHiddenGroups({});
@@ -76,31 +103,33 @@ export default function FindingsPage({ findingKey, findingsQuery }: Props) {
         <div className="hidden-groups" aria-label="Скрытые задачи">
           <span className="hidden-groups-label">Скрытые задачи:</span>
           {Object.keys(hiddenGroups)
-            .sort()
+            .sort((a, b) => {
+              const ma = hiddenGroups[a]!;
+              const mb = hiddenGroups[b]!;
+              const byLabel = collator.compare(
+                problemDisplay(ma.problem || a, ma.problemName),
+                problemDisplay(mb.problem || b, mb.problemName),
+              );
+              if (byLabel !== 0) return byLabel;
+              return collator.compare(a, b);
+            })
             .map((key) => {
-              const meta = hiddenGroups[key];
+              const meta = hiddenGroups[key]!;
               return (
                 <button
                   key={key}
                   type="button"
                   className="hidden-group-chip"
-                  title={`Показать снова (${key})`}
-                  onClick={() => {
+                  onClick={() =>
                     setHiddenGroups((prev) => {
                       const next = { ...prev };
                       delete next[key];
                       return next;
-                    });
-                  }}
+                    })
+                  }
+                  title="Показать снова"
                 >
-                  {meta.problem || key ? (
-                    <span className="chip problem-chip" title={meta.problem || key}>
-                      {problemDisplay(meta.problem || key, meta.problemName)}
-                    </span>
-                  ) : null}
-                  <span className="hidden-group-x" aria-hidden>
-                    ×
-                  </span>
+                  {problemDisplay(meta.problem || key, meta.problemName)}
                 </button>
               );
             })}
@@ -113,6 +142,7 @@ export default function FindingsPage({ findingKey, findingsQuery }: Props) {
           const visibleInGroup = g.findings.filter((f) => visibleKeys.has(f.key)).length;
           if (!userHidden) visibleTotal += visibleInGroup;
           const emptyAfterFilter = !userHidden && visibleInGroup === 0;
+          const problemStat = groupProblemStats.get(g.key);
 
           return (
             <section
@@ -130,6 +160,8 @@ export default function FindingsPage({ findingKey, findingsQuery }: Props) {
                     problemName: g.problemName,
                     visibleCount: visibleInGroup,
                   }}
+                  suspiciousCount={problemStat?.suspicious}
+                  submissionCount={problemStat?.submissions}
                 />
                 {groupBy === "problem" ? (
                   <button

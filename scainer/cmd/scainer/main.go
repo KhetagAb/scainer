@@ -81,9 +81,9 @@ func run(addr string) error {
 		return fmt.Errorf("jplag: %w", err)
 	}
 
-	mongoURI := os.Getenv("MONGODB_URI")
-	if mongoURI == "" {
-		return fmt.Errorf("нужен MONGODB_URI (реестр контестов и findings хранятся в MongoDB)")
+	mongoURI, err := repository.URIFromEnv()
+	if err != nil {
+		return err
 	}
 	mongoDB := os.Getenv("MONGODB_DATABASE")
 	if mongoDB == "" {

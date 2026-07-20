@@ -2,7 +2,6 @@ package repository_test
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -12,9 +11,9 @@ import (
 
 func mustDB(t *testing.T) *mongo.Database {
 	t.Helper()
-	uri := os.Getenv("MONGODB_URI")
-	if uri == "" {
-		t.Skip("MONGODB_URI не задан — пропускаем интеграционный тест с реальной MongoDB")
+	uri, err := repository.URIFromEnv()
+	if err != nil {
+		t.Skipf("%v — пропускаем интеграционный тест с реальной MongoDB", err)
 	}
 
 	ctx := context.Background()

@@ -31,8 +31,14 @@ func (s *Server) Echo() *echo.Echo {
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
+	// За nginx / внешним reverse proxy: RealIP из X-Forwarded-For (rate limit login).
+	e.IPExtractor = scainermw.ExtractIPFromProxyHeaders
 	e.Use(echomiddleware.Recover())
-	e.Use(echomiddleware.Logger())
+	// Без Authorization — JWT не должен попадать в access log.
+	e.Use(echomiddleware.LoggerWithConfig(echomiddleware.LoggerConfig{
+		Format: `${time_rfc3339} ${remote_ip} ${method} ${uri} ${status} ${latency_human}` + "\n",
+	}))
+	e.Use(scainermw.LoginRateLimit(5, time.Minute))
 	e.Use(scainermw.RequireJWT(s.auth))
 	server.RegisterHandlers(e, s)
 	// SSE вне OpenAPI/codegen (text/event-stream не в ServerInterface).

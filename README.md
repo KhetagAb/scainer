@@ -21,18 +21,43 @@ go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.8.0
 
 **Опционально:** Docker и Docker Compose — запуск всего стека одной командой.
 
-## Быстрый старт (Docker Compose)
+## Быстрый старт (Docker Compose, локально)
 
 ```bash
-cp scainer/.env.example scainer/.env   # заполнить секреты
+cp scainer/.env.example scainer/.env   # заполнить секреты и MONGO_INITDB_ROOT_PASSWORD
 docker compose up --build
 ```
 
-Порты с хоста задаёт [`docker-compose.override.yml`](docker-compose.override.yml):
+Порты с хоста задаёт [`docker-compose.override.yml`](docker-compose.override.yml)
+(только для локальной разработки — **не** для школьного сервера):
 
 - UI (nginx): **http://localhost:8088**
 - Backend: **http://localhost:8080**
-- MongoDB: `localhost:27017`
+- MongoDB: `localhost:27017` (с auth из `.env`)
+
+## Школьный сервер (LAN + reverse proxy)
+
+TLS терминируется на **внешнем** reverse proxy; внутри стека остаётся HTTP.
+
+```bash
+cp scainer/.env.example scainer/.env   # сильные ADMIN_PASSWORD, JWT_SECRET, Mongo-пароль
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+```
+
+[`docker-compose.prod.yml`](docker-compose.prod.yml) публикует только nginx на
+`127.0.0.1:8088`; Mongo и API **без** host-портов (не видны из LAN).
+
+**Чеклист reverse proxy → `http://127.0.0.1:8088`:**
+
+- Снаружи только HTTPS; до прокси не отдавать `:8088`/`:8080`/`:27017` в LAN.
+- Не логировать заголовок `Authorization`.
+- Для SSE прогресса (`/api/jobs/…`): `proxy_buffering off`, длинный `proxy_read_timeout`
+  (как во внутреннем [`scainer-front/nginx.conf`](scainer-front/nginx.conf)).
+- Прокидывать `X-Forwarded-For` / `X-Real-IP` (rate limit login смотрит на IP клиента).
+
+**MongoDB auth:** `MONGO_INITDB_*` применяются только при **первом** старте с пустым
+volume. Если volume уже без пароля — удалить volume (`docker compose down -v`, данные
+пропадут) или вручную создать пользователя в Mongo и обновить пароль в `.env`.
 
 ## Локальная разработка
 
@@ -45,7 +70,9 @@ docker compose up mongodb -d
 Порт `27017` на хосте. Для локального бэкенда в `scainer/.env`:
 
 ```
-MONGODB_URI=mongodb://localhost:27017
+MONGO_INITDB_ROOT_USERNAME=scainer
+MONGO_INITDB_ROOT_PASSWORD=…
+MONGODB_HOST=localhost
 MONGODB_DATABASE=scainer
 ```
 
@@ -53,7 +80,7 @@ MONGODB_DATABASE=scainer
 
 ```bash
 cd scainer
-cp .env.example .env          # ADMIN_*, JWT_*, EJUDGE_API_KEY, …
+cp .env.example .env          # ADMIN_*, JWT_*, EJUDGE_API_KEY, Mongo …
 make setup                    # тянет bin/jplag.jar (нужен java)
 make build                    # codegen + go build
 ./bin/scainer                 # слушает :8080
@@ -85,9 +112,9 @@ VITE_API_PROXY_TARGET=http://host:8080 npm run dev
 
 Основные переменные (см. `.env.example`):
 
-- `ADMIN_USERNAME` / `ADMIN_PASSWORD` / `JWT_SECRET` / `JWT_TTL`
+- `ADMIN_USERNAME` / `ADMIN_PASSWORD` / `JWT_SECRET` / `JWT_TTL` (по умолчанию `12h`)
 - `EJUDGE_BASE_URL` / `EJUDGE_API_KEY` / `EJUDGE_TIMEOUT`
-- `MONGODB_URI` / `MONGODB_DATABASE`
+- `MONGO_INITDB_ROOT_USERNAME` / `MONGO_INITDB_ROOT_PASSWORD` / `MONGODB_HOST` / `MONGODB_DATABASE`
 - `STORE_DIR` — персистентность посылок (по умолчанию `./data`)
 - `JPLAG_JAR_PATH` — путь к jar (по умолчанию `bin/jplag.jar` после `make setup`)
 - `JOBS_MAX_CONCURRENT` / `ANALYZE_CONCURRENCY` — пул импорта и потолок JVM/JPlag

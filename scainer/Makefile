@@ -9,7 +9,7 @@ JPLAG_JAR  := bin/jplag.jar
 all: vet test build
 
 code-gen:
-	go generate ./api/
+	go generate ./api/ ./pkg/ejudge/
 
 build: code-gen
 	go build -o $(BIN) ./cmd/scainer

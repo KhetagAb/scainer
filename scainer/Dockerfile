@@ -6,9 +6,8 @@ FROM golang:1.26 AS build
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
-RUN go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.8.0
 COPY . .
-RUN oapi-codegen -config api/oapi-codegen.yaml api/openapi.yaml
+RUN go generate ./api/ ./pkg/ejudge/
 RUN CGO_ENABLED=0 go build -o /out/scainer ./cmd/scainer
 
 # --- runtime stage ---

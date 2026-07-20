@@ -1,0 +1,68 @@
+{
+  "ok": true,
+  "server_time": 1784381730,
+  "result": {
+    "total_runs": 234,
+    "filtered_runs": 234,
+    "listed_runs": 3,
+    "transient_runs": 0,
+    "first_run": 0,
+    "last_run": 2,
+    "field_mask": 365829,
+    "runs": [
+      {
+        "run_id": 0,
+        "serial_id": 1818001,
+        "last_change_us": 1784364189073522,
+        "status": 5,
+        "status_str": "WA",
+        "run_time": 1784364185,
+        "run_time_us": 1784364185510129,
+        "user_login": "[5] Верхошинский Марк",
+        "user_name": "[5] Верхошинский Марк",
+        "prob_name": "A",
+        "prob_internal_name": "find-cycle",
+        "lang_name": "g++",
+        "raw_test": 0,
+        "passed_mode": 1,
+        "failed_test": 1
+      },
+      {
+        "run_id": 1,
+        "serial_id": 1818013,
+        "last_change_us": 1784364255023121,
+        "status": 12,
+        "status_str": "ML",
+        "run_time": 1784364250,
+        "run_time_us": 1784364250357548,
+        "user_login": "[5] Верхошинский Марк",
+        "user_name": "[5] Верхошинский Марк",
+        "prob_name": "A",
+        "prob_internal_name": "find-cycle",
+        "lang_name": "g++",
+        "raw_test": 9,
+        "passed_mode": 1,
+        "failed_test": 10
+      },
+      {
+        "run_id": 2,
+        "serial_id": 1818018,
+        "last_change_us": 1784364272556092,
+        "status": 5,
+        "status_str": "WA",
+        "run_time": 1784364270,
+        "run_time_us": 1784364270243252,
+        "user_login": "[5] Амбарцумян Гордей",
+        "user_name": "[5] Амбарцумян Гордей",
+        "prob_name": "A",
+        "prob_internal_name": "find-cycle",
+        "lang_name": "g++",
+        "raw_test": 0,
+        "passed_mode": 1,
+        "failed_test": 1
+      }
+    ],
+    "displayed_size": 4,
+    "displayed_mask": "8BwAAAAAAAAABwAAAAAAAAABwAAAAAAAAABwAAAAAAAAA"
+  }
+}

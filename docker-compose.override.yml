@@ -1,0 +1,15 @@
+# Автоматически подхватывается `podman-compose up` / `docker compose up`
+# (рядом с docker-compose.yml). Проброс портов на хост для локальной разработки:
+#   Vite → :8080, go run / mongosh → :27017, nginx UI → :8088.
+services:
+  mongodb:
+    ports:
+      - "127.0.0.1:27017:27017"
+
+  scainer:
+    ports:
+      - "127.0.0.1:8080:8080"
+
+  nginx:
+    ports:
+      - "127.0.0.1:8088:80"

@@ -1,0 +1,6 @@
+# Запуск из pkg/ejudge: go generate ./pkg/ejudge/
+package: ejudge
+generate:
+  models: true
+  client: true
+output: ../../generated/ejudge/client.gen.go

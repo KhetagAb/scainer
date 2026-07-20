@@ -1,0 +1,7 @@
+# Запуск: go generate ./api/  (или make code-gen)
+package: server
+generate:
+  echo-server: true
+  models: true
+  embedded-spec: true
+output: ../internal/generated/server/api.gen.go

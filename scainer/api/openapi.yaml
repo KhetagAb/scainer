@@ -1,0 +1,547 @@
+openapi: 3.0.3
+info:
+  title: Scainer API
+  description: HTTP API веб-сервиса детекции нечестных решений (обёртка над Pipeline).
+  version: 1.0.0
+
+servers:
+  - url: /
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/auth/login:
+    post:
+      operationId: postAuthLogin
+      summary: Выдать JWT по admin-логину
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Успешная авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/auth/me:
+    get:
+      operationId: getAuthMe
+      summary: Текущий пользователь по JWT
+      responses:
+        '200':
+          description: Идентичность вызывающего
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/contests:
+    get:
+      operationId: getContests
+      summary: Список контестов из run.yaml
+      responses:
+        '200':
+          description: Контесты с отметкой последнего импорта
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ContestInfo'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+    post:
+      operationId: postContests
+      summary: Зарегистрировать новый контест
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterContestRequest'
+      responses:
+        '200':
+          description: Контест успешно зарегистрирован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestInfo'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/contests/{id}:
+    patch:
+      operationId: patchContest
+      summary: Обновить параллель контеста
+      parameters:
+        - $ref: '#/components/parameters/ContestID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateContestRequest'
+      responses:
+        '200':
+          description: Контест успешно обновлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContestInfo'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+    delete:
+      operationId: deleteContest
+      summary: Удалить контест
+      parameters:
+        - $ref: '#/components/parameters/ContestID'
+      responses:
+        '204':
+          description: Контест успешно удален
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/contests/{id}/import:
+    post:
+      operationId: postContestImport
+      summary: Поставить дозагрузку+пересчёт findings в очередь (асинхронно)
+      description: >
+        Возвращает jobId сразу, не дожидаясь выполнения. Прогресс/статус — GET /api/jobs/{jobId}
+        (и GET /api/jobs/{jobId}/events для потокового чтения, вне OpenAPI-спеки). Готовые findings
+        читаются как обычно через GET .../findings после завершения job'а.
+      parameters:
+        - $ref: '#/components/parameters/ContestID'
+      responses:
+        '202':
+          description: Job поставлен в очередь
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/jobs/{jobId}:
+    get:
+      operationId: getJob
+      summary: Статус/прогресс job'а, поставленного через .../import
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Текущее состояние job'а
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobState'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/contests/{id}/findings:
+    get:
+      operationId: getContestFindings
+      summary: Находки контеста (идемпотентный GET; фактически Analyze)
+      parameters:
+        - $ref: '#/components/parameters/ContestID'
+      responses:
+        '200':
+          description: Находки (view-модель отчёта)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportData'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/contests/{id}/problems:
+    get:
+      operationId: getContestProblems
+      summary: Список задач контеста
+      parameters:
+        - $ref: '#/components/parameters/ContestID'
+      responses:
+        '200':
+          description: Список задач с информацией об исключении
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProblemInfo'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/contests/{id}/excluded-problems:
+    put:
+      operationId: putExcludedProblems
+      summary: Обновить список исключённых задач контеста
+      parameters:
+        - $ref: '#/components/parameters/ContestID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExcludedProblemsRequest'
+      responses:
+        '204':
+          description: Список исключённых задач успешно обновлен
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    ContestID:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+
+  responses:
+    ErrorResponse:
+      description: Ошибка
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+
+    LoginResponse:
+      type: object
+      required: [access_token, expires_in]
+      properties:
+        access_token:
+          type: string
+        expires_in:
+          type: integer
+          description: TTL токена в секундах
+
+    MeResponse:
+      type: object
+      required: [username]
+      properties:
+        username:
+          type: string
+
+    ContestInfo:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          description: Имя контеста из judge-системы (read-only)
+        parallelId:
+          type: string
+          nullable: true
+          description: ID параллели (опционально)
+        parallelName:
+          type: string
+          nullable: true
+          description: Имя параллели (опционально)
+        lastImportedAt:
+          type: string
+          format: date-time
+          nullable: true
+        submissionCount:
+          type: integer
+          description: Число выгруженных посылок контеста
+        problemCount:
+          type: integer
+          description: Число задач с посылками
+        findingsCount:
+          type: integer
+          description: Число находок (подозрительных субъектов) после последнего Import
+        weightedSuspicionPercent:
+          type: number
+          nullable: true
+          description: >
+            100 * sum(finding.score) / submissionCount; null если посылок нет
+
+    JobResponse:
+      type: object
+      required: [jobId]
+      properties:
+        jobId:
+          type: string
+
+    JobProgress:
+      type: object
+      required: [phase, done, total]
+      properties:
+        phase:
+          type: string
+        done:
+          type: integer
+        total:
+          type: integer
+        label:
+          type: string
+
+    JobState:
+      type: object
+      required: [id, status, progress]
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [queued, running, succeeded, failed]
+        progress:
+          $ref: '#/components/schemas/JobProgress'
+        error:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        finishedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    ReportData:
+      type: object
+      required: [generated_note, findings, submissions]
+      properties:
+        generated_note:
+          type: string
+        findings:
+          type: array
+          items:
+            $ref: '#/components/schemas/FindingView'
+        submissions:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/SubmissionView'
+
+    FindingView:
+      type: object
+      required: [key, subject, score, signals]
+      properties:
+        key:
+          type: string
+        subject:
+          $ref: '#/components/schemas/SubjectView'
+        score:
+          type: number
+          format: double
+        ai:
+          type: boolean
+        signals:
+          type: array
+          items:
+            $ref: '#/components/schemas/SignalView'
+
+    SubjectView:
+      type: object
+      required: [kind]
+      properties:
+        kind:
+          type: string
+        contest:
+          type: string
+        contest_name:
+          type: string
+        participants:
+          type: array
+          items:
+            type: string
+        problem:
+          type: string
+        problem_name:
+          type: string
+        submission:
+          type: string
+
+    SignalView:
+      type: object
+      required: [detector, score, evidence]
+      properties:
+        detector:
+          type: string
+        ai:
+          type: boolean
+        score:
+          type: number
+          format: double
+        evidence:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvidenceView'
+
+    EvidenceView:
+      type: object
+      required: [kind, description]
+      properties:
+        kind:
+          type: string
+        description:
+          type: string
+        spans:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpanView'
+
+    SpanView:
+      type: object
+      required: [submission, start_line, end_line]
+      properties:
+        submission:
+          type: string
+        start_line:
+          type: integer
+        end_line:
+          type: integer
+
+    SubmissionView:
+      type: object
+      required: [participant, problem, lang, submitted_at, verdict, source]
+      properties:
+        contest:
+          type: string
+        contest_name:
+          type: string
+        participant:
+          type: string
+        problem:
+          type: string
+        problem_name:
+          type: string
+        lang:
+          type: string
+        submitted_at:
+          type: string
+        verdict:
+          type: string
+        source:
+          type: array
+          items:
+            type: string
+
+    RegisterContestRequest:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+          description: ID контеста в judge-системе
+        parallelId:
+          type: string
+          nullable: true
+          description: ID параллели (опционально)
+        parallelName:
+          type: string
+          nullable: true
+          description: Имя параллели (опционально)
+
+    UpdateContestRequest:
+      type: object
+      properties:
+        parallelId:
+          type: string
+          nullable: true
+          description: ID параллели (опционально)
+        parallelName:
+          type: string
+          nullable: true
+          description: Имя параллели (опционально)
+
+    ProblemInfo:
+      type: object
+      required: [id, name, excluded]
+      properties:
+        id:
+          type: string
+          description: ID задачи
+        name:
+          type: string
+          description: Имя задачи из посылок
+        excluded:
+          type: boolean
+          description: Исключена ли из анализа
+
+    ExcludedProblemsRequest:
+      type: object
+      required: [problems]
+      properties:
+        problems:
+          type: array
+          items:
+            type: string
+          description: Список ID исключённых задач

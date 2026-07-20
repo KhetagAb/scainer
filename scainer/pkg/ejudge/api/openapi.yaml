@@ -1,0 +1,164 @@
+# Минимальный срез ejudge HTTP API для scainer (lksh: cgi-bin + action=…).
+# На ejudge.lksh.ru пути /ej/api/v1/... дают 404; рабочие entrypoint —
+# /cgi-bin/new-master и /cgi-bin/master (эквивалентны для наших вызовов).
+# Поля Run сверены с живым list-runs-json (contest 50501).
+openapi: 3.0.3
+info:
+  title: ejudge API (scainer subset)
+  version: "1.0"
+servers:
+  - url: /
+security:
+  - ApiKeyAuth: []
+paths:
+  # OpenAPI не позволяет два GET на одном path — list на new-master, download на master.
+  /cgi-bin/new-master:
+    get:
+      operationId: listRuns
+      summary: List runs (privileged)
+      parameters:
+        - $ref: "#/components/parameters/JsonFlag"
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [list-runs-json]
+        - $ref: "#/components/parameters/ContestId"
+        - name: first_run
+          in: query
+          schema: { type: integer }
+        - name: last_run
+          in: query
+          schema: { type: integer }
+        - name: filter_expr
+          in: query
+          schema: { type: string }
+        - name: field_mask
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListRunsReply"
+
+  /cgi-bin/master:
+    get:
+      operationId: downloadRun
+      summary: Download run source (privileged)
+      parameters:
+        - $ref: "#/components/parameters/JsonFlag"
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [download-run]
+        - $ref: "#/components/parameters/ContestId"
+        - name: run_id
+          in: query
+          required: true
+          schema: { type: integer }
+        - name: no_disp
+          in: query
+          description: do not send Content-Disposition
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Source text
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+            text/plain:
+              schema:
+                type: string
+                format: binary
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: "Value: Bearer AQAA<token>"
+
+  parameters:
+    ContestId:
+      name: contest_id
+      in: query
+      required: true
+      schema: { type: integer }
+
+    JsonFlag:
+      name: json
+      in: query
+      required: true
+      description: request JSON envelope (ejudge cgi)
+      schema:
+        type: integer
+        enum: [1]
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        message: { type: string }
+        symbol: { type: string }
+        num: { type: integer }
+        log_id: { type: string }
+
+    ListRunsReply:
+      type: object
+      properties:
+        ok: { type: boolean }
+        error:
+          $ref: "#/components/schemas/Error"
+        result:
+          $ref: "#/components/schemas/ListRunsResult"
+        server_time: { type: integer }
+
+    ListRunsResult:
+      type: object
+      properties:
+        runs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Run"
+        first_run: { type: integer }
+        last_run: { type: integer }
+        total_runs: { type: integer }
+        filtered_runs: { type: integer }
+        listed_runs: { type: integer }
+        transient_runs: { type: integer }
+        field_mask: { type: integer }
+
+    Run:
+      type: object
+      properties:
+        run_id: { type: integer }
+        serial_id: { type: integer }
+        run_uuid: { type: string }
+        user_id: { type: integer }
+        user_login: { type: string }
+        user_name: { type: string }
+        prob_id: { type: integer }
+        prob_short_name: { type: string }
+        prob_internal_name: { type: string }
+        prob_name: { type: string }
+        lang_id: { type: integer }
+        lang_name: { type: string }
+        status: { type: integer }
+        status_str: { type: string }
+        score: { type: integer }
+        run_time: { type: integer }
+        run_time_us: { type: integer }
+        last_change_us: { type: integer }
+        failed_test: { type: integer }
+        passed_mode: { type: integer }
+        raw_test: { type: integer }
+        contest_id: { type: integer }

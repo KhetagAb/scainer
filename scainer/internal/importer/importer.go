@@ -6,12 +6,17 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"scainer/internal/domain"
-	"scainer/internal/store"
 )
+
+type Store interface {
+	ByProblem(ctx context.Context, contest domain.ContestID) (map[domain.ProblemID][]domain.Submission, error)
+	GetCursor(ctx context.Context, key string) (value string, ok bool, err error)
+	SetCursor(ctx context.Context, key string, value string) error
+}
 
 type Importer interface {
 	Name() string
-	Import(ctx context.Context, s store.Store) ([]domain.Submission, error)
+	Import(ctx context.Context, store Store) ([]domain.Submission, error)
 }
 
 type Factory func(cfg *yaml.Node) (Importer, error)

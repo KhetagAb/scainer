@@ -14,10 +14,14 @@ import (
 
 	"github.com/joho/godotenv"
 
+	"scainer/internal/analyze"
 	"scainer/internal/contests"
 	"scainer/internal/detect"
+	"scainer/internal/detect/aiusage"
 	"scainer/internal/detect/jplag"
+	"scainer/internal/domain"
 	"scainer/internal/jobs"
+	"scainer/internal/llm"
 	"scainer/internal/repository"
 	"scainer/internal/scoring"
 	"scainer/internal/store"
@@ -38,6 +42,10 @@ const defaultJobsMaxConcurrent = 4
 
 // JPlag — java-подпроцесс; слишком большое число запустит слишком много JVM разом.
 const defaultAnalyzeConcurrency = 4
+
+const (
+	envAIUsageEnabled = "AIUSAGE_ENABLED"
+)
 
 func main() {
 	_ = godotenv.Load()
@@ -106,16 +114,40 @@ func run(addr string) error {
 	if err != nil {
 		return err
 	}
-	runtimeCfg := contests.RuntimeConfig{
-		Pool: jobs.NewPool(jobsMaxConcurrent),
-		// Один Limiter на процесс: иначе JOBS_MAX_CONCURRENT job'ов перемножили бы параллелизм JPlag.
-		AnalyzeLimiter: detect.NewLimiter(analyzeConcurrency),
+	limiter := detect.NewLimiter(analyzeConcurrency)
+	// Один Limiter на процесс: иначе JOBS_MAX_CONCURRENT job'ов перемножили бы параллелизм JPlag/LLM.
+	factories := []detect.StageFactory{
+		func(id domain.ContestID) detect.Stage {
+			return detect.NewStage(detect.ProblemSelector{Contest: id}, limiter, det)
+		},
 	}
 
-	contestsSvc := contests.New(st, scoring.NewWeighted(), defaultJudgeSystem, registry, findingsStore, runtimeCfg, det)
+	if os.Getenv(envAIUsageEnabled) == "1" {
+		model, err := llm.NewOpenAIFromEnv()
+		if err != nil {
+			return fmt.Errorf("aiusage: %w", err)
+		}
+		analyzer := &aiusage.Analyzer{Model: model}
+		taskDet := aiusage.NewTaskDetector(analyzer)
+		factories = append(factories, func(id domain.ContestID) detect.Stage {
+			return detect.NewStage(
+				detect.OkWithLastSelector{Contest: id},
+				limiter,
+				taskDet,
+			)
+		})
+		fmt.Fprintln(os.Stderr, "scainer: aiusage enabled")
+	}
+
+	pipeline := detect.Compose(factories...)
+	pool := jobs.NewPool(jobsMaxConcurrent)
+	scorer := scoring.NewWeighted()
+	contestsSvc := contests.NewService(registry, findingsStore, defaultJudgeSystem)
+	reader := contests.NewContestReader(registry, st, findingsStore)
+	analyzeSvc := analyze.New(pool, analyze.NewRunner(registry, st, findingsStore, scorer, pipeline))
 
 	authSvc := auth.New(username, password, secret, ttl)
-	e := transport.New(contestsSvc, authSvc).Echo()
+	e := transport.New(contestsSvc, reader, analyzeSvc, authSvc).Echo()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

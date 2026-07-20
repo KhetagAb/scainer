@@ -51,7 +51,7 @@ func TestLatestPerParticipant_Empty(t *testing.T) {
 	}
 }
 
-func TestLatestSuccessfulPerParticipant(t *testing.T) {
+func TestLatestOkPerParticipant(t *testing.T) {
 	t0 := time.Date(2026, 7, 1, 12, 0, 0, 0, time.UTC)
 	t1 := t0.Add(time.Hour)
 	t2 := t1.Add(time.Hour)
@@ -63,7 +63,7 @@ func TestLatestSuccessfulPerParticipant(t *testing.T) {
 		{ID: "4", Participant: "bob", SubmittedAt: t0, Verdict: domain.VerdictML},   // нет OK — выбыл
 		{ID: "5", Participant: "carol", SubmittedAt: t0, Verdict: domain.VerdictOK},
 	}
-	got := LatestSuccessfulPerParticipant(subs)
+	got := LatestOkPerParticipant(subs)
 	if len(got) != 2 {
 		t.Fatalf("len = %d, want 2: %+v", len(got), got)
 	}

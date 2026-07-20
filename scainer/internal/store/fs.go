@@ -54,7 +54,6 @@ func NewFS(root string) (*FS, error) {
 	return inst, nil
 }
 
-var _ Store = (*FS)(nil)
 var _ SourcePather = (*FS)(nil)
 
 func (f *FS) Root() string { return f.root }
@@ -161,17 +160,17 @@ func readSubmission(metaPath string) (domain.Submission, error) {
 	}, nil
 }
 
-func (f *FS) Put(ctx context.Context, subs []domain.Submission) error {
+func (f *FS) Put(ctx context.Context, submissions []domain.Submission) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	for _, s := range subs {
-		if err := f.writeSubmission(s); err != nil {
-			return fmt.Errorf("fs store: write %s: %w", s.ID, err)
+	for _, submission := range submissions {
+		if err := f.writeSubmission(submission); err != nil {
+			return fmt.Errorf("fs store: write %s: %w", submission.ID, err)
 		}
-		if _, ok := f.byID[s.ID]; !ok {
-			f.order = append(f.order, s.ID)
+		if _, ok := f.byID[submission.ID]; !ok {
+			f.order = append(f.order, submission.ID)
 		}
-		f.byID[s.ID] = s
+		f.byID[submission.ID] = submission
 	}
 	return nil
 }

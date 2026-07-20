@@ -10,6 +10,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"scainer/internal/analyze"
 	"scainer/internal/contests"
 	"scainer/internal/detect"
 	"scainer/internal/domain"
@@ -21,18 +22,15 @@ import (
 	"scainer/pkg/auth"
 )
 
-func newRuntimeConfig() contests.RuntimeConfig {
-	return contests.RuntimeConfig{
-		Pool:           jobs.NewPool(4),
-		AnalyzeLimiter: detect.NewLimiter(4),
-	}
+func emptyPipeline() detect.Pipeline {
+	return detect.Compose()
 }
 
 type stubImporter struct{}
 
 func (stubImporter) Name() string { return "stub" }
 
-func (stubImporter) Import(context.Context, store.Store) ([]domain.Submission, error) {
+func (stubImporter) Import(context.Context, importer.Store) ([]domain.Submission, error) {
 	return nil, nil
 }
 
@@ -109,19 +107,22 @@ func TestPostContestImportNotFound(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	svc := contests.New(store.NewMem(), scoring.NewWeighted(), "stub", newFakeRegistry(), newFakeFindingsStore(), newRuntimeConfig())
+	reg := newFakeRegistry()
+	fs := newFakeFindingsStore()
+	st := store.NewMem()
+	pipeline := emptyPipeline()
+	svc := contests.NewService(reg, fs, "stub")
+	reader := contests.NewContestReader(reg, st, fs)
+	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, scoring.NewWeighted(), pipeline))
 
-	decl := contests.Registration{
-		ID: "contest01",
-		Source: &contests.SourceSpec{
-			Type: "stub",
-		},
-	}
-	if _, err := svc.Register(context.Background(), decl); err != nil {
+	if _, err := svc.Register(context.Background(), contests.Registration{
+		ID:     "contest01",
+		Source: &contests.SourceSpec{Type: "stub"},
+	}); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
 
-	e := transport.New(svc, authSvc).Echo()
+	e := transport.New(svc, reader, analyzeSvc, authSvc).Echo()
 
 	req := httptest.NewRequest(http.MethodPost, "/api/contests/missing/import", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -147,7 +148,14 @@ func TestPostContestImportSubmitsJob(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	svc := contests.New(store.NewMem(), scoring.NewWeighted(), "stub", newFakeRegistry(), newFakeFindingsStore(), newRuntimeConfig())
+	reg := newFakeRegistry()
+	fs := newFakeFindingsStore()
+	st := store.NewMem()
+	pipeline := emptyPipeline()
+	svc := contests.NewService(reg, fs, "stub")
+	reader := contests.NewContestReader(reg, st, fs)
+	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, scoring.NewWeighted(), pipeline))
+
 	if _, err := svc.Register(context.Background(), contests.Registration{
 		ID:     "contest01",
 		Source: &contests.SourceSpec{Type: "stub"},
@@ -155,7 +163,7 @@ func TestPostContestImportSubmitsJob(t *testing.T) {
 		t.Fatalf("Register: %v", err)
 	}
 
-	e := transport.New(svc, authSvc).Echo()
+	e := transport.New(svc, reader, analyzeSvc, authSvc).Echo()
 
 	req := httptest.NewRequest(http.MethodPost, "/api/contests/contest01/import", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -190,8 +198,17 @@ func TestGetJobNotFound(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	svc := contests.New(store.NewMem(), scoring.NewWeighted(), "stub", newFakeRegistry(), newFakeFindingsStore(), newRuntimeConfig())
-	e := transport.New(svc, authSvc).Echo()
+
+	reg := newFakeRegistry()
+	fs := newFakeFindingsStore()
+	st := store.NewMem()
+	pipeline := emptyPipeline()
+	e := transport.New(
+		contests.NewService(reg, fs, "stub"),
+		contests.NewContestReader(reg, st, fs),
+		analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, scoring.NewWeighted(), pipeline)),
+		authSvc,
+	).Echo()
 
 	req := httptest.NewRequest(http.MethodGet, "/api/jobs/does-not-exist", nil)
 	req.Header.Set("Authorization", "Bearer "+token)

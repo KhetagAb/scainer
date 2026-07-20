@@ -10,6 +10,7 @@ import (
 	"github.com/labstack/echo/v4"
 	echomiddleware "github.com/labstack/echo/v4/middleware"
 
+	"scainer/internal/analyze"
 	"scainer/internal/contests"
 	"scainer/internal/domain"
 	"scainer/internal/generated/server"
@@ -20,11 +21,13 @@ import (
 
 type Server struct {
 	contests *contests.Service
+	reader   *contests.ContestReader
+	analyze  *analyze.Service
 	auth     auth.Service
 }
 
-func New(svc *contests.Service, authSvc auth.Service) *Server {
-	return &Server{contests: svc, auth: authSvc}
+func New(contestsSvc *contests.Service, reader *contests.ContestReader, analyzeSvc *analyze.Service, authSvc auth.Service) *Server {
+	return &Server{contests: contestsSvc, reader: reader, analyze: analyzeSvc, auth: authSvc}
 }
 
 func (s *Server) Echo() *echo.Echo {
@@ -75,7 +78,7 @@ func (s *Server) GetAuthMe(c echo.Context) error {
 }
 
 func (s *Server) GetContests(c echo.Context) error {
-	list, err := s.contests.List(c.Request().Context())
+	list, err := s.reader.List(c.Request().Context())
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, server.Error{Error: err.Error()})
 	}
@@ -120,7 +123,7 @@ func (s *Server) PatchContest(c echo.Context, id server.ContestID) error {
 		return mapContestErr(c, err)
 	}
 
-	list, err := s.contests.List(c.Request().Context())
+	list, err := s.reader.List(c.Request().Context())
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, server.Error{Error: err.Error()})
 	}
@@ -143,7 +146,7 @@ func (s *Server) DeleteContest(c echo.Context, id server.ContestID) error {
 }
 
 func (s *Server) GetContestProblems(c echo.Context, id server.ContestID) error {
-	problems, err := s.contests.Problems(c.Request().Context(), domain.ContestID(id))
+	problems, err := s.reader.Problems(c.Request().Context(), domain.ContestID(id))
 	if err != nil {
 		return mapContestErr(c, err)
 	}
@@ -180,7 +183,7 @@ func (s *Server) PutExcludedProblems(c echo.Context, id server.ContestID) error 
 }
 
 func (s *Server) PostContestImport(c echo.Context, id server.ContestID) error {
-	jobID, err := s.contests.SubmitImport(c.Request().Context(), domain.ContestID(id))
+	jobID, err := s.analyze.Submit(c.Request().Context(), domain.ContestID(id))
 	if err != nil {
 		return mapContestErr(c, err)
 	}
@@ -188,12 +191,12 @@ func (s *Server) PostContestImport(c echo.Context, id server.ContestID) error {
 }
 
 func (s *Server) GetContestFindings(c echo.Context, id server.ContestID) error {
-	findings, subs, err := s.contests.GetFindings(c.Request().Context(), domain.ContestID(id))
+	findings, subs, err := s.reader.GetFindings(c.Request().Context(), domain.ContestID(id))
 	return respondFindings(c, findings, subs, err)
 }
 
 func (s *Server) GetJob(c echo.Context, jobId string) error {
-	st, ok := s.contests.JobStatus(jobId)
+	st, ok := s.analyze.JobStatus(jobId)
 	if !ok {
 		return c.JSON(http.StatusNotFound, server.Error{Error: "job not found"})
 	}
@@ -202,7 +205,7 @@ func (s *Server) GetJob(c echo.Context, jobId string) error {
 
 func (s *Server) getJobEvents(c echo.Context) error {
 	jobID := c.Param("jobId")
-	events, cancel, ok := s.contests.SubscribeJob(jobID)
+	events, cancel, ok := s.analyze.SubscribeJob(jobID)
 	if !ok {
 		return c.JSON(http.StatusNotFound, server.Error{Error: "job not found"})
 	}
@@ -297,7 +300,6 @@ func toContestInfo(contest contests.Contest) server.ContestInfo {
 		LastImportedAt:  contest.LastImportedAt,
 		SubmissionCount: intPtr(st.SubmissionCount),
 		ProblemCount:    intPtr(st.ProblemCount),
-		FindingsCount:   intPtr(st.FindingsCount),
 	}
 	return out
 }

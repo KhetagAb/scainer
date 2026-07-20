@@ -8,8 +8,11 @@ import (
 
 	"scainer/internal/domain"
 	"scainer/internal/progress"
-	"scainer/internal/store"
 )
+
+type Store interface {
+	ByProblem(ctx context.Context, contest domain.ContestID) (map[domain.ProblemID][]domain.Submission, error)
+}
 
 type Detector[U domain.Unit] interface {
 	Name() string
@@ -18,11 +21,11 @@ type Detector[U domain.Unit] interface {
 }
 
 type Selector[U domain.Unit] interface {
-	Select(ctx context.Context, s store.Store, policy AnalysisPolicy) ([]U, error)
+	Select(ctx context.Context, s Store) ([]U, error)
 }
 
 type Stage interface {
-	Run(ctx context.Context, s store.Store, policy AnalysisPolicy) ([]domain.Signal, error)
+	Run(ctx context.Context, s Store) ([]domain.Signal, error)
 }
 
 // Process-wide лимит одновременных Detector.Analyze: один инстанс на все Stage/job'ы,
@@ -59,8 +62,8 @@ type stage[U domain.Unit] struct {
 	dets    []Detector[U]
 }
 
-func (st stage[U]) Run(ctx context.Context, s store.Store, policy AnalysisPolicy) ([]domain.Signal, error) {
-	units, err := st.sel.Select(ctx, s, policy)
+func (st stage[U]) Run(ctx context.Context, s Store) ([]domain.Signal, error) {
+	units, err := st.sel.Select(ctx, s)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +85,6 @@ func (st stage[U]) Run(ctx context.Context, s store.Store, policy AnalysisPolicy
 				}
 				defer st.limiter.release()
 
-				// TODO(step): фильтрация детекторов по policy.DetectorsByProblem с учётом задачи юнита.
 				sigs, err := d.Analyze(gctx, u)
 				if err != nil {
 					return err

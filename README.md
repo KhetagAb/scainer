@@ -118,7 +118,8 @@ VITE_API_PROXY_TARGET=http://host:8080 npm run dev
 - `STORE_DIR` — персистентность посылок (по умолчанию `./data`)
 - `JPLAG_JAR_PATH` — путь к jar (по умолчанию `bin/jplag.jar` после `make setup`)
 - JPlag CLI: `--normalize` (cpp/java), `-n -1` (все сравнения), `--cluster-skip`
-- `JOBS_MAX_CONCURRENT` / `ANALYZE_CONCURRENCY` — пул импорта и потолок JVM/JPlag
+- `JOBS_MAX_CONCURRENT` / `ANALYZE_CONCURRENCY` — пул импорта и потолок JVM/JPlag/LLM
+- `AIUSAGE_ENABLED=1` + `OPENAI_*` / `OPENAI_MODEL` — опциональная AI-стадия `aiusage-task`
 
 ## Полезные команды
 

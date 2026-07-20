@@ -29,7 +29,6 @@ import {
 import {
   buildProblemSignalStats,
   contestSpineFromProblemStats,
-  findingsCountAboveThreshold,
 } from "@/features/contests/problemSignalStats";
 import { useParallelImportJobs } from "@/features/contests/useParallelImportJobs";
 
@@ -155,9 +154,6 @@ export default function ParallelPage({ onUnauthorized }: Props) {
       const problems = (problemsQueries[i]?.data ?? []) as ProblemInfo[];
       const ready = Boolean(findingsQueries[i]?.isSuccess && problemsQueries[i]?.isSuccess);
       const submissionCount = c.submissionCount ?? 0;
-      const findingsCount = ready
-        ? findingsCountAboveThreshold(findings, threshold)
-        : (c.findingsCount ?? 0);
       const problemStats = ready
         ? buildProblemSignalStats(problems, findings, threshold)
         : undefined;
@@ -171,7 +167,6 @@ export default function ParallelPage({ onUnauthorized }: Props) {
           id: c.id,
           submissionCount,
           problemCount: c.problemCount,
-          findingsCount,
         },
         problemStats,
       };

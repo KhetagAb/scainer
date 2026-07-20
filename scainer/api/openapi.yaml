@@ -324,9 +324,6 @@ components:
         problemCount:
           type: integer
           description: Число задач с посылками
-        findingsCount:
-          type: integer
-          description: Число находок (подозрительных субъектов) после последнего Import
 
     JobResponse:
       type: object

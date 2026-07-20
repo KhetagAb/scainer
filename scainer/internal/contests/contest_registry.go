@@ -10,12 +10,12 @@ import (
 )
 
 type ContestRecord struct {
-	Contest Contest    `bson:"info"` // ключ "info" — совместимость с уже лежащими в Mongo документами
+	Contest Contest    `bson:"contest"`
 	Source  SourceSpec `bson:"source"`
 }
 
 type ContestRegistry interface {
-	Put(ctx context.Context, rec ContestRecord) error
+	Put(ctx context.Context, record ContestRecord) error
 	Get(ctx context.Context, id domain.ContestID) (ContestRecord, bool, error)
 	Delete(ctx context.Context, id domain.ContestID) error
 	List(ctx context.Context) ([]ContestRecord, error)

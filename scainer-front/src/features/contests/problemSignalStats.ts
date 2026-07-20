@@ -122,14 +122,6 @@ export function contestSpineFromProblemStats(
   return hasYellow ? "yellow" : null;
 }
 
-export function findingsCountAboveThreshold(findings: FindingView[], threshold: number): number {
-  let n = 0;
-  for (const f of findings) {
-    if (f.score >= threshold) n += 1;
-  }
-  return n;
-}
-
 export function problemSubmissionCountsMap(problems: ProblemInfo[]): Record<string, number> {
   const out: Record<string, number> = {};
   for (const p of problems) {

@@ -11,7 +11,6 @@ import (
 
 	"scainer/internal/domain"
 	"scainer/internal/importer"
-	"scainer/internal/store"
 )
 
 func init() { importer.Register("folder", newFromConfig) }
@@ -45,7 +44,7 @@ var langByExt = map[string]domain.Lang{
 	".py": domain.LangPython, ".java": domain.LangJava, ".go": domain.LangGo, ".js": domain.LangJavaScript,
 }
 
-func (i *Importer) Import(ctx context.Context, _ store.Store) ([]domain.Submission, error) {
+func (i *Importer) Import(ctx context.Context, _ importer.Store) ([]domain.Submission, error) {
 	problems, err := os.ReadDir(i.cfg.Root)
 	if err != nil {
 		return nil, err

@@ -106,7 +106,6 @@ export default function ContestPage({ onUnauthorized }: Props) {
       id: contest.id,
       submissionCount: contest.submissionCount ?? 0,
       problemCount: contest.problemCount,
-      findingsCount: contest.findingsCount,
     };
   }, [contest]);
 

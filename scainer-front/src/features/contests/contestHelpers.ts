@@ -22,7 +22,6 @@ export type ContestStatsFields = {
   id?: string;
   submissionCount?: number | null;
   problemCount?: number | null;
-  findingsCount?: number | null;
 };
 
 export function formatSuspicionPercent(value?: number | null): string {

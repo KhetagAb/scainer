@@ -71,7 +71,7 @@ func (d *Detector) Name() string { return "jplag" }
 func (d *Detector) AI() bool { return false }
 
 func (d *Detector) Analyze(ctx context.Context, u domain.ProblemUnit) ([]domain.Signal, error) {
-	subs := detect.LatestSuccessfulPerParticipant(u.Subs)
+	subs := detect.LatestOkPerParticipant(u.Subs)
 	if len(subs) < 2 {
 		return nil, nil
 	}

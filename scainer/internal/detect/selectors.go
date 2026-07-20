@@ -5,7 +5,6 @@ import (
 	"sort"
 
 	"scainer/internal/domain"
-	"scainer/internal/store"
 )
 
 type ProblemSelector struct {
@@ -14,7 +13,7 @@ type ProblemSelector struct {
 
 var _ Selector[domain.ProblemUnit] = ProblemSelector{}
 
-func (s ProblemSelector) Select(ctx context.Context, st store.Store, policy AnalysisPolicy) ([]domain.ProblemUnit, error) {
+func (s ProblemSelector) Select(ctx context.Context, st Store) ([]domain.ProblemUnit, error) {
 	byProblem, err := st.ByProblem(ctx, s.Contest)
 	if err != nil {
 		return nil, err
@@ -28,9 +27,6 @@ func (s ProblemSelector) Select(ctx context.Context, st store.Store, policy Anal
 
 	var units []domain.ProblemUnit
 	for _, p := range problems {
-		if policy.Excluded(p) {
-			continue
-		}
 		byLang := make(map[domain.Lang][]domain.Submission)
 		var langs []domain.Lang
 		for _, sub := range byProblem[p] {

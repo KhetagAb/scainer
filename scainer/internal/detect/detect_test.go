@@ -28,7 +28,7 @@ func TestStageStampsAIFlag(t *testing.T) {
 		detect.NewLimiter(4),
 		dummy.AlwaysProblem{},
 	)
-	sigs, err := stage.Run(ctx, st, detect.AnalysisPolicy{})
+	sigs, err := stage.Run(ctx, st)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func TestStageRun_RespectsConcurrencyLimit(t *testing.T) {
 	det := newCountingDetector("counting")
 	stage := detect.NewStage(detect.ProblemSelector{Contest: "c"}, detect.NewLimiter(limit), det)
 
-	sigs, err := stage.Run(ctx, st, detect.AnalysisPolicy{})
+	sigs, err := stage.Run(ctx, st)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,7 +140,7 @@ func TestStageRun_ProgressReportsDoneTotal(t *testing.T) {
 	})
 
 	stage := detect.NewStage(detect.ProblemSelector{Contest: "c"}, detect.NewLimiter(4), dummy.AlwaysProblem{}, dummy.AlwaysClean{})
-	if _, err := stage.Run(ctx, st, detect.AnalysisPolicy{}); err != nil {
+	if _, err := stage.Run(ctx, st); err != nil {
 		t.Fatal(err)
 	}
 
@@ -174,7 +174,7 @@ func TestStageRun_DetectorError(t *testing.T) {
 	})
 
 	stage := detect.NewStage(detect.ProblemSelector{Contest: "c"}, detect.NewLimiter(4), failingDetector{})
-	if _, err := stage.Run(ctx, st, detect.AnalysisPolicy{}); err == nil {
+	if _, err := stage.Run(ctx, st); err == nil {
 		t.Fatal("ожидали ошибку от детектора")
 	}
 }

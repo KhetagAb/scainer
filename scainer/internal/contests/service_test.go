@@ -8,6 +8,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"scainer/internal/analyze"
 	"scainer/internal/contests"
 	"scainer/internal/detect"
 	"scainer/internal/detect/dummy"
@@ -18,14 +19,17 @@ import (
 	"scainer/internal/store"
 )
 
-func newRuntimeConfig() contests.RuntimeConfig {
-	return contests.RuntimeConfig{
-		Pool:           jobs.NewPool(4),
-		AnalyzeLimiter: detect.NewLimiter(4),
+func testPipeline(dets ...detect.Detector[domain.ProblemUnit]) detect.Pipeline {
+	limiter := detect.NewLimiter(4)
+	if len(dets) == 0 {
+		return detect.Compose()
 	}
+	return detect.Compose(func(id domain.ContestID) detect.Stage {
+		return detect.NewStage(detect.ProblemSelector{Contest: id}, limiter, dets...)
+	})
 }
 
-func waitForJob(t *testing.T, svc *contests.Service, jobID string) error {
+func waitForJob(t *testing.T, svc *analyze.Service, jobID string) error {
 	t.Helper()
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
@@ -45,9 +49,9 @@ func waitForJob(t *testing.T, svc *contests.Service, jobID string) error {
 	return nil
 }
 
-func submitAndWait(t *testing.T, svc *contests.Service, ctx context.Context, id domain.ContestID) error {
+func submitAndWait(t *testing.T, svc *analyze.Service, ctx context.Context, id domain.ContestID) error {
 	t.Helper()
-	jobID, err := svc.SubmitImport(ctx, id)
+	jobID, err := svc.Submit(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -60,7 +64,7 @@ type stubImporter struct {
 
 func (stubImporter) Name() string { return "stub" }
 
-func (s stubImporter) Import(context.Context, store.Store) ([]domain.Submission, error) {
+func (s stubImporter) Import(context.Context, importer.Store) ([]domain.Submission, error) {
 	return s.subs, nil
 }
 
@@ -145,9 +149,38 @@ func (d countingDetector) Analyze(ctx context.Context, u domain.ProblemUnit) ([]
 
 var _ detect.Detector[domain.ProblemUnit] = countingDetector{}
 
+// registerWithSubs — контест с заранее положенными сабмитами (register + analyze + reader).
+func registerWithSubs(t *testing.T, subs []domain.Submission) (*contests.Service, *contests.ContestReader, *analyze.Service, *int) {
+	t.Helper()
+	ctx := context.Background()
+	calls := new(int)
+	st := store.NewMem()
+	reg := newFakeRegistry()
+	fs := newFakeFindingsStore()
+	det := countingDetector{calls: calls}
+	pipeline := testPipeline(det)
+
+	svc := contests.NewService(reg, fs, "stub")
+	reader := contests.NewContestReader(reg, st, fs)
+	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, scoring.NewWeighted(), pipeline))
+
+	if _, err := svc.Register(ctx, contests.Registration{
+		ID:     "contest01",
+		Source: &contests.SourceSpec{Type: "stub"},
+	}); err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+
+	if err := st.Put(ctx, subs); err != nil {
+		t.Fatalf("Put: %v", err)
+	}
+
+	return svc, reader, analyzeSvc, calls
+}
+
 func TestRegisterSuccess(t *testing.T) {
 	ctx := context.Background()
-	svc := contests.New(store.NewMem(), scoring.NewWeighted(), "stub", newFakeRegistry(), newFakeFindingsStore(), newRuntimeConfig())
+	svc := contests.NewService(newFakeRegistry(), newFakeFindingsStore(), "stub")
 
 	decl := contests.Registration{
 		ID:               "contest01",
@@ -180,7 +213,7 @@ func TestRegisterSuccess(t *testing.T) {
 
 func TestRegisterDuplicate(t *testing.T) {
 	ctx := context.Background()
-	svc := contests.New(store.NewMem(), scoring.NewWeighted(), "stub", newFakeRegistry(), newFakeFindingsStore(), newRuntimeConfig())
+	svc := contests.NewService(newFakeRegistry(), newFakeFindingsStore(), "stub")
 
 	decl := contests.Registration{
 		ID: "contest01",
@@ -198,99 +231,12 @@ func TestRegisterDuplicate(t *testing.T) {
 	}
 }
 
-func TestSetParallel(t *testing.T) {
-	ctx := context.Background()
-	svc := contests.New(store.NewMem(), scoring.NewWeighted(), "stub", newFakeRegistry(), newFakeFindingsStore(), newRuntimeConfig())
-
-	decl := contests.Registration{
-		ID: "contest01",
-		Source: &contests.SourceSpec{
-			Type: "stub",
-		},
-	}
-
-	if _, err := svc.Register(ctx, decl); err != nil {
-		t.Fatalf("Register: %v", err)
-	}
-
-	if err := svc.SetParallel(ctx, "contest01", "par2", "Параллель 2"); err != nil {
-		t.Fatalf("SetParallel: %v", err)
-	}
-
-	list, err := svc.List(ctx)
-	if err != nil {
-		t.Fatalf("List: %v", err)
-	}
-
-	if len(list) != 1 || list[0].ParallelID != "par2" || list[0].ParallelName != "Параллель 2" {
-		t.Fatalf("List: got %+v", list[0])
-	}
-}
-
-func TestRemoveContest(t *testing.T) {
-	ctx := context.Background()
-	svc := contests.New(store.NewMem(), scoring.NewWeighted(), "stub", newFakeRegistry(), newFakeFindingsStore(), newRuntimeConfig())
-
-	decl := contests.Registration{
-		ID: "contest01",
-		Source: &contests.SourceSpec{
-			Type: "stub",
-		},
-	}
-
-	if _, err := svc.Register(ctx, decl); err != nil {
-		t.Fatalf("Register: %v", err)
-	}
-
-	if err := svc.RemoveContest(ctx, "contest01"); err != nil {
-		t.Fatalf("RemoveContest: %v", err)
-	}
-
-	list, err := svc.List(ctx)
-	if err != nil {
-		t.Fatalf("List: %v", err)
-	}
-
-	if len(list) != 0 {
-		t.Fatalf("List: expected 0 contests, got %d", len(list))
-	}
-}
-
-func TestSetExcludedProblems(t *testing.T) {
-	ctx := context.Background()
-	svc := contests.New(store.NewMem(), scoring.NewWeighted(), "stub", newFakeRegistry(), newFakeFindingsStore(), newRuntimeConfig())
-
-	decl := contests.Registration{
-		ID: "contest01",
-		Source: &contests.SourceSpec{
-			Type: "stub",
-		},
-	}
-
-	if _, err := svc.Register(ctx, decl); err != nil {
-		t.Fatalf("Register: %v", err)
-	}
-
-	excluded := []domain.ProblemID{"A", "B"}
-	if err := svc.SetExcludedProblems(ctx, "contest01", excluded); err != nil {
-		t.Fatalf("SetExcludedProblems: %v", err)
-	}
-
-	list, err := svc.List(ctx)
-	if err != nil {
-		t.Fatalf("List: %v", err)
-	}
-
-	if len(list[0].ExcludedProblems) != 2 {
-		t.Fatalf("ExcludedProblems: got %v want 2 items", len(list[0].ExcludedProblems))
-	}
-}
-
 func TestRegistryIsSourceOfTruthAcrossServiceRestart(t *testing.T) {
 	ctx := context.Background()
 	registry := newFakeRegistry()
+	fs := newFakeFindingsStore()
 
-	svc1 := contests.New(store.NewMem(), scoring.NewWeighted(), "stub", registry, newFakeFindingsStore(), newRuntimeConfig())
+	svc1 := contests.NewService(registry, fs, "stub")
 
 	decl := contests.Registration{
 		ID:               "contest01",
@@ -306,9 +252,10 @@ func TestRegistryIsSourceOfTruthAcrossServiceRestart(t *testing.T) {
 		t.Fatalf("SetParallel: %v", err)
 	}
 
-	svc2 := contests.New(store.NewMem(), scoring.NewWeighted(), "stub", registry, newFakeFindingsStore(), newRuntimeConfig())
+	svc2 := contests.NewService(registry, newFakeFindingsStore(), "stub")
+	reader2 := contests.NewContestReader(registry, store.NewMem(), newFakeFindingsStore())
 
-	list, err := svc2.List(ctx)
+	list, err := reader2.List(ctx)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -328,159 +275,111 @@ func TestRegistryIsSourceOfTruthAcrossServiceRestart(t *testing.T) {
 	}
 }
 
-func TestListSortsByContestID(t *testing.T) {
+func TestSetParallel(t *testing.T) {
 	ctx := context.Background()
-	svc := contests.New(store.NewMem(), scoring.NewWeighted(), "stub", newFakeRegistry(), newFakeFindingsStore(), newRuntimeConfig())
+	reg := newFakeRegistry()
+	fs := newFakeFindingsStore()
+	svc := contests.NewService(reg, fs, "stub")
+	reader := contests.NewContestReader(reg, store.NewMem(), fs)
 
-	for _, id := range []domain.ContestID{"10", "2", "9"} {
-		if _, err := svc.Register(ctx, contests.Registration{
-			ID:     id,
-			Source: &contests.SourceSpec{Type: "stub"},
-		}); err != nil {
-			t.Fatalf("Register %s: %v", id, err)
-		}
+	decl := contests.Registration{
+		ID: "contest01",
+		Source: &contests.SourceSpec{
+			Type: "stub",
+		},
 	}
 
-	list, err := svc.List(ctx)
+	if _, err := svc.Register(ctx, decl); err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+
+	if err := svc.SetParallel(ctx, "contest01", "par2", "Параллель 2"); err != nil {
+		t.Fatalf("SetParallel: %v", err)
+	}
+
+	list, err := reader.List(ctx)
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
-	want := []domain.ContestID{"2", "9", "10"}
-	if len(list) != len(want) {
-		t.Fatalf("len: got %d want %d", len(list), len(want))
-	}
-	for i, id := range want {
-		if list[i].ID != id {
-			t.Fatalf("List[%d]: got %s want %s", i, list[i].ID, id)
-		}
+
+	if len(list) != 1 || list[0].ParallelID != "par2" || list[0].ParallelName != "Параллель 2" {
+		t.Fatalf("List: got %+v", list[0])
 	}
 }
 
-func registerWithSubs(t *testing.T, subs []domain.Submission) (*contests.Service, *int) {
-	t.Helper()
+func TestRemoveContest(t *testing.T) {
 	ctx := context.Background()
-	calls := new(int)
-	st := store.NewMem()
-	svc := contests.New(st, scoring.NewWeighted(), "stub", newFakeRegistry(), newFakeFindingsStore(), newRuntimeConfig(), countingDetector{calls: calls})
+	reg := newFakeRegistry()
+	fs := newFakeFindingsStore()
+	svc := contests.NewService(reg, fs, "stub")
+	reader := contests.NewContestReader(reg, store.NewMem(), fs)
 
-	if _, err := svc.Register(ctx, contests.Registration{
-		ID:     "contest01",
-		Source: &contests.SourceSpec{Type: "stub"},
-	}); err != nil {
+	decl := contests.Registration{
+		ID: "contest01",
+		Source: &contests.SourceSpec{
+			Type: "stub",
+		},
+	}
+
+	if _, err := svc.Register(ctx, decl); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
 
-	// stubImporter вернёт nil; Put заранее — Store.Put(nil) no-op.
-	if err := st.Put(ctx, subs); err != nil {
-		t.Fatalf("Put: %v", err)
+	if err := svc.RemoveContest(ctx, "contest01"); err != nil {
+		t.Fatalf("RemoveContest: %v", err)
 	}
 
-	return svc, calls
-}
-
-func TestImportComputesFindings(t *testing.T) {
-	ctx := context.Background()
-	svc, calls := registerWithSubs(t, []domain.Submission{
-		{ID: "1", Contest: "contest01", Problem: "A", Participant: "alice", Lang: domain.LangCPP, Source: []byte("a"), Verdict: domain.VerdictOK},
-		{ID: "2", Contest: "contest01", Problem: "A", Participant: "bob", Lang: domain.LangCPP, Source: []byte("b"), Verdict: domain.VerdictOK},
-	})
-
-	if err := submitAndWait(t, svc, ctx, "contest01"); err != nil {
-		t.Fatalf("Import: %v", err)
-	}
-	findings, _, err := svc.GetFindings(ctx, "contest01")
+	list, err := reader.List(ctx)
 	if err != nil {
-		t.Fatalf("GetFindings: %v", err)
+		t.Fatalf("List: %v", err)
 	}
-	if len(findings) == 0 {
-		t.Fatal("ожидали находки от counting-детектора, получили 0 — детектор не подключён к стадии")
-	}
-	if *calls == 0 {
-		t.Fatal("детектор не вызывался")
+
+	if len(list) != 0 {
+		t.Fatalf("List: expected 0 contests, got %d", len(list))
 	}
 }
 
-func TestGetFindingsDoesNotRecompute(t *testing.T) {
+func TestSetExcludedProblems(t *testing.T) {
 	ctx := context.Background()
-	svc, calls := registerWithSubs(t, []domain.Submission{
-		{ID: "1", Contest: "contest01", Problem: "A", Participant: "alice", Lang: domain.LangCPP, Source: []byte("a"), Verdict: domain.VerdictOK},
-		{ID: "2", Contest: "contest01", Problem: "A", Participant: "bob", Lang: domain.LangCPP, Source: []byte("b"), Verdict: domain.VerdictOK},
-	})
+	reg := newFakeRegistry()
+	fs := newFakeFindingsStore()
+	svc := contests.NewService(reg, fs, "stub")
+	reader := contests.NewContestReader(reg, store.NewMem(), fs)
 
-	if err := submitAndWait(t, svc, ctx, "contest01"); err != nil {
-		t.Fatalf("Import: %v", err)
-	}
-	afterImport := *calls
-	if afterImport == 0 {
-		t.Fatal("детектор не вызывался при Import")
-	}
-
-	for i := 0; i < 3; i++ {
-		findings, _, err := svc.GetFindings(ctx, "contest01")
-		if err != nil {
-			t.Fatalf("GetFindings: %v", err)
-		}
-		if len(findings) == 0 {
-			t.Fatal("GetFindings вернул пусто после Import")
-		}
+	decl := contests.Registration{
+		ID: "contest01",
+		Source: &contests.SourceSpec{
+			Type: "stub",
+		},
 	}
 
-	if *calls != afterImport {
-		t.Fatalf("GetFindings пересчитал: было %d вызовов детектора, стало %d", afterImport, *calls)
-	}
-}
-
-func TestGetFindingsBeforeImport_EmptyNotError(t *testing.T) {
-	ctx := context.Background()
-	svc := contests.New(store.NewMem(), scoring.NewWeighted(), "stub", newFakeRegistry(), newFakeFindingsStore(), newRuntimeConfig())
-
-	if _, err := svc.Register(ctx, contests.Registration{
-		ID:     "contest01",
-		Source: &contests.SourceSpec{Type: "stub"},
-	}); err != nil {
+	if _, err := svc.Register(ctx, decl); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
 
-	findings, subs, err := svc.GetFindings(ctx, "contest01")
+	excluded := []domain.ProblemID{"A", "B"}
+	if err := svc.SetExcludedProblems(ctx, "contest01", excluded); err != nil {
+		t.Fatalf("SetExcludedProblems: %v", err)
+	}
+
+	list, err := reader.List(ctx)
 	if err != nil {
-		t.Fatalf("GetFindings: %v", err)
-	}
-	if findings != nil || subs != nil {
-		t.Fatalf("ожидали (nil, nil) до Import, получили (%v, %v)", findings, subs)
-	}
-}
-
-func TestImportRecomputesOnReimport(t *testing.T) {
-	ctx := context.Background()
-	svc, calls := registerWithSubs(t, []domain.Submission{
-		{ID: "1", Contest: "contest01", Problem: "A", Participant: "alice", Lang: domain.LangCPP, Source: []byte("a"), Verdict: domain.VerdictOK},
-		{ID: "2", Contest: "contest01", Problem: "A", Participant: "bob", Lang: domain.LangCPP, Source: []byte("b"), Verdict: domain.VerdictOK},
-	})
-
-	if err := submitAndWait(t, svc, ctx, "contest01"); err != nil {
-		t.Fatalf("first Import: %v", err)
-	}
-	afterFirst := *calls
-	if afterFirst == 0 {
-		t.Fatal("детектор не вызывался при первом Import")
+		t.Fatalf("List: %v", err)
 	}
 
-	if err := submitAndWait(t, svc, ctx, "contest01"); err != nil {
-		t.Fatalf("second Import: %v", err)
-	}
-	if *calls <= afterFirst {
-		t.Fatalf("повторный Import не пересчитал: было %d, стало %d", afterFirst, *calls)
+	if len(list[0].ExcludedProblems) != 2 {
+		t.Fatalf("ExcludedProblems: got %v want 2 items", len(list[0].ExcludedProblems))
 	}
 }
 
 func TestSetExcludedProblemsDoesNotTriggerRecompute(t *testing.T) {
 	ctx := context.Background()
-	svc, calls := registerWithSubs(t, []domain.Submission{
+	svc, reader, imports, calls := registerWithSubs(t, []domain.Submission{
 		{ID: "1", Contest: "contest01", Problem: "A", Participant: "alice", Lang: domain.LangCPP, Source: []byte("a"), Verdict: domain.VerdictOK},
 		{ID: "2", Contest: "contest01", Problem: "A", Participant: "bob", Lang: domain.LangCPP, Source: []byte("b"), Verdict: domain.VerdictOK},
 	})
 
-	if err := submitAndWait(t, svc, ctx, "contest01"); err != nil {
+	if err := submitAndWait(t, imports, ctx, "contest01"); err != nil {
 		t.Fatalf("Import: %v", err)
 	}
 	afterImport := *calls
@@ -493,155 +392,11 @@ func TestSetExcludedProblemsDoesNotTriggerRecompute(t *testing.T) {
 		t.Fatalf("SetExcludedProblems не должен триггерить пересчёт: было %d вызовов, стало %d", afterImport, *calls)
 	}
 
-	findings, _, err := svc.GetFindings(ctx, "contest01")
+	findings, _, err := reader.GetFindings(ctx, "contest01")
 	if err != nil {
 		t.Fatalf("GetFindings: %v", err)
 	}
 	if len(findings) == 0 {
 		t.Fatal("findings должны остаться от последнего Import (не пересчитаны с учётом нового исключения)")
-	}
-}
-
-func TestListStatsZeroBeforeImport(t *testing.T) {
-	ctx := context.Background()
-	svc := contests.New(store.NewMem(), scoring.NewWeighted(), "stub", newFakeRegistry(), newFakeFindingsStore(), newRuntimeConfig())
-	if _, err := svc.Register(ctx, contests.Registration{
-		ID:     "contest01",
-		Source: &contests.SourceSpec{Type: "stub"},
-	}); err != nil {
-		t.Fatalf("Register: %v", err)
-	}
-
-	list, err := svc.List(ctx)
-	if err != nil {
-		t.Fatalf("List: %v", err)
-	}
-	if len(list) != 1 {
-		t.Fatalf("len: got %d", len(list))
-	}
-	got := list[0]
-	if got.Statistic.SubmissionCount != 0 || got.Statistic.ProblemCount != 0 || got.Statistic.FindingsCount != 0 {
-		t.Fatalf("counts: got subs=%d problems=%d findings=%d", got.Statistic.SubmissionCount, got.Statistic.ProblemCount, got.Statistic.FindingsCount)
-	}
-}
-
-func TestListEnrichStats(t *testing.T) {
-	ctx := context.Background()
-	st := store.NewMem()
-	findingsStore := newFakeFindingsStore()
-	svc := contests.New(st, scoring.NewWeighted(), "stub", newFakeRegistry(), findingsStore, newRuntimeConfig())
-
-	if _, err := svc.Register(ctx, contests.Registration{
-		ID:     "contest01",
-		Source: &contests.SourceSpec{Type: "stub"},
-	}); err != nil {
-		t.Fatalf("Register: %v", err)
-	}
-	if err := st.Put(ctx, []domain.Submission{
-		{ID: "1", Contest: "contest01", Problem: "A", Participant: "alice", Lang: domain.LangCPP, Source: []byte("a"), Verdict: domain.VerdictOK},
-		{ID: "2", Contest: "contest01", Problem: "A", Participant: "bob", Lang: domain.LangCPP, Source: []byte("b"), Verdict: domain.VerdictOK},
-		{ID: "3", Contest: "contest01", Problem: "B", Participant: "alice", Lang: domain.LangCPP, Source: []byte("c"), Verdict: domain.VerdictOK},
-	}); err != nil {
-		t.Fatalf("Put: %v", err)
-	}
-	if err := findingsStore.Put(ctx, contests.FindingsSnapshot{
-		ContestID: "contest01",
-		Findings: []domain.Finding{
-			{Score: 0.5},
-			{Score: 1.0},
-		},
-	}); err != nil {
-		t.Fatalf("findings Put: %v", err)
-	}
-
-	list, err := svc.List(ctx)
-	if err != nil {
-		t.Fatalf("List: %v", err)
-	}
-	got := list[0]
-	if got.Statistic.SubmissionCount != 3 {
-		t.Fatalf("SubmissionCount: got %d want 3", got.Statistic.SubmissionCount)
-	}
-	if got.Statistic.ProblemCount != 2 {
-		t.Fatalf("ProblemCount: got %d want 2", got.Statistic.ProblemCount)
-	}
-	if got.Statistic.FindingsCount != 2 {
-		t.Fatalf("FindingsCount: got %d want 2", got.Statistic.FindingsCount)
-	}
-}
-
-func TestAnalyzeUsesRegisteredDetectors(t *testing.T) {
-	ctx := context.Background()
-	st := store.NewMem()
-	svc := contests.New(st, scoring.NewWeighted(), "stub", newFakeRegistry(), newFakeFindingsStore(), newRuntimeConfig(), dummy.AlwaysProblem{})
-
-	decl := contests.Registration{
-		ID:     "contest01",
-		Source: &contests.SourceSpec{Type: "stub"},
-	}
-	if _, err := svc.Register(ctx, decl); err != nil {
-		t.Fatalf("Register: %v", err)
-	}
-
-	if err := st.Put(ctx, []domain.Submission{
-		{ID: "1", Contest: "contest01", Problem: "A", Participant: "alice", Lang: domain.LangCPP, Source: []byte("a"), Verdict: domain.VerdictOK},
-		{ID: "2", Contest: "contest01", Problem: "A", Participant: "bob", Lang: domain.LangCPP, Source: []byte("b"), Verdict: domain.VerdictOK},
-	}); err != nil {
-		t.Fatalf("Put: %v", err)
-	}
-
-	if err := submitAndWait(t, svc, ctx, "contest01"); err != nil {
-		t.Fatalf("Import: %v", err)
-	}
-	findings, _, err := svc.GetFindings(ctx, "contest01")
-	if err != nil {
-		t.Fatalf("GetFindings: %v", err)
-	}
-	if len(findings) == 0 {
-		t.Fatal("ожидали находки от AlwaysProblem-детектора, получили 0 — детектор не подключён к стадии")
-	}
-}
-
-func TestSubmitImport_AsyncJobFlow(t *testing.T) {
-	ctx := context.Background()
-	svc, _ := registerWithSubs(t, []domain.Submission{
-		{ID: "1", Contest: "contest01", Problem: "A", Participant: "alice", Lang: domain.LangCPP, Source: []byte("a"), Verdict: domain.VerdictOK},
-		{ID: "2", Contest: "contest01", Problem: "A", Participant: "bob", Lang: domain.LangCPP, Source: []byte("b"), Verdict: domain.VerdictOK},
-	})
-
-	jobID, err := svc.SubmitImport(ctx, "contest01")
-	if err != nil {
-		t.Fatalf("SubmitImport: %v", err)
-	}
-	if jobID == "" {
-		t.Fatal("ожидали непустой jobID")
-	}
-
-	if err := waitForJob(t, svc, jobID); err != nil {
-		t.Fatalf("job: %v", err)
-	}
-	st, ok := svc.JobStatus(jobID)
-	if !ok {
-		t.Fatal("JobStatus: job не найден")
-	}
-	if st.Status != jobs.StatusSucceeded {
-		t.Fatalf("status: got %v want succeeded", st.Status)
-	}
-
-	findings, _, err := svc.GetFindings(ctx, "contest01")
-	if err != nil {
-		t.Fatalf("GetFindings: %v", err)
-	}
-	if len(findings) == 0 {
-		t.Fatal("ожидали находки после завершения job'а")
-	}
-}
-
-func TestSubmitImport_UnknownContest(t *testing.T) {
-	ctx := context.Background()
-	svc := contests.New(store.NewMem(), scoring.NewWeighted(), "stub", newFakeRegistry(), newFakeFindingsStore(), newRuntimeConfig())
-
-	if _, err := svc.SubmitImport(ctx, "missing"); !errors.Is(err, contests.ErrContestNotFound) {
-		t.Fatalf("got %v want ErrContestNotFound", err)
 	}
 }

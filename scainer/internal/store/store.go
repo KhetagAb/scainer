@@ -7,18 +7,6 @@ import (
 	"scainer/internal/domain"
 )
 
-type Store interface {
-	Put(ctx context.Context, subs []domain.Submission) error
-	// Не найденные ID молча пропускаются.
-	Get(ctx context.Context, ids []domain.SubmissionID) ([]domain.Submission, error)
-	ByProblem(ctx context.Context, contest domain.ContestID) (map[domain.ProblemID][]domain.Submission, error)
-	ByParticipant(ctx context.Context) (map[domain.ParticipantID][]domain.Submission, error)
-
-	// Непрозрачная закладка импортера; Store ключ/значение не интерпретирует.
-	GetCursor(ctx context.Context, key string) (value string, ok bool, err error)
-	SetCursor(ctx context.Context, key string, value string) error
-}
-
 type SourcePather interface {
 	SourcePath(s domain.Submission) (path string, ok bool)
 }
@@ -37,16 +25,14 @@ func NewMem() *Mem {
 	}
 }
 
-var _ Store = (*Mem)(nil)
-
-func (m *Mem) Put(ctx context.Context, subs []domain.Submission) error {
+func (m *Mem) Put(ctx context.Context, submissions []domain.Submission) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	for _, s := range subs {
-		if _, ok := m.byID[s.ID]; !ok {
-			m.order = append(m.order, s.ID)
+	for _, submission := range submissions {
+		if _, ok := m.byID[submission.ID]; !ok {
+			m.order = append(m.order, submission.ID)
 		}
-		m.byID[s.ID] = s
+		m.byID[submission.ID] = submission
 	}
 	return nil
 }

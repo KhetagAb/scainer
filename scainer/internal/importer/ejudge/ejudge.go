@@ -10,7 +10,6 @@ import (
 	"scainer/internal/domain"
 	"scainer/internal/importer"
 	"scainer/internal/progress"
-	"scainer/internal/store"
 	ejudgeapi "scainer/pkg/ejudge"
 )
 
@@ -53,7 +52,7 @@ func cursorKey(contestID int) string {
 	return cursorKeyPrefix + strconv.Itoa(contestID)
 }
 
-func (i *Importer) Import(ctx context.Context, s store.Store) ([]domain.Submission, error) {
+func (i *Importer) Import(ctx context.Context, store importer.Store) ([]domain.Submission, error) {
 	if i.env == nil || i.env.Client == nil {
 		return nil, fmt.Errorf("ejudge importer: клиент не инициализирован")
 	}
@@ -63,7 +62,7 @@ func (i *Importer) Import(ctx context.Context, s store.Store) ([]domain.Submissi
 	}
 
 	firstRun := 0
-	cur, ok, err := s.GetCursor(ctx, cursorKey(contestID))
+	cur, ok, err := store.GetCursor(ctx, cursorKey(contestID))
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +102,7 @@ func (i *Importer) Import(ctx context.Context, s store.Store) ([]domain.Submissi
 
 	subs := make([]domain.Submission, 0, len(runs))
 	maxRunID := -1
-	base := countContestSubmissions(ctx, s, domain.ContestID(strconv.Itoa(contestID)))
+	base := countContestSubmissions(ctx, store, domain.ContestID(strconv.Itoa(contestID)))
 	batch := len(runs)
 	total := base + batch
 
@@ -141,15 +140,15 @@ func (i *Importer) Import(ctx context.Context, s store.Store) ([]domain.Submissi
 	}
 
 	if maxRunID >= 0 {
-		if err := s.SetCursor(ctx, cursorKey(contestID), strconv.Itoa(maxRunID)); err != nil {
+		if err := store.SetCursor(ctx, cursorKey(contestID), strconv.Itoa(maxRunID)); err != nil {
 			return nil, err
 		}
 	}
 	return subs, nil
 }
 
-func countContestSubmissions(ctx context.Context, s store.Store, contest domain.ContestID) int {
-	byProblem, err := s.ByProblem(ctx, contest)
+func countContestSubmissions(ctx context.Context, store importer.Store, contest domain.ContestID) int {
+	byProblem, err := store.ByProblem(ctx, contest)
 	if err != nil {
 		return 0
 	}

@@ -1,0 +1,6 @@
+# Запуск из pkg/openai: go generate ./pkg/openai/
+package: openai
+generate:
+  models: true
+  client: true
+output: ../../generated/openai/client.gen.go

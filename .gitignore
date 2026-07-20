@@ -12,6 +12,7 @@ scainer/out/
 
 # сборка / внешние бинарники
 scainer/bin/
+scainer/scainer
 *.exe
 *.jar
 

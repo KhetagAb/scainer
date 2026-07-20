@@ -107,7 +107,8 @@ func (d *Detector) Analyze(ctx context.Context, u domain.ProblemUnit) ([]domain.
 		return nil, err
 	}
 
-	cmd := exec.CommandContext(ctx, "java", "-jar", jarAbs, subsAbs, "-l", jplagLang, "-r", "result", "-M", "RUN")
+	args := buildArgs(jarAbs, subsAbs, jplagLang)
+	cmd := exec.CommandContext(ctx, "java", args...)
 	cmd.Dir = workDir
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -236,6 +237,29 @@ func signalsFromResult(
 		})
 	}
 	return out
+}
+
+// buildArgs — аргументы java -jar … для одного Analyze.
+// --normalize только для языков, где JPlag это поддерживает (cpp/java).
+// -n -1: не резать topComparisons (дефолт 500 тесен на больших параллелях).
+// --cluster-skip: кластеры в scainer не используются.
+func buildArgs(jarAbs, subsAbs, jplagLang string) []string {
+	args := []string{
+		"-jar", jarAbs, subsAbs,
+		"-l", jplagLang,
+		"-r", "result",
+		"-M", "RUN",
+		"-n", "-1",
+		"--cluster-skip",
+	}
+	if normalizeSupported(jplagLang) {
+		args = append(args, "--normalize")
+	}
+	return args
+}
+
+func normalizeSupported(jplagLang string) bool {
+	return jplagLang == "cpp" || jplagLang == "java"
 }
 
 func truncateBytes(b []byte, n int) string {

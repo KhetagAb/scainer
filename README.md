@@ -117,6 +117,7 @@ VITE_API_PROXY_TARGET=http://host:8080 npm run dev
 - `MONGO_INITDB_ROOT_USERNAME` / `MONGO_INITDB_ROOT_PASSWORD` / `MONGODB_HOST` / `MONGODB_DATABASE`
 - `STORE_DIR` — персистентность посылок (по умолчанию `./data`)
 - `JPLAG_JAR_PATH` — путь к jar (по умолчанию `bin/jplag.jar` после `make setup`)
+- JPlag CLI: `--normalize` (cpp/java), `-n -1` (все сравнения), `--cluster-skip`
 - `JOBS_MAX_CONCURRENT` / `ANALYZE_CONCURRENCY` — пул импорта и потолок JVM/JPlag
 
 ## Полезные команды

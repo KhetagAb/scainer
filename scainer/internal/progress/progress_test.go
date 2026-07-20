@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/lksh/scainer/internal/progress"
+	"scainer/internal/progress"
 )
 
 func TestReport_NoReporter_NoPanic(t *testing.T) {

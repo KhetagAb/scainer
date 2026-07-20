@@ -6,9 +6,9 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/lksh/scainer/internal/contests"
-	"github.com/lksh/scainer/internal/domain"
-	"github.com/lksh/scainer/internal/repository"
+	"scainer/internal/contests"
+	"scainer/internal/domain"
+	"scainer/internal/repository"
 )
 
 func TestContestRepository_PutGetListDelete(t *testing.T) {

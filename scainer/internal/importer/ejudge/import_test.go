@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lksh/scainer/internal/domain"
-	"github.com/lksh/scainer/internal/store"
-	ejudgeapi "github.com/lksh/scainer/pkg/ejudge"
+	"scainer/internal/domain"
+	"scainer/internal/store"
+	ejudgeapi "scainer/pkg/ejudge"
 )
 
 func TestImport_FullThenIncremental(t *testing.T) {

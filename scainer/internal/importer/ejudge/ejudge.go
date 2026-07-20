@@ -7,11 +7,11 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/lksh/scainer/internal/domain"
-	"github.com/lksh/scainer/internal/importer"
-	"github.com/lksh/scainer/internal/progress"
-	"github.com/lksh/scainer/internal/store"
-	ejudgeapi "github.com/lksh/scainer/pkg/ejudge"
+	"scainer/internal/domain"
+	"scainer/internal/importer"
+	"scainer/internal/progress"
+	"scainer/internal/store"
+	ejudgeapi "scainer/pkg/ejudge"
 )
 
 func init() { importer.Register("ejudge", newFromConfig) }

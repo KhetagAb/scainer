@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	ejgen "github.com/lksh/scainer/generated/ejudge"
-	"github.com/lksh/scainer/internal/domain"
-	ejudgeapi "github.com/lksh/scainer/pkg/ejudge"
+	ejgen "scainer/generated/ejudge"
+	"scainer/internal/domain"
+	ejudgeapi "scainer/pkg/ejudge"
 )
 
 func TestMapToSubmission(t *testing.T) {

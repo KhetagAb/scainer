@@ -3,8 +3,8 @@ package ejudge_test
 import (
 	"testing"
 
-	"github.com/lksh/scainer/internal/domain"
-	"github.com/lksh/scainer/pkg/ejudge"
+	"scainer/internal/domain"
+	"scainer/pkg/ejudge"
 )
 
 func TestLoadEnv_OK(t *testing.T) {

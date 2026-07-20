@@ -5,7 +5,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/lksh/scainer/pkg/auth"
+	"scainer/pkg/auth"
 )
 
 // Кроме точного POST /api/auth/login.

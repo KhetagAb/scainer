@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"strconv"
 
-	ejgen "github.com/lksh/scainer/generated/ejudge"
+	ejgen "scainer/generated/ejudge"
 )
 
 type ContestInfo struct {

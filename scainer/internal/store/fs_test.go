@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/lksh/scainer/internal/domain"
+	"scainer/internal/domain"
 )
 
 func TestFSSourcePath(t *testing.T) {

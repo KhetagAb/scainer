@@ -3,7 +3,7 @@ package scoring
 import (
 	"sort"
 
-	"github.com/lksh/scainer/internal/domain"
+	"scainer/internal/domain"
 )
 
 type Scorer interface {

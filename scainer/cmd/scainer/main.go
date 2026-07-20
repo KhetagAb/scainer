@@ -14,18 +14,18 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"github.com/lksh/scainer/internal/contests"
-	"github.com/lksh/scainer/internal/detect"
-	"github.com/lksh/scainer/internal/detect/jplag"
-	"github.com/lksh/scainer/internal/jobs"
-	"github.com/lksh/scainer/internal/repository"
-	"github.com/lksh/scainer/internal/scoring"
-	"github.com/lksh/scainer/internal/store"
-	"github.com/lksh/scainer/internal/transport"
-	"github.com/lksh/scainer/pkg/auth"
+	"scainer/internal/contests"
+	"scainer/internal/detect"
+	"scainer/internal/detect/jplag"
+	"scainer/internal/jobs"
+	"scainer/internal/repository"
+	"scainer/internal/scoring"
+	"scainer/internal/store"
+	"scainer/internal/transport"
+	"scainer/pkg/auth"
 
-	_ "github.com/lksh/scainer/internal/importer/ejudge"
-	_ "github.com/lksh/scainer/internal/importer/folder"
+	_ "scainer/internal/importer/ejudge"
+	_ "scainer/internal/importer/folder"
 )
 
 const defaultJudgeSystem = "ejudge"

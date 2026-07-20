@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/lksh/scainer/pkg/ejudge"
+	"scainer/pkg/ejudge"
 )
 
 func TestContestStatus(t *testing.T) {

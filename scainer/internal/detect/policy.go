@@ -1,6 +1,6 @@
 package detect
 
-import "github.com/lksh/scainer/internal/domain"
+import "scainer/internal/domain"
 
 type AnalysisPolicy struct {
 	ExcludedProblems map[domain.ProblemID]bool

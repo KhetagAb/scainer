@@ -6,7 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"gopkg.in/yaml.v3"
 
-	"github.com/lksh/scainer/pkg/ejudge"
+	"scainer/pkg/ejudge"
 )
 
 func TestSourceSpecBSONRoundtrip_EjudgeConfig(t *testing.T) {

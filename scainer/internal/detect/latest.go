@@ -1,6 +1,6 @@
 package detect
 
-import "github.com/lksh/scainer/internal/domain"
+import "scainer/internal/domain"
 
 func LatestPerParticipant(subs []domain.Submission) []domain.Submission {
 	best := make(map[domain.ParticipantID]domain.Submission, len(subs))

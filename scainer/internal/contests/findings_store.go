@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/lksh/scainer/internal/domain"
+	"scainer/internal/domain"
 )
 
 type FindingsSnapshot struct {

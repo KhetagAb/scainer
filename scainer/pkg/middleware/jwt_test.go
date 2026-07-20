@@ -8,8 +8,8 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/lksh/scainer/pkg/auth"
-	"github.com/lksh/scainer/pkg/middleware"
+	"scainer/pkg/auth"
+	"scainer/pkg/middleware"
 )
 
 func TestRequireJWT(t *testing.T) {

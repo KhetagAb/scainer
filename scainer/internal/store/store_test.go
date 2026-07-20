@@ -6,7 +6,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/lksh/scainer/internal/domain"
+	"scainer/internal/domain"
 )
 
 func TestMemGet(t *testing.T) {

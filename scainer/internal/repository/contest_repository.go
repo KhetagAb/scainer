@@ -7,8 +7,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"github.com/lksh/scainer/internal/contests"
-	"github.com/lksh/scainer/internal/domain"
+	"scainer/internal/contests"
+	"scainer/internal/domain"
 )
 
 type ContestRepository struct{ col *mongo.Collection }

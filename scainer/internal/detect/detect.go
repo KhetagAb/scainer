@@ -6,9 +6,9 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/lksh/scainer/internal/domain"
-	"github.com/lksh/scainer/internal/progress"
-	"github.com/lksh/scainer/internal/store"
+	"scainer/internal/domain"
+	"scainer/internal/progress"
+	"scainer/internal/store"
 )
 
 type Detector[U domain.Unit] interface {

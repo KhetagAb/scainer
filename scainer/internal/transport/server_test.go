@@ -10,15 +10,15 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/lksh/scainer/internal/contests"
-	"github.com/lksh/scainer/internal/detect"
-	"github.com/lksh/scainer/internal/domain"
-	"github.com/lksh/scainer/internal/importer"
-	"github.com/lksh/scainer/internal/jobs"
-	"github.com/lksh/scainer/internal/scoring"
-	"github.com/lksh/scainer/internal/store"
-	"github.com/lksh/scainer/internal/transport"
-	"github.com/lksh/scainer/pkg/auth"
+	"scainer/internal/contests"
+	"scainer/internal/detect"
+	"scainer/internal/domain"
+	"scainer/internal/importer"
+	"scainer/internal/jobs"
+	"scainer/internal/scoring"
+	"scainer/internal/store"
+	"scainer/internal/transport"
+	"scainer/pkg/auth"
 )
 
 func newRuntimeConfig() contests.RuntimeConfig {

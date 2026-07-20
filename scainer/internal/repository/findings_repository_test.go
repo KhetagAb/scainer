@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lksh/scainer/internal/contests"
-	"github.com/lksh/scainer/internal/domain"
-	"github.com/lksh/scainer/internal/repository"
+	"scainer/internal/contests"
+	"scainer/internal/domain"
+	"scainer/internal/repository"
 )
 
 func findingsFixture(contest domain.ContestID) []domain.Finding {

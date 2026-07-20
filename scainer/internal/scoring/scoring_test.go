@@ -3,7 +3,7 @@ package scoring
 import (
 	"testing"
 
-	"github.com/lksh/scainer/internal/domain"
+	"scainer/internal/domain"
 )
 
 func pairSig(det string, contest domain.ContestID, a, b domain.ParticipantID, problem domain.ProblemID, score float64) domain.Signal {

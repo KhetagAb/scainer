@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lksh/scainer/pkg/auth"
+	"scainer/pkg/auth"
 )
 
 func TestValidateCredentials(t *testing.T) {

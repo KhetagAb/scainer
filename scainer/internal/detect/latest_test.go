@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lksh/scainer/internal/domain"
+	"scainer/internal/domain"
 )
 
 func TestLatestPerParticipant(t *testing.T) {

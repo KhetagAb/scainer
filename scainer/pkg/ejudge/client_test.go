@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	ejgen "github.com/lksh/scainer/generated/ejudge"
-	"github.com/lksh/scainer/pkg/ejudge"
+	ejgen "scainer/generated/ejudge"
+	"scainer/pkg/ejudge"
 )
 
 func writeJSON(w http.ResponseWriter, v any) {

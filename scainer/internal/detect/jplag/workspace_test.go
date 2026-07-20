@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/lksh/scainer/internal/domain"
-	"github.com/lksh/scainer/internal/store"
-	pkgfs "github.com/lksh/scainer/pkg/fs"
+	"scainer/internal/domain"
+	"scainer/internal/store"
+	pkgfs "scainer/pkg/fs"
 )
 
 func TestPrepareSubmissions_SymlinkFromFS(t *testing.T) {

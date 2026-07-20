@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lksh/scainer/internal/progress"
+	"scainer/internal/progress"
 )
 
 type Status string

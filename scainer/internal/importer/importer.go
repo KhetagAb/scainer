@@ -5,8 +5,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/lksh/scainer/internal/domain"
-	"github.com/lksh/scainer/internal/store"
+	"scainer/internal/domain"
+	"scainer/internal/store"
 )
 
 type Importer interface {

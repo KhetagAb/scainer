@@ -3,7 +3,7 @@ package transport
 import (
 	"testing"
 
-	"github.com/lksh/scainer/internal/domain"
+	"scainer/internal/domain"
 )
 
 func TestBuildReportData_ReferencedOnlyAndAIFlag(t *testing.T) {

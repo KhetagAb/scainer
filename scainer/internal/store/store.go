@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/lksh/scainer/internal/domain"
+	"scainer/internal/domain"
 )
 
 type Store interface {

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lksh/scainer/internal/domain"
+	"scainer/internal/domain"
 )
 
 const (

@@ -1,4 +1,4 @@
-module github.com/lksh/scainer
+module scainer
 
 go 1.26.4
 

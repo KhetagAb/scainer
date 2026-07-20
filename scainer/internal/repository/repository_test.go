@@ -6,7 +6,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo"
 
-	"github.com/lksh/scainer/internal/repository"
+	"scainer/internal/repository"
 )
 
 func mustDB(t *testing.T) *mongo.Database {

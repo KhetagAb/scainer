@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"time"
 
-	ejgen "github.com/lksh/scainer/generated/ejudge"
-	"github.com/lksh/scainer/internal/domain"
-	ejudgeapi "github.com/lksh/scainer/pkg/ejudge"
+	ejgen "scainer/generated/ejudge"
+	"scainer/internal/domain"
+	ejudgeapi "scainer/pkg/ejudge"
 )
 
 func mapToSubmission(contestID int, run ejgen.Run, src []byte, env *ejudgeapi.Env, contestName string) (domain.Submission, error) {

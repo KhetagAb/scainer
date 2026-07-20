@@ -3,8 +3,8 @@ package dummy
 import (
 	"context"
 
-	"github.com/lksh/scainer/internal/detect"
-	"github.com/lksh/scainer/internal/domain"
+	"scainer/internal/detect"
+	"scainer/internal/domain"
 )
 
 type AlwaysProblem struct{}

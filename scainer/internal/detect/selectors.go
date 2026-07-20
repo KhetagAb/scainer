@@ -4,8 +4,8 @@ import (
 	"context"
 	"sort"
 
-	"github.com/lksh/scainer/internal/domain"
-	"github.com/lksh/scainer/internal/store"
+	"scainer/internal/domain"
+	"scainer/internal/store"
 )
 
 type ProblemSelector struct {

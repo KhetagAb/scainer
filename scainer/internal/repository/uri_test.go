@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lksh/scainer/internal/repository"
+	"scainer/internal/repository"
 )
 
 func TestURIFromEnv(t *testing.T) {

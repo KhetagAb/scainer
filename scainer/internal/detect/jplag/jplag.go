@@ -7,10 +7,10 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/lksh/scainer/internal/detect"
-	"github.com/lksh/scainer/internal/domain"
-	"github.com/lksh/scainer/internal/store"
-	pkgfs "github.com/lksh/scainer/pkg/fs"
+	"scainer/internal/detect"
+	"scainer/internal/domain"
+	"scainer/internal/store"
+	pkgfs "scainer/pkg/fs"
 )
 
 type Detector struct {

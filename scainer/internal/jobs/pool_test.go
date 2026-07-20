@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lksh/scainer/internal/jobs"
-	"github.com/lksh/scainer/internal/progress"
+	"scainer/internal/jobs"
+	"scainer/internal/progress"
 )
 
 func waitUntil(t *testing.T, timeout time.Duration, cond func() bool) {

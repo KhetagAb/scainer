@@ -8,7 +8,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/lksh/scainer/pkg/middleware"
+	"scainer/pkg/middleware"
 )
 
 func TestLoginRateLimit(t *testing.T) {

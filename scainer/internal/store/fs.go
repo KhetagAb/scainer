@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lksh/scainer/internal/domain"
-	pkgfs "github.com/lksh/scainer/pkg/fs"
+	"scainer/internal/domain"
+	pkgfs "scainer/pkg/fs"
 )
 
 const (

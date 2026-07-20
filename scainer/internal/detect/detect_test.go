@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lksh/scainer/internal/detect"
-	"github.com/lksh/scainer/internal/detect/dummy"
-	"github.com/lksh/scainer/internal/domain"
-	"github.com/lksh/scainer/internal/progress"
-	"github.com/lksh/scainer/internal/store"
+	"scainer/internal/detect"
+	"scainer/internal/detect/dummy"
+	"scainer/internal/domain"
+	"scainer/internal/progress"
+	"scainer/internal/store"
 )
 
 func TestStageStampsAIFlag(t *testing.T) {

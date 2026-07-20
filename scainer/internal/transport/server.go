@@ -10,12 +10,12 @@ import (
 	"github.com/labstack/echo/v4"
 	echomiddleware "github.com/labstack/echo/v4/middleware"
 
-	"github.com/lksh/scainer/internal/contests"
-	"github.com/lksh/scainer/internal/domain"
-	"github.com/lksh/scainer/internal/generated/server"
-	"github.com/lksh/scainer/internal/jobs"
-	"github.com/lksh/scainer/pkg/auth"
-	scainermw "github.com/lksh/scainer/pkg/middleware"
+	"scainer/internal/contests"
+	"scainer/internal/domain"
+	"scainer/internal/generated/server"
+	"scainer/internal/jobs"
+	"scainer/pkg/auth"
+	scainermw "scainer/pkg/middleware"
 )
 
 type Server struct {

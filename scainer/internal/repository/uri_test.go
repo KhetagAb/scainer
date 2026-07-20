@@ -20,7 +20,7 @@ func TestURIFromEnv(t *testing.T) {
 	if !strings.HasPrefix(uri, "mongodb://u:") {
 		t.Fatalf("uri prefix: %q", uri)
 	}
-	if !strings.Contains(uri, "@localhost:27017") || !strings.Contains(uri, "authSource=admin") {
+	if !strings.Contains(uri, "@localhost:27017/?authSource=admin") {
 		t.Fatalf("uri host/query: %q", uri)
 	}
 	// спецсимволы пароля должны быть percent-encoded

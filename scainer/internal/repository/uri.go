@@ -21,6 +21,7 @@ func URIFromEnv() (string, error) {
 		Scheme:   "mongodb",
 		User:     url.UserPassword(user, pass),
 		Host:     host,
+		Path:     "/",
 		RawQuery: "authSource=admin",
 	}
 	return u.String(), nil

@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -68,7 +69,7 @@ func TestFSGet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := f.Get(ctx, []domain.SubmissionID{"a", "missing", "b"})
+	got, err := f.GetByIDs(ctx, []domain.SubmissionID{"a", "missing", "b"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +77,20 @@ func TestFSGet(t *testing.T) {
 		t.Fatalf("ожидали 2 посылки, получили %d", len(got))
 	}
 
-	empty, err := f.Get(ctx, nil)
+	_, err = f.GetByID(ctx, "missing")
+	if !errors.Is(err, domain.ErrSubmissionNotFound) {
+		t.Fatalf("ожидали ErrSubmissionNotFound, получили %v", err)
+	}
+
+	got, err = f.GetByIDs(ctx, []domain.SubmissionID{"a", "b"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("ожидали 2 посылки, получили %d", len(got))
+	}
+
+	empty, err := f.GetByIDs(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +124,7 @@ func TestFSPersistsAcrossProcesses(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := f2.Get(ctx, []domain.SubmissionID{"ejudge:50501:12", "ejudge:50501:13", "ejudge:50501:14"})
+	got, err := f2.GetByIDs(ctx, []domain.SubmissionID{"ejudge:50501:12", "ejudge:50501:13", "ejudge:50501:14"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -172,7 +186,7 @@ func TestFSSanitizeIDNoCollision(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := f2.Get(ctx, []domain.SubmissionID{"ejudge:1:1", "c/A/p2"})
+	got, err := f2.GetByIDs(ctx, []domain.SubmissionID{"ejudge:1:1", "c/A/p2"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -244,7 +258,7 @@ func TestFS_ConcurrentPutAndRead(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for i := 0; i < opsPerGoroutine; i++ {
-				_, _ = f.Get(ctx, []domain.SubmissionID{"w0-0"})
+				_, _ = f.GetByID(ctx, "w0-0")
 				_, _ = f.ByProblem(ctx, "c")
 				_, _ = f.ByParticipant(ctx)
 				_, _, _ = f.GetCursor(ctx, "k")

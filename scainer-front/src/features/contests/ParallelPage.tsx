@@ -20,7 +20,7 @@ import ContestLegendModal, {
 import ContestStats from "@/features/contests/ContestStats";
 import ImportProgressBar from "@/features/contests/ImportProgressBar";
 import { useSensitivity } from "@/features/contests/SensitivityContext";
-import { DEFAULT_PARALLELS } from "@/features/contests/parallels";
+import { parallelLabel } from "@/features/contests/parallels";
 import {
   UNGROUPED_PARALLEL,
   compareContestId,
@@ -140,12 +140,7 @@ export default function ParallelPage({ onUnauthorized }: Props) {
   }
 
   const canAdd = parallelId !== UNGROUPED_PARALLEL;
-  const known = DEFAULT_PARALLELS.find((p) => p.id === parallelId);
-  const fromContest = contests.find((c) => c.parallelId === parallelId);
-  const parallelName =
-    parallelId === UNGROUPED_PARALLEL
-      ? "Без параллели"
-      : known?.name || fromContest?.parallelName || parallelId;
+  const title = parallelLabel(parallelId, UNGROUPED_PARALLEL);
 
   const rows = parallelContests
     .map((c, i) => {
@@ -186,7 +181,7 @@ export default function ParallelPage({ onUnauthorized }: Props) {
       </Link>
 
       <div className="contest-head">
-        <h1>{parallelName}</h1>
+        <h1>{title}</h1>
         <div className="contest-head__actions">
           {importJobs.isRunning && importJobs.batchProgress ? (
             <ImportProgressBar
@@ -225,7 +220,7 @@ export default function ParallelPage({ onUnauthorized }: Props) {
         {rows.map((c) => (
           <li key={c.id}>
             <Link
-              to={`/contests/${encodeURIComponent(c.id)}`}
+              to={`/contests/${encodeURIComponent(c.id)}/findings`}
               className={
                 "contest-card" +
                 (c.spine === "green"
@@ -256,7 +251,6 @@ export default function ParallelPage({ onUnauthorized }: Props) {
           <li className="contest-grid__add">
             <AddContestForm
               parallelId={parallelId}
-              parallelName={parallelName}
               onDone={() => void contestsQuery.refetch()}
             />
           </li>

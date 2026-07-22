@@ -22,8 +22,7 @@ type SourceSpec struct {
 
 type Registration struct {
 	ID               domain.ContestID
-	ParallelID       domain.ParallelID
-	ParallelName     string
+	ParallelID       string
 	Source           *SourceSpec
 	ExcludedProblems []domain.ProblemID
 }
@@ -31,8 +30,7 @@ type Registration struct {
 type Contest struct {
 	ID               domain.ContestID   `bson:"id"`
 	Name             string             `bson:"name"`
-	ParallelID       domain.ParallelID  `bson:"parallel_id"`
-	ParallelName     string             `bson:"parallel_name"`
+	ParallelID       string             `bson:"parallel_id"`
 	ExcludedProblems []domain.ProblemID `bson:"excluded_problems"`
 	LastImportedAt   *time.Time         `bson:"last_imported_at,omitempty"`
 	Statistic        ContestStatistic   `bson:"-"`
@@ -58,7 +56,8 @@ type FindingsSnapshot struct {
 
 type SubmissionStore interface {
 	Put(ctx context.Context, submissions []domain.Submission) error
-	Get(ctx context.Context, ids []domain.SubmissionID) ([]domain.Submission, error)
+	GetByID(ctx context.Context, id domain.SubmissionID) (domain.Submission, error)
+	GetByIDs(ctx context.Context, ids []domain.SubmissionID) ([]domain.Submission, error)
 	ByProblem(ctx context.Context, contest domain.ContestID) (map[domain.ProblemID][]domain.Submission, error)
 	GetCursor(ctx context.Context, key string) (value string, ok bool, err error)
 	SetCursor(ctx context.Context, key string, value string) error
@@ -106,7 +105,7 @@ func loadReferencedSubmissions(ctx context.Context, store SubmissionStore, findi
 			}
 		}
 	}
-	list, err := store.Get(ctx, ids)
+	list, err := store.GetByIDs(ctx, ids)
 	if err != nil {
 		return nil, err
 	}

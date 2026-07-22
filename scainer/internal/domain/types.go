@@ -40,8 +40,7 @@ type Span struct {
 }
 
 // Signal — единица вывода любого детектора: подозрительность субъекта + доказательства.
-// Не вердикт: финальное суждение за преподавателем. Score нормализован в [0,1]; 0 значим
-// (поэтому без omitempty). AI выставляет Stage из Detector.AI(), не сам детектор в Analyze.
+// AI выставляет Stage из Detector.AI(), не сам детектор в Analyze.
 type Signal struct {
 	Detector string         `json:"detector" bson:"detector"`
 	AI       bool           `json:"ai,omitempty" bson:"ai,omitempty"`

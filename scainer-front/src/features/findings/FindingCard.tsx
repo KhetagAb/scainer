@@ -47,6 +47,7 @@ export function FindingCard({ finding, groupBy, groupKey, submissions, hidden }:
       <summary className="finding-head">
         <span className={`score-badge ${scoreLevel(finding.score)}`}>{fmtScore(finding.score)}</span>
         <span className="finding-title">{subjectTitle(finding.subject, groupBy, groupKey)}</span>
+        <span className="ai-slot">{finding.ai ? <AiBadge /> : null}</span>
         <span className="finding-meta">
           {groupBy !== "problem" ? <ProblemChip subject={finding.subject} /> : null}
         </span>
@@ -57,7 +58,6 @@ export function FindingCard({ finding, groupBy, groupKey, submissions, hidden }:
             </span>
           ))}
         </span>
-        <span className="ai-slot">{finding.ai ? <span className="ai-badge" title="Сигнал от AI-детектора" /> : null}</span>
       </summary>
       <div className="finding-body">
         {rendered
@@ -67,6 +67,24 @@ export function FindingCard({ finding, groupBy, groupKey, submissions, hidden }:
           : null}
       </div>
     </details>
+  );
+}
+
+function AiBadge() {
+  return (
+    <span
+      className="ai-badge"
+      tabIndex={0}
+      aria-label="Сигнал от AI-детектора"
+      onClick={(e) => e.preventDefault()}
+    >
+      <span className="ai-badge-tip" role="tooltip">
+        <span className="ai-badge-tip-label">AI-детектор</span>
+        <span className="ai-badge-tip-text">
+          В оценку вошёл сигнал LLM: модель смотрела историю посылок и отметила подозрение на использование ИИ.
+        </span>
+      </span>
+    </span>
   );
 }
 
@@ -109,7 +127,7 @@ function SignalBlock({
       {showDetector ? (
         <div className="signal-meta">
           <Chip>{signal.detector}</Chip>
-          {signal.ai ? <span className="ai-badge" title="Сигнал от AI-детектора" /> : null}
+          {signal.ai ? <AiBadge /> : null}
         </div>
       ) : null}
       {(signal.evidence ?? []).map((ev, i) => (
@@ -196,7 +214,7 @@ function CodePane({
 export function GroupTitle({
   groupBy,
   group,
-  suspiciousCount,
+  signalCount,
   submissionCount,
 }: {
   groupBy: GroupBy;
@@ -208,13 +226,13 @@ export function GroupTitle({
     problemName: string;
     visibleCount: number;
   };
-  /** Подозрительные посылки задачи (для groupBy=problem). */
-  suspiciousCount?: number;
+  /** Findings задачи со score ≥ порога (для groupBy=problem). */
+  signalCount?: number;
   submissionCount?: number;
 }) {
   const sharePercent =
     groupBy === "problem" && submissionCount != null && submissionCount > 0
-      ? (100 * (suspiciousCount ?? 0)) / submissionCount
+      ? (100 * (signalCount ?? 0)) / submissionCount
       : null;
   const heat = sharePercent != null ? problemSuspicionLevel(sharePercent) : null;
 
@@ -241,7 +259,7 @@ export function GroupTitle({
           }
           title={PROBLEM_SUSPICION_TOOLTIP}
         >
-          {formatSignalCount(suspiciousCount ?? 0)} / {formatSubmissionCount(submissionCount)}
+          {formatSignalCount(signalCount ?? 0)} / {formatSubmissionCount(submissionCount)}
         </span>
       ) : null}
     </h2>

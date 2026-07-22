@@ -2,15 +2,16 @@ import { useRef, useState, type FormEvent, type KeyboardEvent, type MouseEvent }
 import { useMutation } from "@tanstack/react-query";
 import { postContestsMutation } from "@/client/@tanstack/react-query.gen";
 import { authHeaders } from "@/features/auth/authStorage";
+import { parallelLabel } from "@/features/contests/parallels";
+import { UNGROUPED_PARALLEL } from "@/features/contests/contestHelpers";
 
 type Props = {
   parallelId: string;
-  parallelName: string;
   onDone: () => void;
 };
 
 // Карточка в сетке контестов: курсив «Добавить контест» + поле ID.
-export default function AddContestForm({ parallelId, parallelName, onDone }: Props) {
+export default function AddContestForm({ parallelId, onDone }: Props) {
   const [contestId, setContestId] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const mutation = useMutation(postContestsMutation());
@@ -28,7 +29,7 @@ export default function AddContestForm({ parallelId, parallelName, onDone }: Pro
     if (!id || pending) return;
     try {
       await mutation.mutateAsync({
-        body: { id, parallelId, parallelName },
+        body: { id, parallelId },
         headers: authHeaders(),
       });
       setContestId("");
@@ -70,7 +71,7 @@ export default function AddContestForm({ parallelId, parallelName, onDone }: Pro
         placeholder="ID, напр. 50601"
         required
         readOnly={pending}
-        aria-label={`ID контеста для ${parallelName}`}
+        aria-label={`ID контеста для ${parallelLabel(parallelId, UNGROUPED_PARALLEL)}`}
       />
       {mutation.isError && !pending && (
         <span className="contest-card__error">Не удалось добавить</span>

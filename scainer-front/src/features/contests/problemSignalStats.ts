@@ -4,17 +4,17 @@ import { collator } from "@/features/contests/contestHelpers";
 export type ProblemSignalStat = {
   id: string;
   name: string;
-  /** Доля подозрительных посылок, %; null если посылок 0. */
+  /** Доля сигналов, %; null если посылок 0. */
   suspiciousSharePercent: number | null;
 };
 
 export const PROBLEM_SUSPICION_TOOLTIP =
-  "Доля подозрительных посылок задачи: 100 × подозрительные / все посылки задачи";
+  "Доля сигналов задачи: 100 × сигналы (≥ порога) / все посылки задачи";
 
-/** >15% подозрительных посылок — жёлтый; ≤15% (и >0) — зелёный. */
+/** >15% сигналов — жёлтый; ≤15% (и >0) — зелёный. */
 export const PROBLEM_SUSPICION_LOW_MIN = 0.15;
 
-/** Полный список задач + доля подозрительных посылок. */
+/** Полный список задач + доля сигналов. */
 export function buildProblemSignalStats(
   problems: ProblemInfo[],
   findings: FindingView[],
@@ -49,38 +49,31 @@ export function buildProblemSignalStats(
 export function problemSuspicionLevelHint(level: string): string {
   switch (level) {
     case "level-high":
-      return "≤15% подозрительных — высокий сигнал";
+      return "≤15% сигналов — высокий сигнал";
     case "level-low":
-      return ">15% подозрительных — низкий сигнал";
+      return ">15% сигналов — низкий сигнал";
     default:
-      return "нет подозрительных посылок";
+      return "нет сигналов";
   }
 }
 
-/** Уникальные подозрительные посылки задачи (findings ≥ threshold). */
-export function countSuspiciousSubmissionsForProblem(
+/** Число findings задачи со score ≥ threshold (любой kind субъекта). */
+export function countSignalsForProblem(
   findings: FindingView[],
   threshold: number,
   problemId: string,
 ): number {
-  const ids = new Set<string>();
+  let n = 0;
   for (const f of findings) {
     if (f.score < threshold) continue;
     if (f.subject.problem !== problemId) continue;
-    if (f.subject.submission) ids.add(f.subject.submission);
-    for (const sig of f.signals ?? []) {
-      for (const ev of sig.evidence ?? []) {
-        for (const sp of ev.spans ?? []) {
-          if (sp.submission) ids.add(sp.submission);
-        }
-      }
-    }
+    n += 1;
   }
-  return ids.size;
+  return n;
 }
 
 /**
- * 100 × |подозрительные посылки| / все посылки задачи;
+ * 100 × |сигналы| / все посылки задачи;
  * null если посылок 0.
  */
 export function problemSuspiciousSharePercent(
@@ -90,12 +83,12 @@ export function problemSuspiciousSharePercent(
   submissionCount: number,
 ): number | null {
   if (submissionCount <= 0) return null;
-  const n = countSuspiciousSubmissionsForProblem(findings, threshold, problemId);
+  const n = countSignalsForProblem(findings, threshold, problemId);
   return (100 * n) / submissionCount;
 }
 
 /**
- * Цвет по абсолютной доле подозрительных посылок (чипы, % внутри, корешок):
+ * Цвет по абсолютной доле сигналов (чипы, % внутри, корешок):
  * 0 / null → серый; ≤15% → зелёный; >15% → жёлтый.
  */
 export function problemSuspicionLevel(percent: number | null | undefined): string {

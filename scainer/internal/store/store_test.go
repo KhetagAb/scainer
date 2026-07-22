@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"testing"
@@ -17,22 +18,31 @@ func TestMemGet(t *testing.T) {
 		{ID: "b", Participant: "bob", Problem: "A"},
 	})
 
-	got, err := m.Get(ctx, []domain.SubmissionID{"a", "missing", "b"})
+	got, err := m.GetByIDs(ctx, []domain.SubmissionID{"a", "missing", "b"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(got) != 2 {
 		t.Fatalf("ожидали 2 посылки, получили %d", len(got))
 	}
-	ids := map[domain.SubmissionID]bool{}
-	for _, s := range got {
-		ids[s.ID] = true
-	}
-	if !ids["a"] || !ids["b"] {
-		t.Fatalf("неожиданные ID: %v", ids)
+	if got[0].ID != "a" || got[1].ID != "b" {
+		t.Fatalf("неожиданный порядок: %v, %v", got[0].ID, got[1].ID)
 	}
 
-	empty, err := m.Get(ctx, nil)
+	_, err = m.GetByID(ctx, "missing")
+	if !errors.Is(err, domain.ErrSubmissionNotFound) {
+		t.Fatalf("ожидали ErrSubmissionNotFound, получили %v", err)
+	}
+
+	one, err := m.GetByID(ctx, "a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if one.ID != "a" {
+		t.Fatalf("ID = %v", one.ID)
+	}
+
+	empty, err := m.GetByIDs(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +77,7 @@ func TestMem_ConcurrentPutAndRead(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for i := 0; i < opsPerGoroutine; i++ {
-				_, _ = m.Get(ctx, []domain.SubmissionID{"w0-0"})
+				_, _ = m.GetByID(ctx, "w0-0")
 				_, _ = m.ByProblem(ctx, "c")
 				_, _ = m.ByParticipant(ctx)
 				_, _, _ = m.GetCursor(ctx, "k")

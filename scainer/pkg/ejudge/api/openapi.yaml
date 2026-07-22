@@ -1,7 +1,5 @@
-# Минимальный срез ejudge HTTP API для scainer (lksh: cgi-bin + action=…).
-# На ejudge.lksh.ru пути /ej/api/v1/... дают 404; рабочие entrypoint —
-# /cgi-bin/new-master и /cgi-bin/master (эквивалентны для наших вызовов).
-# Поля Run сверены с живым list-runs-json (contest 50501).
+# lksh: /ej/api/v1/... → 404; рабочие entrypoint — /cgi-bin/new-master|master.
+# Один GET+POST на new-master (JSON/form); master — только download-run (binary).
 openapi: 3.0.3
 info:
   title: ejudge API (scainer subset)
@@ -11,11 +9,10 @@ servers:
 security:
   - ApiKeyAuth: []
 paths:
-  # OpenAPI не позволяет два GET на одном path — list на new-master, download на master.
   /cgi-bin/new-master:
     get:
-      operationId: listRuns
-      summary: List runs (privileged)
+      operationId: masterJSON
+      summary: Privileged JSON CGI (action=list-runs-json|contest-status-json|…)
       parameters:
         - $ref: "#/components/parameters/JsonFlag"
         - name: action
@@ -23,8 +20,15 @@ paths:
           required: true
           schema:
             type: string
-            enum: [list-runs-json]
+            enum:
+              - list-runs-json
+              - contest-status-json
+              - run-status-json
+              - run-messages-json
         - $ref: "#/components/parameters/ContestId"
+        - name: run_id
+          in: query
+          schema: { type: integer }
         - name: first_run
           in: query
           schema: { type: integer }
@@ -39,11 +43,48 @@ paths:
           schema: { type: integer }
       responses:
         "200":
-          description: OK
+          description: JSON envelope (result зависит от action)
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ListRunsReply"
+                $ref: "#/components/schemas/JSONEnvelope"
+    post:
+      operationId: masterForm
+      summary: Privileged form CGI (action=64 comment, 67 status, …)
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [json, action, contest_id]
+              properties:
+                json:
+                  type: integer
+                  enum: [1]
+                action:
+                  type: string
+                  description: "CGI action code or name (64=comment, 67=status)"
+                contest_id:
+                  type: integer
+                run_id:
+                  type: integer
+                status:
+                  type: integer
+                  description: numeric ejudge status for action=67
+                msg_text:
+                  type: string
+                  description: comment text for action=64
+      responses:
+        "200":
+          description: JSON envelope or legacy HTML
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSONEnvelope"
+            text/html:
+              schema:
+                type: string
 
   /cgi-bin/master:
     get:
@@ -112,6 +153,17 @@ components:
         num: { type: integer }
         log_id: { type: string }
 
+    JSONEnvelope:
+      type: object
+      properties:
+        ok: { type: boolean }
+        error:
+          $ref: "#/components/schemas/Error"
+        result:
+          type: object
+          additionalProperties: true
+        server_time: { type: integer }
+
     ListRunsReply:
       type: object
       properties:
@@ -136,6 +188,88 @@ components:
         listed_runs: { type: integer }
         transient_runs: { type: integer }
         field_mask: { type: integer }
+
+    ContestStatusReply:
+      type: object
+      properties:
+        ok: { type: boolean }
+        error:
+          $ref: "#/components/schemas/Error"
+        result:
+          $ref: "#/components/schemas/ContestStatusResult"
+        server_time: { type: integer }
+
+    ContestStatusResult:
+      type: object
+      properties:
+        contest:
+          $ref: "#/components/schemas/ContestBrief"
+
+    ContestBrief:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+
+    RunStatusReply:
+      type: object
+      properties:
+        ok: { type: boolean }
+        error:
+          $ref: "#/components/schemas/Error"
+        result:
+          $ref: "#/components/schemas/RunStatusResult"
+        server_time: { type: integer }
+
+    RunStatusResult:
+      type: object
+      properties:
+        run:
+          $ref: "#/components/schemas/RunStatusRun"
+
+    RunStatusRun:
+      type: object
+      properties:
+        run_id: { type: integer }
+        status: { type: integer }
+        status_str: { type: string }
+
+    RunMessagesReply:
+      type: object
+      properties:
+        ok: { type: boolean }
+        error:
+          $ref: "#/components/schemas/Error"
+        result:
+          $ref: "#/components/schemas/RunMessagesResult"
+        server_time: { type: integer }
+
+    RunMessagesResult:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/RunMessage"
+
+    RunMessage:
+      type: object
+      properties:
+        clar_id: { type: integer }
+        from: { type: integer }
+        to: { type: integer }
+        subject: { type: string }
+        time_us: { type: integer, format: int64 }
+        size: { type: integer }
+        content:
+          $ref: "#/components/schemas/EncodedContent"
+
+    EncodedContent:
+      type: object
+      properties:
+        data: { type: string }
+        method: { type: integer }
+        size: { type: integer }
 
     Run:
       type: object

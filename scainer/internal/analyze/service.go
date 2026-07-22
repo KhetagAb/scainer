@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"scainer/internal/domain"
-	"scainer/internal/jobs"
+	"scainer/pkg/jobs"
 )
 
 type Service struct {

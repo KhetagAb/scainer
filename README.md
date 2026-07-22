@@ -1,65 +1,45 @@
 # Scainer
 
-Информационная система для преподавателей: отчёты о подозрительных на списывание /
-использование AI посылках (формат ICPC). Система **не выносит вердиктов** — ранжирует и
-объясняет; финальное решение за преподавателем.
+Система для преподавателей: отчёты о подозрительных на списывание / использование AI
+посылках (формат ICPC). Не выносит вердиктов — ранжирует и объясняет; решение за
+преподавателем.
 
 ## Требования
 
-**Обязательно:**
+- [Go 1.26+](scainer/go.mod)
+- [Node.js 18+](scainer-front/package.json) и npm
+- MongoDB
+- Java (JRE 17+) в `PATH` — для JPlag
 
-- [Go 1.26+](scainer/go.mod) — бэкенд
-- [Node.js 18+](scainer-front/package.json) и **npm** — фронтенд
-- **MongoDB**
-- **Java (JRE 17+)** в `PATH` — для детектора JPlag
+## Быстрый старт (Docker Compose)
 
-**Для сборки бэкенда** (codegen):
-
-```bash
-go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.8.0
-```
-
-**Опционально:** Docker и Docker Compose — запуск всего стека одной командой.
-
-## Быстрый старт (Docker Compose, локально)
+Локально:
 
 ```bash
-cp scainer/.env.example scainer/.env   # заполнить секреты и MONGO_INITDB_ROOT_PASSWORD
+cp scainer/.env.example scainer/.env
 docker compose up --build
 ```
 
-Порты с хоста задаёт [`docker-compose.override.yml`](docker-compose.override.yml)
-(только для локальной разработки — **не** для школьного сервера):
+Порты (`docker-compose.override.yml`):
 
-- UI (nginx): **http://localhost:8088**
-- Backend: **http://localhost:8080**
-- MongoDB: `localhost:27017` (с auth из `.env`)
+- UI: [http://localhost:8088](http://localhost:8088)
+- Backend: [http://localhost:8080](http://localhost:8080)
+- MongoDB: `localhost:27017`
 
-## Школьный сервер (LAN + reverse proxy)
-
-TLS терминируется на **внешнем** reverse proxy; внутри стека остаётся HTTP.
+В проде лучше ставить за reverse proxy (TLS снаружи). Пример:
 
 ```bash
-cp scainer/.env.example scainer/.env   # сильные ADMIN_PASSWORD, JWT_SECRET, Mongo-пароль
+cp scainer/.env.example scainer/.env
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 ```
 
-[`docker-compose.prod.yml`](docker-compose.prod.yml) публикует только nginx на
-`127.0.0.1:8088`; Mongo и API **без** host-портов (не видны из LAN).
+`[docker-compose.prod.yml](docker-compose.prod.yml)` публикует только nginx на `127.0.0.1:8088`. Проксируйте на него HTTPS; 
 
-**Чеклист reverse proxy → `http://127.0.0.1:8088`:**
-
-- Снаружи только HTTPS; до прокси не отдавать `:8088`/`:8080`/`:27017` в LAN.
-- Не логировать заголовок `Authorization`.
-- Для SSE прогресса (`/api/jobs/…`): `proxy_buffering off`, длинный `proxy_read_timeout`
-  (как во внутреннем [`scainer-front/nginx.conf`](scainer-front/nginx.conf)).
-- Прокидывать `X-Forwarded-For` / `X-Real-IP` (rate limit login смотрит на IP клиента).
-
-**MongoDB auth:** `MONGO_INITDB_*` применяются только при **первом** старте с пустым
-volume. Если volume уже без пароля — удалить volume (`docker compose down -v`, данные
-пропадут) или вручную создать пользователя в Mongo и обновить пароль в `.env`.
+Для SSE (`/api/jobs/…`) отключите буферизацию и увеличьте `proxy_read_timeout` (см. `[scainer-front/nginx.conf](scainer-front/nginx.conf)`).
 
 ## Локальная разработка
+
+
 
 ### MongoDB
 
@@ -67,73 +47,50 @@ volume. Если volume уже без пароля — удалить volume (`d
 docker compose up mongodb -d
 ```
 
-Порт `27017` на хосте. Для локального бэкенда в `scainer/.env`:
-
-```
-MONGO_INITDB_ROOT_USERNAME=scainer
-MONGO_INITDB_ROOT_PASSWORD=…
-MONGODB_HOST=localhost
-MONGODB_DATABASE=scainer
-```
-
 ### Backend
 
 ```bash
 cd scainer
-cp .env.example .env          # ADMIN_*, JWT_*, EJUDGE_API_KEY, Mongo …
-make setup                    # тянет bin/jplag.jar (нужен java)
-make build                    # codegen + go build
-./bin/scainer                 # слушает :8080
-# или: make run-serve
+cp .env.example .env
+make setup    # bin/jplag.jar (нужен java)
+make build
+./bin/scainer # :8080
 ```
-
-Реестр контестов стартует пустым — контесты добавляются через UI / `POST /api/contests`.
 
 ### Frontend
 
 ```bash
 cd scainer-front
 npm install
-npm run dev                   # http://localhost:5173, прокси /api → :8080
+npm run dev   # http://localhost:5173, /api → :8080
 ```
 
-Другой хост бэкенда:
-
-```bash
-VITE_API_PROXY_TARGET=http://host:8080 npm run dev
-```
+Другой хост бэкенда: `VITE_API_PROXY_TARGET=http://host:8080 npm run dev`.
 
 ## Конфигурация
 
-| Источник | Файл | Примеры |
-|----------|------|---------|
-| Секреты и env | [`scainer/.env.example`](scainer/.env.example) | JWT, admin, ejudge, MongoDB, concurrency |
-| OpenAPI | [`scainer/api/openapi.yaml`](scainer/api/openapi.yaml) | HTTP API |
 
-Основные переменные (см. `.env.example`):
+| Источник      | Файл                                                         |
+| ------------- | ------------------------------------------------------------ |
+| Дефолты       | `[scainer/configs/config.yaml](scainer/configs/config.yaml)` |
+| Секреты / env | `[scainer/.env.example](scainer/.env.example)`               |
+| OpenAPI       | `[scainer/api/openapi.yaml](scainer/api/openapi.yaml)`       |
 
-- `ADMIN_USERNAME` / `ADMIN_PASSWORD` / `JWT_SECRET` / `JWT_TTL` (по умолчанию `12h`)
-- `EJUDGE_BASE_URL` / `EJUDGE_API_KEY` / `EJUDGE_TIMEOUT`
-- `MONGO_INITDB_ROOT_USERNAME` / `MONGO_INITDB_ROOT_PASSWORD` / `MONGODB_HOST` / `MONGODB_DATABASE`
-- `STORE_DIR` — персистентность посылок (по умолчанию `./data`)
-- `JPLAG_JAR_PATH` — путь к jar (по умолчанию `bin/jplag.jar` после `make setup`)
-- JPlag CLI: `--normalize` (cpp/java), `-n -1` (все сравнения), `--cluster-skip`
-- `JOBS_MAX_CONCURRENT` / `ANALYZE_CONCURRENCY` — пул импорта и потолок JVM/JPlag/LLM
-- `AIUSAGE_ENABLED=1` + `OPENAI_*` / `OPENAI_MODEL` — опциональная AI-стадия `aiusage-task`
 
-## Полезные команды
+Основные переменные: `ADMIN_*`, `JWT_*`, `EJUDGE_*`, `MONGO_*` / `MONGODB_*`,
+`STORE_DIR`, `JPLAG_JAR_PATH`, `JOBS_MAX_CONCURRENT`, `ANALYZE_CONCURRENCY`,
+опционально `AIUSAGE_ENABLED` + `OPENAI_*`.
 
-| Команда | Где | Действие |
-|---------|-----|----------|
-| `make setup` | `scainer/` | Скачать пиннутый `jplag.jar` |
-| `make build` / `make test` | `scainer/` | Сборка и тесты (с codegen) |
-| `make code-gen` | `scainer/` | OpenAPI → `internal/generated` |
-| `make run-serve` | `scainer/` | HTTP-сервис на `:8080` |
-| `npm run build` | `scainer-front/` | Production-сборка |
-| `npm run generate-client` | `scainer-front/` | Клиент из OpenAPI → `src/client` |
+## Команды
 
-## Документация
 
-- [docs/requirements.md](docs/requirements.md) — требования
-- [docs/principles.md](docs/principles.md) — инварианты
-- [docs/specs/](docs/specs/) — спеки инкрементов
+| Команда                    | Где              | Действие                       |
+| -------------------------- | ---------------- | ------------------------------ |
+| `make setup`               | `scainer/`       | Скачать `jplag.jar`            |
+| `make build` / `make test` | `scainer/`       | Сборка и тесты                 |
+| `make code-gen`            | `scainer/`       | OpenAPI → `internal/generated` |
+| `make run-serve`           | `scainer/`       | HTTP на `:8080`                |
+| `npm run build`            | `scainer-front/` | Production-сборка              |
+| `npm run generate-client`  | `scainer-front/` | Клиент из OpenAPI              |
+
+

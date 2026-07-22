@@ -44,10 +44,10 @@ var langByExt = map[string]domain.Lang{
 	".py": domain.LangPython, ".java": domain.LangJava, ".go": domain.LangGo, ".js": domain.LangJavaScript,
 }
 
-func (i *Importer) Import(ctx context.Context, _ importer.Store) ([]domain.Submission, error) {
+func (i *Importer) Import(ctx context.Context, _ importer.Store) (importer.Result, error) {
 	problems, err := os.ReadDir(i.cfg.Root)
 	if err != nil {
-		return nil, err
+		return importer.Result{}, err
 	}
 
 	var subs []domain.Submission
@@ -59,7 +59,7 @@ func (i *Importer) Import(ctx context.Context, _ importer.Store) ([]domain.Submi
 		dir := filepath.Join(i.cfg.Root, problem)
 		files, err := os.ReadDir(dir)
 		if err != nil {
-			return nil, err
+			return importer.Result{}, err
 		}
 		for _, f := range files {
 			if f.IsDir() {
@@ -70,7 +70,7 @@ func (i *Importer) Import(ctx context.Context, _ importer.Store) ([]domain.Submi
 			participant := strings.TrimSuffix(name, filepath.Ext(name))
 			src, err := os.ReadFile(filepath.Join(dir, name))
 			if err != nil {
-				return nil, err
+				return importer.Result{}, err
 			}
 			id := i.cfg.Contest + "/" + problem + "/" + participant
 			subs = append(subs, domain.Submission{
@@ -84,5 +84,5 @@ func (i *Importer) Import(ctx context.Context, _ importer.Store) ([]domain.Submi
 			})
 		}
 	}
-	return subs, nil
+	return importer.Result{ContestName: i.cfg.Contest, Submissions: subs}, nil
 }

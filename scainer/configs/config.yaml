@@ -1,0 +1,42 @@
+http:
+  addr: ":8080"
+  shutdown_timeout: 5s
+
+store:
+  dir: "./data"
+
+mongodb:
+  username: ""
+  password: ""
+  host: "localhost"
+  database: "scainer"
+
+admin:
+  username: ""
+  password: ""
+  jwt_secret: ""
+  jwt_ttl: 12h
+
+ejudge:
+  base_url: "https://ejudge.lksh.ru"
+  api_key: ""
+  timeout: 15s
+
+jplag:
+  jar_path: "bin/jplag.jar"
+
+analyze:
+  jobs_max_concurrent: 4
+  # Общий потолок JVM/JPlag/LLM на процесс (не на один job).
+  analyze_concurrency: 4
+
+aiusage:
+  enabled: false
+
+openai:
+  base_url: "https://ollamaapi.n.icpc.live/v1"
+  username: ""
+  password: ""
+  api_key: ""
+  timeout: 60s
+  model: ""

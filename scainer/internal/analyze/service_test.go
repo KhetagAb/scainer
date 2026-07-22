@@ -14,7 +14,7 @@ import (
 	"scainer/internal/detect/dummy"
 	"scainer/internal/domain"
 	"scainer/internal/importer"
-	"scainer/internal/jobs"
+	"scainer/pkg/jobs"
 	"scainer/internal/scoring"
 	"scainer/internal/store"
 )
@@ -62,8 +62,8 @@ type stubImporter struct{}
 
 func (stubImporter) Name() string { return "stub" }
 
-func (stubImporter) Import(context.Context, importer.Store) ([]domain.Submission, error) {
-	return nil, nil
+func (stubImporter) Import(context.Context, importer.Store) (importer.Result, error) {
+	return importer.Result{}, nil
 }
 
 func init() {

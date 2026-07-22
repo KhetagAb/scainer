@@ -4,9 +4,11 @@ import { postContestsMutation } from "@/client/@tanstack/react-query.gen";
 import { authHeaders } from "@/features/auth/authStorage";
 import {
   parseEjudgeContestTable,
+  parallelLabel,
   type ParsedImportRow,
   type SkippedImportRow,
 } from "@/features/contests/parallels";
+import { UNGROUPED_PARALLEL } from "@/features/contests/contestHelpers";
 
 type Props = {
   onSuccess: () => void;
@@ -49,7 +51,7 @@ export default function ImportContestsPanel({ onSuccess }: Props) {
     for (const row of rows) {
       try {
         await mutation.mutateAsync({
-          body: { id: row.id, parallelId: row.parallelId, parallelName: row.parallelName },
+          body: { id: row.id, parallelId: row.parallelId },
           headers: authHeaders(),
         });
         results.push({ row, kind: "added" });
@@ -119,7 +121,9 @@ export default function ImportContestsPanel({ onSuccess }: Props) {
                       <div className="contest-row__id">{r.name}</div>
                       <div className="contest-row__meta">ID: {r.id}</div>
                     </div>
-                    <span className="chip contest-chip">{r.parallelName}</span>
+                    <span className="chip contest-chip">
+                      {parallelLabel(r.parallelId, UNGROUPED_PARALLEL)}
+                    </span>
                   </li>
                 ))}
                 {skipped.map((s) => (
@@ -175,7 +179,7 @@ export default function ImportContestsPanel({ onSuccess }: Props) {
                     <div>
                       <div className="contest-row__id">{o.row.name}</div>
                       <div className="contest-row__meta">
-                        ID: {o.row.id} · {o.row.parallelName}
+                        ID: {o.row.id} · {parallelLabel(o.row.parallelId, UNGROUPED_PARALLEL)}
                         {o.kind === "duplicate" ? " · уже был добавлен" : ""}
                         {o.kind === "error" ? " · ошибка" : ""}
                       </div>

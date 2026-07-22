@@ -1,0 +1,50 @@
+import { useOutletContext } from "react-router-dom";
+import type { UseQueryResult } from "@tanstack/react-query";
+import type { SubmissionListItem } from "@/client/types.gen";
+import FindingsPage from "@/features/findings/FindingsPage";
+import ReviewPage from "@/features/review/ReviewPage";
+import ReviewSubmissionPage from "@/features/review/ReviewSubmissionPage";
+
+export type ContestOutletContext = {
+  findingsQuery: UseQueryResult<unknown>;
+  submissionsQuery: UseQueryResult<SubmissionListItem[]>;
+  problemSubmissionCounts: Record<string, number>;
+  onUnauthorized: () => void;
+  findingKey: string | null;
+};
+
+export function ContestFindingsRoute() {
+  const { findingsQuery, problemSubmissionCounts, findingKey } =
+    useOutletContext<ContestOutletContext>();
+  return (
+    <FindingsPage
+      findingKey={findingKey}
+      findingsQuery={findingsQuery}
+      problemSubmissionCounts={problemSubmissionCounts}
+    />
+  );
+}
+
+export function ContestReviewRoute() {
+  const { submissionsQuery, findingsQuery, onUnauthorized } =
+    useOutletContext<ContestOutletContext>();
+  return (
+    <ReviewPage
+      submissionsQuery={submissionsQuery}
+      findingsQuery={findingsQuery}
+      onUnauthorized={onUnauthorized}
+    />
+  );
+}
+
+export function ContestReviewSubmissionRoute() {
+  const { submissionsQuery, findingsQuery, onUnauthorized } =
+    useOutletContext<ContestOutletContext>();
+  return (
+    <ReviewSubmissionPage
+      submissionsQuery={submissionsQuery}
+      findingsQuery={findingsQuery}
+      onUnauthorized={onUnauthorized}
+    />
+  );
+}

@@ -26,8 +26,7 @@ func TestContestRepository_PutGetListDelete(t *testing.T) {
 			ID:               "contest01",
 			Name:             "Тестовый контест",
 			ParallelID:       "par1",
-			ParallelName:     "Параллель 1",
-			ExcludedProblems: []domain.ProblemID{"Z"},
+				ExcludedProblems: []domain.ProblemID{"Z"},
 		},
 		Source: contests.SourceSpec{Type: "ejudge", Config: cfg},
 	}
@@ -43,7 +42,7 @@ func TestContestRepository_PutGetListDelete(t *testing.T) {
 		t.Fatalf("ожидали 1 запись, получили %d", len(list))
 	}
 	got := list[0]
-	if got.Contest.ParallelID != "par1" || got.Contest.ParallelName != "Параллель 1" {
+	if got.Contest.ParallelID != "par1" {
 		t.Fatalf("Contest: %+v", got.Contest)
 	}
 	if len(got.Contest.ExcludedProblems) != 1 || got.Contest.ExcludedProblems[0] != "Z" {
@@ -62,16 +61,12 @@ func TestContestRepository_PutGetListDelete(t *testing.T) {
 		t.Fatalf("Source.Config.contest_id: got %d want 50501", roundTripped.ContestID)
 	}
 
-	rec.Contest.ParallelName = "Параллель 2"
 	if err := repo.Put(ctx, rec); err != nil {
 		t.Fatalf("Put (update): %v", err)
 	}
 	list, err = repo.List(ctx)
 	if err != nil {
 		t.Fatalf("List: %v", err)
-	}
-	if len(list) != 1 || list[0].Contest.ParallelName != "Параллель 2" {
-		t.Fatalf("обновление не применилось: %+v", list)
 	}
 
 	if err := repo.Delete(ctx, "contest01"); err != nil {

@@ -99,7 +99,10 @@ func TestNew_SetsSourcesAndWorkRoot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	d := New("bin/jplag.jar", fs)
+	d, err := New("bin/jplag.jar", fs)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if d.Sources == nil {
 		t.Fatal("Sources")
 	}
@@ -114,7 +117,10 @@ func TestPrepareWorkDir_UnderWorkRoot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	d := New("bin/jplag.jar", fs)
+	d, err := New("bin/jplag.jar", fs)
+	if err != nil {
+		t.Fatal(err)
+	}
 	u := domain.ProblemUnit{Problem: "A", Lang: domain.LangCPP}
 	dir, cleanup, err := d.prepareWorkDir(u, "50501")
 	if err != nil {
@@ -152,7 +158,10 @@ func TestPrepareWorkDir_CleanupRemovesRunDir(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	d := New("bin/jplag.jar", fs)
+	d, err := New("bin/jplag.jar", fs)
+	if err != nil {
+		t.Fatal(err)
+	}
 	dir, cleanup, err := d.prepareWorkDir(domain.ProblemUnit{Problem: "A", Lang: domain.LangCPP}, "50501")
 	if err != nil {
 		t.Fatal(err)

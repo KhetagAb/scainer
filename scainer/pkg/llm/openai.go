@@ -4,10 +4,13 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	oaigen "scainer/generated/openai"
 	"scainer/pkg/openai"
 )
+
+const promptAttempts = 3
 
 type IntelligenceModel interface {
 	Prompt(ctx context.Context, prompt string) (string, error)
@@ -40,6 +43,27 @@ func NewOpenAIFromEnv() (*OpenAI, error) {
 }
 
 func (m *OpenAI) Prompt(ctx context.Context, prompt string) (string, error) {
+	var last error
+	for attempt := 1; attempt <= promptAttempts; attempt++ {
+		out, err := m.promptOnce(ctx, prompt)
+		if err == nil {
+			return out, nil
+		}
+		last = err
+		if attempt == promptAttempts {
+			break
+		}
+		delay := time.Duration(attempt) * 500 * time.Millisecond
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		case <-time.After(delay):
+		}
+	}
+	return "", last
+}
+
+func (m *OpenAI) promptOnce(ctx context.Context, prompt string) (string, error) {
 	resp, err := m.client.CreateChatCompletionWithResponse(ctx, oaigen.ChatCompletionRequest{
 		Model: m.model,
 		Messages: []oaigen.ChatMessage{{

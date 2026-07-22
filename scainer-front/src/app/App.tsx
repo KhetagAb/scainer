@@ -7,6 +7,11 @@ import LoginPage from "@/features/auth/LoginPage";
 import ParallelsPage from "@/features/contests/ParallelsPage";
 import ParallelPage from "@/features/contests/ParallelPage";
 import ContestPage from "@/features/contests/ContestPage";
+import {
+  ContestFindingsRoute,
+  ContestReviewRoute,
+  ContestReviewSubmissionRoute,
+} from "@/features/contests/ContestRoutes";
 import RootLayout from "@/app/RootLayout";
 import NotFoundPage from "@/app/NotFoundPage";
 
@@ -45,7 +50,18 @@ function App() {
               path: "/parallels/:id",
               element: <ParallelPage onUnauthorized={handleUnauthorized} />,
             },
-            { path: "/contests/:id", element: <ContestPage onUnauthorized={handleUnauthorized} /> },
+            {
+              path: "/contests/:id",
+              element: <ContestPage onUnauthorized={handleUnauthorized} />,
+              children: [
+                { path: "findings", element: <ContestFindingsRoute /> },
+                { path: "review", element: <ContestReviewRoute /> },
+                {
+                  path: "review/:submissionId",
+                  element: <ContestReviewSubmissionRoute />,
+                },
+              ],
+            },
             { path: "*", element: <NotFoundPage /> },
           ],
         },

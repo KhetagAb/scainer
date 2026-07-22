@@ -3,7 +3,7 @@ package progress
 import "context"
 
 type Event struct {
-	Phase string // "importing" | "analyzing"
+	Phase string
 	Done  int
 	Total int
 	Label string

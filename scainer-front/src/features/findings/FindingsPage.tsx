@@ -3,9 +3,7 @@ import type { UseQueryResult } from "@tanstack/react-query";
 import type { FindingView, ReportData, SubmissionView } from "@/client/types.gen";
 import { useSensitivity } from "@/features/contests/SensitivityContext";
 import { collator } from "@/features/contests/contestHelpers";
-import {
-  countSuspiciousSubmissionsForProblem,
-} from "@/features/contests/problemSignalStats";
+import { countSignalsForProblem } from "@/features/contests/problemSignalStats";
 import {
   FindingCard,
   GroupTitle,
@@ -44,12 +42,12 @@ export default function FindingsPage({
   const visibleKeys = useFilteredVisibility(findings, query, threshold);
 
   const groupProblemStats = useMemo(() => {
-    const map = new Map<string, { suspicious: number; submissions: number }>();
+    const map = new Map<string, { signals: number; submissions: number }>();
     if (groupBy !== "problem") return map;
     for (const g of groups) {
       const submissions = problemSubmissionCounts[g.problem] ?? 0;
       map.set(g.key, {
-        suspicious: countSuspiciousSubmissionsForProblem(
+        signals: countSignalsForProblem(
           g.findings as FindingView[],
           threshold,
           g.problem,
@@ -160,7 +158,7 @@ export default function FindingsPage({
                     problemName: g.problemName,
                     visibleCount: visibleInGroup,
                   }}
-                  suspiciousCount={problemStat?.suspicious}
+                  signalCount={problemStat?.signals}
                   submissionCount={problemStat?.submissions}
                 />
                 {groupBy === "problem" ? (

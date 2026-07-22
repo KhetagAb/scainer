@@ -12,7 +12,7 @@ import (
 	oaigen "scainer/generated/openai"
 )
 
-//go:generate go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.8.0 -config api/oapi-codegen.yaml api/openapi.yaml
+//go:generate go tool oapi-codegen -config api/oapi-codegen.yaml api/openapi.yaml
 
 const defaultTimeout = 60 * time.Second
 

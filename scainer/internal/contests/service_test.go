@@ -14,7 +14,7 @@ import (
 	"scainer/internal/detect/dummy"
 	"scainer/internal/domain"
 	"scainer/internal/importer"
-	"scainer/internal/jobs"
+	"scainer/pkg/jobs"
 	"scainer/internal/scoring"
 	"scainer/internal/store"
 )
@@ -64,8 +64,8 @@ type stubImporter struct {
 
 func (stubImporter) Name() string { return "stub" }
 
-func (s stubImporter) Import(context.Context, importer.Store) ([]domain.Submission, error) {
-	return s.subs, nil
+func (s stubImporter) Import(context.Context, importer.Store) (importer.Result, error) {
+	return importer.Result{Submissions: s.subs}, nil
 }
 
 var _ importer.Importer = stubImporter{}
@@ -185,7 +185,6 @@ func TestRegisterSuccess(t *testing.T) {
 	decl := contests.Registration{
 		ID:               "contest01",
 		ParallelID:       "par1",
-		ParallelName:     "Параллель 1",
 		ExcludedProblems: []domain.ProblemID{"Z"},
 		Source: &contests.SourceSpec{
 			Type: "stub",
@@ -202,9 +201,6 @@ func TestRegisterSuccess(t *testing.T) {
 	}
 	if info.ParallelID != "par1" {
 		t.Fatalf("ParallelID: got %v want par1", info.ParallelID)
-	}
-	if info.ParallelName != "Параллель 1" {
-		t.Fatalf("ParallelName: got %v want Параллель 1", info.ParallelName)
 	}
 	if len(info.ExcludedProblems) != 1 || info.ExcludedProblems[0] != "Z" {
 		t.Fatalf("ExcludedProblems: got %v want [Z]", info.ExcludedProblems)
@@ -241,14 +237,13 @@ func TestRegistryIsSourceOfTruthAcrossServiceRestart(t *testing.T) {
 	decl := contests.Registration{
 		ID:               "contest01",
 		ParallelID:       "par1",
-		ParallelName:     "Параллель 1",
 		ExcludedProblems: []domain.ProblemID{"A", "B"},
 		Source:           &contests.SourceSpec{Type: "stub"},
 	}
 	if _, err := svc1.Register(ctx, decl); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
-	if err := svc1.SetParallel(ctx, "contest01", "par2", "Параллель 2"); err != nil {
+	if err := svc1.SetParallel(ctx, "contest01", "par2"); err != nil {
 		t.Fatalf("SetParallel: %v", err)
 	}
 
@@ -263,7 +258,7 @@ func TestRegistryIsSourceOfTruthAcrossServiceRestart(t *testing.T) {
 		t.Fatalf("ожидали 1 контест, получили %d", len(list))
 	}
 	got := list[0]
-	if got.ParallelID != "par2" || got.ParallelName != "Параллель 2" {
+	if got.ParallelID != "par2" {
 		t.Fatalf("параллель не пережила рестарт: %+v", got)
 	}
 	if len(got.ExcludedProblems) != 2 {
@@ -293,7 +288,7 @@ func TestSetParallel(t *testing.T) {
 		t.Fatalf("Register: %v", err)
 	}
 
-	if err := svc.SetParallel(ctx, "contest01", "par2", "Параллель 2"); err != nil {
+	if err := svc.SetParallel(ctx, "contest01", "par2"); err != nil {
 		t.Fatalf("SetParallel: %v", err)
 	}
 
@@ -302,7 +297,7 @@ func TestSetParallel(t *testing.T) {
 		t.Fatalf("List: %v", err)
 	}
 
-	if len(list) != 1 || list[0].ParallelID != "par2" || list[0].ParallelName != "Параллель 2" {
+	if len(list) != 1 || list[0].ParallelID != "par2" {
 		t.Fatalf("List: got %+v", list[0])
 	}
 }

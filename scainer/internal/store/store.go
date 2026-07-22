@@ -37,7 +37,17 @@ func (m *Mem) Put(ctx context.Context, submissions []domain.Submission) error {
 	return nil
 }
 
-func (m *Mem) Get(ctx context.Context, ids []domain.SubmissionID) ([]domain.Submission, error) {
+func (m *Mem) GetByID(ctx context.Context, id domain.SubmissionID) (domain.Submission, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	s, ok := m.byID[id]
+	if !ok {
+		return domain.Submission{}, domain.ErrSubmissionNotFound
+	}
+	return s, nil
+}
+
+func (m *Mem) GetByIDs(ctx context.Context, ids []domain.SubmissionID) ([]domain.Submission, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	out := make([]domain.Submission, 0, len(ids))

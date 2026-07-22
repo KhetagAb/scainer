@@ -3,7 +3,7 @@ package llm_test
 import (
 	"testing"
 
-	"scainer/internal/llm"
+	"scainer/pkg/llm"
 )
 
 func TestLoadEnv_OK(t *testing.T) {

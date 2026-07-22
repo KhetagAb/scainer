@@ -240,6 +240,99 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorResponse'
 
+  /api/contests/{id}/submissions:
+    get:
+      operationId: getContestSubmissions
+      summary: Список посылок контеста из кэша
+      parameters:
+        - $ref: '#/components/parameters/ContestID'
+      responses:
+        '200':
+          description: Посылки контеста
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SubmissionListItem'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/contests/{id}/submissions/{submissionId}/comments:
+    get:
+      operationId: getSubmissionComments
+      summary: Live-комментарии посылки (+ sync статуса из ejudge)
+      parameters:
+        - $ref: '#/components/parameters/ContestID'
+        - $ref: '#/components/parameters/SubmissionID'
+      responses:
+        '200':
+          description: Комментарии и актуальный/кэшированный вердикт
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionCommentsResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+        '502':
+          $ref: '#/components/responses/ErrorResponse'
+    post:
+      operationId: postSubmissionComment
+      summary: Отправить комментарий к посылке в ejudge
+      parameters:
+        - $ref: '#/components/parameters/ContestID'
+        - $ref: '#/components/parameters/SubmissionID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostCommentRequest'
+      responses:
+        '204':
+          description: Комментарий отправлен
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '502':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/contests/{id}/submissions/{submissionId}/verdict:
+    post:
+      operationId: postSubmissionVerdict
+      summary: Принять/отклонить посылку (comment затем status в ejudge)
+      parameters:
+        - $ref: '#/components/parameters/ContestID'
+        - $ref: '#/components/parameters/SubmissionID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostVerdictRequest'
+      responses:
+        '204':
+          description: Вердикт выставлен
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '502':
+          $ref: '#/components/responses/ErrorResponse'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -250,6 +343,13 @@ components:
   parameters:
     ContestID:
       name: id
+      in: path
+      required: true
+      schema:
+        type: string
+
+    SubmissionID:
+      name: submissionId
       in: path
       required: true
       schema:
@@ -309,11 +409,7 @@ components:
         parallelId:
           type: string
           nullable: true
-          description: ID параллели (опционально)
-        parallelName:
-          type: string
-          nullable: true
-          description: Имя параллели (опционально)
+          description: ID параллели (напр. 3, 10, R, F, X)
         lastImportedAt:
           type: string
           format: date-time
@@ -496,11 +592,7 @@ components:
         parallelId:
           type: string
           nullable: true
-          description: ID параллели (опционально)
-        parallelName:
-          type: string
-          nullable: true
-          description: Имя параллели (опционально)
+          description: ID параллели (напр. 3, 10, R, F, X)
 
     UpdateContestRequest:
       type: object
@@ -508,11 +600,7 @@ components:
         parallelId:
           type: string
           nullable: true
-          description: ID параллели (опционально)
-        parallelName:
-          type: string
-          nullable: true
-          description: Имя параллели (опционально)
+          description: ID параллели (напр. 3, 10, R, F, X)
 
     ProblemInfo:
       type: object
@@ -540,3 +628,77 @@ components:
           items:
             type: string
           description: Список ID исключённых задач
+
+    SubmissionListItem:
+      type: object
+      required: [id, problem, participant, lang, submitted_at, verdict]
+      properties:
+        id:
+          type: string
+        problem:
+          type: string
+        participant:
+          type: string
+        lang:
+          type: string
+        submitted_at:
+          type: string
+          format: date-time
+        verdict:
+          type: string
+
+    RunComment:
+      type: object
+      required: [id, from, text, time]
+      properties:
+        id:
+          type: string
+        from:
+          type: string
+          description: author display name (from ejudge view-source)
+        subject:
+          type: string
+        text:
+          type: string
+        time:
+          type: string
+          format: date-time
+
+    SubmissionCommentsResponse:
+      type: object
+      required: [comments, verdict, status_stale, source]
+      properties:
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/RunComment'
+        source:
+          type: array
+          items:
+            type: string
+          description: source lines from scainer cache
+        verdict:
+          type: string
+        status_stale:
+          type: boolean
+        status_error:
+          type: string
+        comments_error:
+          type: string
+
+    PostCommentRequest:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+
+    PostVerdictRequest:
+      type: object
+      required: [verdict]
+      properties:
+        verdict:
+          type: string
+          enum: [OK, RJ]
+        comment:
+          type: string

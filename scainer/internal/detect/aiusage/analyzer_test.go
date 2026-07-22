@@ -25,14 +25,10 @@ func (f *fakeModel) Prompt(ctx context.Context, prompt string) (string, error) {
 }
 
 func TestAnalyzerAsk_OK(t *testing.T) {
-	m := &fakeModel{reply: `{
-		"score": 0.7,
-		"summary": "Скачок стиля",
-		"evidence": [{"description":"другие комментарии","submission_id":"s9","start_line":2,"end_line":5}]
-	}`}
+	m := &fakeModel{reply: "ok"}
 	a := &aiusage.Analyzer{Model: m}
 	subj := domain.NewParticipantProblemSubject("c", "A", "p")
-	sigs, err := a.Ask(context.Background(), "aiusage-task", subj, "prompt")
+	sigs, err := a.Ask(context.Background(), "aiusage-task", subj, "prompt", "s9")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,37 +36,50 @@ func TestAnalyzerAsk_OK(t *testing.T) {
 		t.Fatalf("len=%d", len(sigs))
 	}
 	sig := sigs[0]
-	if sig.Detector != "aiusage-task" || sig.Score != 0.7 {
+	if sig.Detector != "aiusage-task" || sig.Score != 0 {
 		t.Fatalf("sig=%+v", sig)
 	}
-	if len(sig.Evidence) != 1 || sig.Evidence[0].Kind != "ai_rationale" {
-		t.Fatalf("evidence=%+v", sig.Evidence)
-	}
-	if len(sig.Evidence[0].Spans) != 1 || sig.Evidence[0].Spans[0].Submission != "s9" {
-		t.Fatalf("spans=%+v", sig.Evidence[0].Spans)
-	}
-	if sig.Meta["summary"] != "Скачок стиля" {
+	if sig.Meta["summary"] != "ok" {
 		t.Fatalf("meta=%v", sig.Meta)
 	}
 }
 
-func TestAnalyzerAsk_FencedJSON(t *testing.T) {
-	m := &fakeModel{reply: "```json\n{\"score\":0.1,\"summary\":\"ok\",\"evidence\":[]}\n```"}
+func TestAnalyzerAsk_FailWithSpans(t *testing.T) {
+	m := &fakeModel{reply: "fail\n2:5 — tutorial comments\n10:12 - style jump"}
 	a := &aiusage.Analyzer{Model: m}
-	sigs, err := a.Ask(context.Background(), "d", domain.NewParticipantSubject("p"), "x")
+	sigs, err := a.Ask(context.Background(), "d", domain.NewParticipantSubject("p"), "x", "s9")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if sigs[0].Score != 0.1 {
+	if sigs[0].Score != 1 {
+		t.Fatalf("score=%v", sigs[0].Score)
+	}
+	if len(sigs[0].Evidence) != 2 {
+		t.Fatalf("evidence=%+v", sigs[0].Evidence)
+	}
+	sp := sigs[0].Evidence[0].Spans
+	if len(sp) != 1 || sp[0].Submission != "s9" || sp[0].StartLine != 2 || sp[0].EndLine != 5 {
+		t.Fatalf("spans=%+v", sp)
+	}
+}
+
+func TestAnalyzerAsk_FencedOK(t *testing.T) {
+	m := &fakeModel{reply: "```\nok\n```"}
+	a := &aiusage.Analyzer{Model: m}
+	sigs, err := a.Ask(context.Background(), "d", domain.NewParticipantSubject("p"), "x", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sigs[0].Score != 0 {
 		t.Fatalf("score=%v", sigs[0].Score)
 	}
 }
 
-func TestAnalyzerAsk_BadJSON(t *testing.T) {
-	m := &fakeModel{reply: "not json at all"}
+func TestAnalyzerAsk_BadReply(t *testing.T) {
+	m := &fakeModel{reply: "not a verdict"}
 	a := &aiusage.Analyzer{Model: m}
-	_, err := a.Ask(context.Background(), "d", domain.NewParticipantSubject("p"), "x")
-	if err == nil || !strings.Contains(err.Error(), "битый JSON") {
+	_, err := a.Ask(context.Background(), "d", domain.NewParticipantSubject("p"), "x", "")
+	if err == nil || !strings.Contains(err.Error(), "не разобрали") {
 		t.Fatalf("err=%v", err)
 	}
 }
@@ -78,17 +87,8 @@ func TestAnalyzerAsk_BadJSON(t *testing.T) {
 func TestAnalyzerAsk_ModelError(t *testing.T) {
 	m := &fakeModel{err: errors.New("boom")}
 	a := &aiusage.Analyzer{Model: m}
-	_, err := a.Ask(context.Background(), "d", domain.NewParticipantSubject("p"), "x")
+	_, err := a.Ask(context.Background(), "d", domain.NewParticipantSubject("p"), "x", "")
 	if err == nil || !strings.Contains(err.Error(), "boom") {
-		t.Fatalf("err=%v", err)
-	}
-}
-
-func TestAnalyzerAsk_ScoreOutOfRange(t *testing.T) {
-	m := &fakeModel{reply: `{"score":1.5,"summary":"x","evidence":[]}`}
-	a := &aiusage.Analyzer{Model: m}
-	_, err := a.Ask(context.Background(), "d", domain.NewParticipantSubject("p"), "x")
-	if err == nil || !strings.Contains(err.Error(), "score") {
 		t.Fatalf("err=%v", err)
 	}
 }

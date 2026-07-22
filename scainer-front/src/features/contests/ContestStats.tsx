@@ -38,7 +38,7 @@ export default function ContestStats({
       ) : problemStats && problemStats.length > 0 ? (
         <span
           className={`contest-stats__problems${problemsDensity ? ` contest-stats__problems--${problemsDensity}` : ""}`}
-          aria-label="Доля подозрительных по задачам"
+          aria-label="Доля сигналов по задачам"
         >
           {problemStats.map((p) => {
             const label = p.name || p.id;

@@ -54,7 +54,7 @@ func TestImport_FullThenIncremental(t *testing.T) {
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(envelope)
 
-		case r.URL.Path == "/cgi-bin/master" && r.URL.Query().Get("action") == "contest-status-json":
+		case r.URL.Query().Get("action") == "contest-status-json":
 			writeJSON(w, map[string]any{
 				"ok": true,
 				"result": map[string]any{
@@ -78,21 +78,18 @@ func TestImport_FullThenIncremental(t *testing.T) {
 		t.Fatal(err)
 	}
 	imp := &Importer{
-		cfg: ejudgeapi.Config{ContestID: 50501},
-		env: &ejudgeapi.Env{
-			Client:  client,
-			LangMap: map[string]domain.Lang{"g++": domain.LangCPP, "python3": domain.LangPython},
-		},
+		cfg:    Config{ContestID: 50501},
+		client: client,
 	}
 	st := store.NewMem()
 	ctx := context.Background()
 
-	subs, err := imp.Import(ctx, st)
+	res, err := imp.Import(ctx, st)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(subs) != 3 {
-		t.Fatalf("first import: got %d subs", len(subs))
+	if len(res.Submissions) != 3 {
+		t.Fatalf("first import: got %d subs", len(res.Submissions))
 	}
 	if listCalls != 1 || downloadCalls != 3 {
 		t.Fatalf("calls list=%d download=%d", listCalls, downloadCalls)
@@ -100,23 +97,23 @@ func TestImport_FullThenIncremental(t *testing.T) {
 	if lastFirstRun != "0" {
 		t.Fatalf("first_run = %q", lastFirstRun)
 	}
-	if subs[0].Participant != "[5] Верхошинский Марк" || subs[0].Problem != "find-cycle" || subs[0].Lang != domain.LangCPP {
-		t.Fatalf("sub0 = %+v", subs[0])
+	if res.Submissions[0].Participant != "[5] Верхошинский Марк" || res.Submissions[0].Problem != "find-cycle" || res.Submissions[0].Lang != domain.LangCPP {
+		t.Fatalf("sub0 = %+v", res.Submissions[0])
 	}
-	if subs[0].Verdict != domain.VerdictWA || subs[1].Verdict != domain.VerdictML {
-		t.Fatalf("verdicts = %q %q", subs[0].Verdict, subs[1].Verdict)
+	if res.Submissions[0].Verdict != domain.VerdictWA || res.Submissions[1].Verdict != domain.VerdictML {
+		t.Fatalf("verdicts = %q %q", res.Submissions[0].Verdict, res.Submissions[1].Verdict)
 	}
-	if subs[2].Participant != "[5] Амбарцумян Гордей" || subs[2].Lang != domain.LangCPP {
-		t.Fatalf("sub2 = %+v", subs[2])
+	if res.Submissions[2].Participant != "[5] Амбарцумян Гордей" || res.Submissions[2].Lang != domain.LangCPP {
+		t.Fatalf("sub2 = %+v", res.Submissions[2])
 	}
-	if string(subs[1].Source) != "source-of-1" {
-		t.Fatalf("source = %q", subs[1].Source)
+	if string(res.Submissions[1].Source) != "source-of-1" {
+		t.Fatalf("source = %q", res.Submissions[1].Source)
 	}
-	if subs[0].Meta["contest_name"] != "Тестовый контест" {
-		t.Fatalf("contest_name = %#v", subs[0].Meta["contest_name"])
+	if res.Submissions[0].Meta["contest_name"] != "Тестовый контест" {
+		t.Fatalf("contest_name = %#v", res.Submissions[0].Meta["contest_name"])
 	}
-	if subs[0].Meta["problem_name"] != "A" {
-		t.Fatalf("problem_name = %#v", subs[0].Meta["problem_name"])
+	if res.Submissions[0].Meta["problem_name"] != "A" {
+		t.Fatalf("problem_name = %#v", res.Submissions[0].Meta["problem_name"])
 	}
 	cur, ok, err := st.GetCursor(ctx, cursorKey(50501))
 	if err != nil || !ok || cur != "2" {
@@ -124,12 +121,12 @@ func TestImport_FullThenIncremental(t *testing.T) {
 	}
 
 	listCalls, downloadCalls = 0, 0
-	subs, err = imp.Import(ctx, st)
+	res, err = imp.Import(ctx, st)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(subs) != 0 {
-		t.Fatalf("second import: got %d subs", len(subs))
+	if len(res.Submissions) != 0 {
+		t.Fatalf("second import: got %d subs", len(res.Submissions))
 	}
 	if listCalls != 1 || downloadCalls != 0 {
 		t.Fatalf("second calls list=%d download=%d", listCalls, downloadCalls)
@@ -180,7 +177,7 @@ func TestImport_ProgressAbsoluteIncludesStored(t *testing.T) {
 			result["runs"] = filtered
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(envelope)
-		case r.URL.Path == "/cgi-bin/master" && r.URL.Query().Get("action") == "contest-status-json":
+		case r.URL.Query().Get("action") == "contest-status-json":
 			writeJSON(w, map[string]any{
 				"ok": true,
 				"result": map[string]any{
@@ -200,20 +197,17 @@ func TestImport_ProgressAbsoluteIncludesStored(t *testing.T) {
 		t.Fatal(err)
 	}
 	imp := &Importer{
-		cfg: ejudgeapi.Config{ContestID: 50501},
-		env: &ejudgeapi.Env{
-			Client:  client,
-			LangMap: map[string]domain.Lang{"g++": domain.LangCPP, "python3": domain.LangPython},
-		},
+		cfg:    Config{ContestID: 50501},
+		client: client,
 	}
 	st := store.NewMem()
 	ctx := context.Background()
 
-	subs, err := imp.Import(ctx, st)
+	res, err := imp.Import(ctx, st)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := st.Put(ctx, subs); err != nil {
+	if err := st.Put(ctx, res.Submissions); err != nil {
 		t.Fatal(err)
 	}
 
@@ -268,8 +262,8 @@ func TestImport_DownloadErrorAborts(t *testing.T) {
 		t.Fatal(err)
 	}
 	imp := &Importer{
-		cfg: ejudgeapi.Config{ContestID: 1},
-		env: &ejudgeapi.Env{Client: client},
+		cfg: Config{ContestID: 1},
+		client: client,
 	}
 	st := store.NewMem()
 	_, err = imp.Import(context.Background(), st)
@@ -316,21 +310,21 @@ func TestImport_FallsBackToUserName(t *testing.T) {
 		t.Fatal(err)
 	}
 	imp := &Importer{
-		cfg: ejudgeapi.Config{ContestID: 1},
-		env: &ejudgeapi.Env{Client: client, LangMap: map[string]domain.Lang{"g++": domain.LangCPP}},
+		cfg: Config{ContestID: 1},
+		client: client,
 	}
 	st := store.NewMem()
 	ctx := context.Background()
 
-	subs, err := imp.Import(ctx, st)
+	res, err := imp.Import(ctx, st)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(subs) != 2 {
-		t.Fatalf("subs = %+v", subs)
+	if len(res.Submissions) != 2 {
+		t.Fatalf("subs = %+v", res.Submissions)
 	}
-	if subs[0].Participant != "Anon" || subs[1].Participant != "alice" {
-		t.Fatalf("participants: %q %q", subs[0].Participant, subs[1].Participant)
+	if res.Submissions[0].Participant != "Anon" || res.Submissions[1].Participant != "alice" {
+		t.Fatalf("participants: %q %q", res.Submissions[0].Participant, res.Submissions[1].Participant)
 	}
 	if downloadCalls != 2 {
 		t.Fatalf("downloadCalls = %d, want 2 (run_id=12 без login/name пропущен)", downloadCalls)

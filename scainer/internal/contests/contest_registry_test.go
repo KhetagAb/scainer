@@ -6,12 +6,12 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"gopkg.in/yaml.v3"
 
-	"scainer/pkg/ejudge"
+	ejimporter "scainer/internal/importer/ejudge"
 )
 
 func TestSourceSpecBSONRoundtrip_EjudgeConfig(t *testing.T) {
 	var cfgNode yaml.Node
-	if err := cfgNode.Encode(ejudge.Config{ContestID: 50051}); err != nil {
+	if err := cfgNode.Encode(ejimporter.Config{ContestID: 50051}); err != nil {
 		t.Fatal(err)
 	}
 	orig := SourceSpec{Type: "ejudge", Config: cfgNode}
@@ -28,9 +28,9 @@ func TestSourceSpecBSONRoundtrip_EjudgeConfig(t *testing.T) {
 		t.Fatalf("type = %q", got.Type)
 	}
 
-	var cfg ejudge.Config
+	var cfg ejimporter.Config
 	if err := got.Config.Decode(&cfg); err != nil {
-		t.Fatalf("Decode ejudge.Config: %v", err)
+		t.Fatalf("Decode ejimporter.Config: %v", err)
 	}
 	if cfg.ContestID != 50051 {
 		t.Fatalf("ContestID = %d", cfg.ContestID)

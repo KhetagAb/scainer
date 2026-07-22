@@ -14,9 +14,14 @@ type Store interface {
 	SetCursor(ctx context.Context, key string, value string) error
 }
 
+type Result struct {
+	ContestName string
+	Submissions []domain.Submission
+}
+
 type Importer interface {
 	Name() string
-	Import(ctx context.Context, store Store) ([]domain.Submission, error)
+	Import(ctx context.Context, store Store) (Result, error)
 }
 
 type Factory func(cfg *yaml.Node) (Importer, error)

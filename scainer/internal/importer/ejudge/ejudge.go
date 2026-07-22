@@ -13,7 +13,23 @@ import (
 	ejudgeapi "scainer/pkg/ejudge"
 )
 
-func init() { importer.Register("ejudge", newFromConfig) }
+func Factory(client *ejudgeapi.Client) importer.Factory {
+	return func(node *yaml.Node) (importer.Importer, error) {
+		if client == nil {
+			return nil, fmt.Errorf("ejudge importer: клиент не задан")
+		}
+		var cfg Config
+		if node != nil && node.Kind != 0 {
+			if err := node.Decode(&cfg); err != nil {
+				return nil, err
+			}
+		}
+		if cfg.ContestID <= 0 {
+			return nil, fmt.Errorf("ejudge importer: contest_id должен быть > 0")
+		}
+		return &Importer{cfg: cfg, client: client}, nil
+	}
+}
 
 const (
 	cursorKeyPrefix = "ejudge:cursor:"
@@ -22,83 +38,52 @@ const (
 )
 
 type Importer struct {
-	cfg ejudgeapi.Config
-	env *ejudgeapi.Env
+	cfg    Config
+	client *ejudgeapi.Client
 }
 
 var _ importer.Importer = (*Importer)(nil)
 
 func (i *Importer) Name() string { return "ejudge" }
 
-func newFromConfig(node *yaml.Node) (importer.Importer, error) {
-	var cfg ejudgeapi.Config
-	if node != nil && node.Kind != 0 {
-		if err := node.Decode(&cfg); err != nil {
-			return nil, err
-		}
-	}
-	if cfg.ContestID <= 0 {
-		return nil, fmt.Errorf("ejudge importer: contest_id должен быть > 0")
-	}
-
-	env, err := ejudgeapi.LoadEnv()
-	if err != nil {
-		return nil, err
-	}
-	return &Importer{cfg: cfg, env: env}, nil
-}
-
 func cursorKey(contestID int) string {
 	return cursorKeyPrefix + strconv.Itoa(contestID)
 }
 
-func (i *Importer) Import(ctx context.Context, store importer.Store) ([]domain.Submission, error) {
-	if i.env == nil || i.env.Client == nil {
-		return nil, fmt.Errorf("ejudge importer: клиент не инициализирован")
-	}
+func (i *Importer) Import(ctx context.Context, store importer.Store) (importer.Result, error) {
 	contestID := i.cfg.ContestID
 	if contestID <= 0 {
-		return nil, fmt.Errorf("ejudge importer: contest_id должен быть > 0")
+		return importer.Result{}, fmt.Errorf("ejudge importer: contest_id должен быть > 0")
 	}
+
+	info, err := i.client.ContestStatus(ctx, contestID)
+	if err != nil {
+		return importer.Result{}, fmt.Errorf("ejudge contest-status: %w", err)
+	}
+	contestName := info.Name
 
 	firstRun := 0
 	cur, ok, err := store.GetCursor(ctx, cursorKey(contestID))
 	if err != nil {
-		return nil, err
+		return importer.Result{}, err
 	}
 	if ok && cur != "" {
 		n, err := strconv.Atoi(cur)
 		if err != nil {
-			return nil, fmt.Errorf("ejudge importer: невалидный курсор %q: %w", cur, err)
+			return importer.Result{}, fmt.Errorf("ejudge importer: невалидный курсор %q: %w", cur, err)
 		}
 		firstRun = n + 1
 	}
 
 	lastRun := lastRunOpen
-	listResp, err := i.env.Client.ListRunsWithResponse(ctx, ejudgeapi.ListRunsParams(contestID, &firstRun, &lastRun))
+	listReply, err := i.client.ListRuns(ctx, contestID, &firstRun, &lastRun)
 	if err != nil {
-		return nil, err
+		return importer.Result{}, err
 	}
-	if listResp.StatusCode() != 200 || listResp.JSON200 == nil {
-		return nil, fmt.Errorf("ejudge list-runs: HTTP %d: %s", listResp.StatusCode(), truncate(listResp.Body, 200))
+	if listReply.Result == nil || listReply.Result.Runs == nil || len(*listReply.Result.Runs) == 0 {
+		return importer.Result{ContestName: contestName}, nil
 	}
-	if err := ejudgeapi.EnsureOK(listResp.JSON200.Ok, listResp.JSON200.Error); err != nil {
-		return nil, err
-	}
-	if listResp.JSON200.Result == nil || listResp.JSON200.Result.Runs == nil {
-		return nil, nil
-	}
-	runs := *listResp.JSON200.Result.Runs
-	if len(runs) == 0 {
-		return nil, nil
-	}
-
-	contestName := ""
-	if info, err := i.env.Client.ContestStatus(ctx, contestID); err != nil {
-		return nil, fmt.Errorf("ejudge contest-status: %w", err)
-	} else {
-		contestName = info.Name
-	}
+	runs := *listReply.Result.Runs
 
 	subs := make([]domain.Submission, 0, len(runs))
 	maxRunID := -1
@@ -110,7 +95,7 @@ func (i *Importer) Import(ctx context.Context, store importer.Store) ([]domain.S
 	progress.Report(ctx, progress.Event{Phase: "importing", Done: base, Total: total})
 	for idx, run := range runs {
 		if run.RunId == nil {
-			return nil, fmt.Errorf("ejudge: ран без run_id")
+			return importer.Result{}, fmt.Errorf("ejudge: ран без run_id")
 		}
 		runID := *run.RunId
 		// Без участника пропускаем. Курсор двигаем только после успешного импорта —
@@ -120,17 +105,17 @@ func (i *Importer) Import(ctx context.Context, store importer.Store) ([]domain.S
 			continue
 		}
 
-		dl, err := i.env.Client.DownloadRunWithResponse(ctx, ejudgeapi.DownloadRunParams(contestID, runID))
+		dl, err := i.client.DownloadRunWithResponse(ctx, ejudgeapi.DownloadRunParams(contestID, runID))
 		if err != nil {
-			return nil, err
+			return importer.Result{}, err
 		}
 		if dl.StatusCode() != 200 {
-			return nil, fmt.Errorf("ejudge download-run run_id=%d: HTTP %d", runID, dl.StatusCode())
+			return importer.Result{}, fmt.Errorf("ejudge download-run run_id=%d: HTTP %d", runID, dl.StatusCode())
 		}
 
-		sub, err := mapToSubmission(contestID, run, dl.Body, i.env, contestName)
+		sub, err := mapToSubmission(contestID, run, dl.Body, contestName)
 		if err != nil {
-			return nil, err
+			return importer.Result{}, err
 		}
 		subs = append(subs, sub)
 		if runID > maxRunID {
@@ -141,10 +126,10 @@ func (i *Importer) Import(ctx context.Context, store importer.Store) ([]domain.S
 
 	if maxRunID >= 0 {
 		if err := store.SetCursor(ctx, cursorKey(contestID), strconv.Itoa(maxRunID)); err != nil {
-			return nil, err
+			return importer.Result{}, err
 		}
 	}
-	return subs, nil
+	return importer.Result{Submissions: subs, ContestName: contestName}, nil
 }
 
 func countContestSubmissions(ctx context.Context, store importer.Store, contest domain.ContestID) int {

@@ -2,12 +2,7 @@ package ejudge
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
-	"strconv"
 
 	ejgen "scainer/generated/ejudge"
 )
@@ -17,71 +12,52 @@ type ContestInfo struct {
 	Name string
 }
 
-// В openapi не заведён: path /cgi-bin/master уже занят download-run.
 func (c *Client) ContestStatus(ctx context.Context, contestID int) (ContestInfo, error) {
-	if c == nil || c.http == nil {
-		return ContestInfo{}, fmt.Errorf("ejudge: клиент не инициализирован")
-	}
-	q := url.Values{
-		"json":       {"1"},
-		"action":     {"contest-status-json"},
-		"contest_id": {strconv.Itoa(contestID)},
-	}
-	u := c.baseURL + "/cgi-bin/master?" + q.Encode()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	body, err := c.masterJSON(ctx, &ejgen.MasterJSONParams{
+		Json:      ejgen.MasterJSONParamsJsonN1,
+		Action:    ejgen.ContestStatusJson,
+		ContestId: contestID,
+	})
 	if err != nil {
 		return ContestInfo{}, err
 	}
-	for _, ed := range c.editors {
-		if err := ed(ctx, req); err != nil {
-			return ContestInfo{}, err
-		}
-	}
-	resp, err := c.http.Do(req)
+	reply, err := decodeReply[ejgen.ContestStatusReply](body)
 	if err != nil {
-		return ContestInfo{}, err
-	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return ContestInfo{}, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return ContestInfo{}, fmt.Errorf("ejudge contest-status: HTTP %d: %s", resp.StatusCode, truncateBody(body, 200))
-	}
-
-	var wrap struct {
-		Ok     *bool        `json:"ok"`
-		Error  *ejgen.Error `json:"error"`
-		Result *struct {
-			Contest *struct {
-				ID   *int    `json:"id"`
-				Name *string `json:"name"`
-			} `json:"contest"`
-		} `json:"result"`
-	}
-	if err := json.Unmarshal(body, &wrap); err != nil {
 		return ContestInfo{}, fmt.Errorf("ejudge contest-status: json: %w", err)
 	}
-	if err := EnsureOK(wrap.Ok, wrap.Error); err != nil {
+	if err := EnsureOK(reply.Ok, reply.Error); err != nil {
 		return ContestInfo{}, err
 	}
-	if wrap.Result == nil || wrap.Result.Contest == nil {
+	if reply.Result == nil || reply.Result.Contest == nil {
 		return ContestInfo{}, fmt.Errorf("ejudge contest-status: пустой result.contest")
 	}
 	info := ContestInfo{ID: contestID}
-	if wrap.Result.Contest.ID != nil {
-		info.ID = *wrap.Result.Contest.ID
+	if reply.Result.Contest.Id != nil {
+		info.ID = *reply.Result.Contest.Id
 	}
-	if wrap.Result.Contest.Name != nil {
-		info.Name = *wrap.Result.Contest.Name
+	if reply.Result.Contest.Name != nil {
+		info.Name = *reply.Result.Contest.Name
 	}
 	return info, nil
 }
 
-func truncateBody(b []byte, n int) string {
-	if len(b) <= n {
-		return string(b)
+func (c *Client) ListRuns(ctx context.Context, contestID int, firstRun, lastRun *int) (*ejgen.ListRunsReply, error) {
+	body, err := c.masterJSON(ctx, &ejgen.MasterJSONParams{
+		Json:      ejgen.MasterJSONParamsJsonN1,
+		Action:    ejgen.ListRunsJson,
+		ContestId: contestID,
+		FirstRun:  firstRun,
+		LastRun:   lastRun,
+	})
+	if err != nil {
+		return nil, err
 	}
-	return string(b[:n]) + "…"
+	reply, err := decodeReply[ejgen.ListRunsReply](body)
+	if err != nil {
+		return nil, fmt.Errorf("ejudge list-runs: json: %w", err)
+	}
+	if err := EnsureOK(reply.Ok, reply.Error); err != nil {
+		return nil, err
+	}
+	return &reply, nil
 }

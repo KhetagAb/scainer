@@ -1,14 +1,24 @@
 import { useCallback, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useParams, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  Link,
+  NavLink,
+  Outlet,
+  useNavigate,
+  useParams,
+  useSearchParams,
+  useLocation,
+} from "react-router-dom";
 import {
   getContestFindingsOptions,
   getContestFindingsQueryKey,
   getContestProblemsOptions,
   getContestProblemsQueryKey,
+  getContestSubmissionsOptions,
+  getContestSubmissionsQueryKey,
   getContestsOptions,
 } from "@/client/@tanstack/react-query.gen";
-import type { ProblemInfo } from "@/client/types.gen";
+import type { ProblemInfo, SubmissionListItem } from "@/client/types.gen";
 import { authHeaders } from "@/features/auth/authStorage";
 import ContestStats from "@/features/contests/ContestStats";
 import { UNGROUPED_PARALLEL } from "@/features/contests/contestHelpers";
@@ -16,7 +26,7 @@ import { formatImportProgress } from "@/features/contests/importJobShared";
 import ImportProgressBar from "@/features/contests/ImportProgressBar";
 import { problemSubmissionCountsMap } from "@/features/contests/problemSignalStats";
 import { useImportJob } from "@/features/contests/useImportJob";
-import FindingsPage from "@/features/findings/FindingsPage";
+import ReviewProblemPicker from "@/features/review/ReviewProblemPicker";
 import importIconUrl from "@/assets/import-icon.png";
 
 type Props = {
@@ -35,6 +45,7 @@ export default function ContestPage({ onUnauthorized }: Props) {
   const { id: contestId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const queryClient = useQueryClient();
 
   const contestsQuery = useQuery({
@@ -55,6 +66,14 @@ export default function ContestPage({ onUnauthorized }: Props) {
 
   const problemsQuery = useQuery({
     ...getContestProblemsOptions({
+      path: { id: contestId ?? "" },
+      headers: authHeaders(),
+    }),
+    enabled: Boolean(contestId),
+  });
+
+  const submissionsQuery = useQuery({
+    ...getContestSubmissionsOptions({
       path: { id: contestId ?? "" },
       headers: authHeaders(),
     }),
@@ -87,6 +106,12 @@ export default function ContestPage({ onUnauthorized }: Props) {
             headers: authHeaders(),
           }),
         }),
+        queryClient.invalidateQueries({
+          queryKey: getContestSubmissionsQueryKey({
+            path: { id: contestId },
+            headers: authHeaders(),
+          }),
+        }),
       ]);
     },
     [contestId, contestsQuery, queryClient],
@@ -108,6 +133,21 @@ export default function ContestPage({ onUnauthorized }: Props) {
       problemCount: contest.problemCount,
     };
   }, [contest]);
+
+  const activeProblemId = useMemo(() => {
+    const fromQuery = searchParams.get("problem");
+    if (fromQuery) return fromQuery;
+    const match = location.pathname.match(/\/review\/([^/]+)/);
+    if (!match) return null;
+    let sid = match[1];
+    try {
+      sid = decodeURIComponent(sid);
+    } catch {
+      /* keep */
+    }
+    const sub = (submissionsQuery.data ?? []).find((s) => s.id === sid);
+    return sub?.problem ?? null;
+  }, [searchParams, location.pathname, submissionsQuery.data]);
 
   if (!contestId) {
     navigate("/", { replace: true });
@@ -131,6 +171,7 @@ export default function ContestPage({ onUnauthorized }: Props) {
     ? formatImportProgress(importJob.progress)
     : "Догрузить посылки";
   const backTo = `/parallels/${encodeURIComponent(contest.parallelId || UNGROUPED_PARALLEL)}`;
+  const base = `/contests/${encodeURIComponent(contestId)}`;
 
   return (
     <>
@@ -175,10 +216,39 @@ export default function ContestPage({ onUnauthorized }: Props) {
         )}
       </div>
 
-      <FindingsPage
-        findingKey={searchParams.get("finding")}
-        findingsQuery={findingsQuery}
-        problemSubmissionCounts={problemSubmissionCounts}
+      <nav className="contest-tabs" aria-label="Разделы контеста">
+        <NavLink
+          to={`${base}/findings`}
+          className={({ isActive }) => `contest-tabs__link${isActive ? " is-active" : ""}`}
+          end
+        >
+          Findings
+        </NavLink>
+        <NavLink
+          to={`${base}/review`}
+          className={({ isActive }) => `contest-tabs__link${isActive ? " is-active" : ""}`}
+        >
+          Review
+        </NavLink>
+      </nav>
+
+      {location.pathname.includes("/review") ? (
+        <ReviewProblemPicker
+          contestId={contestId}
+          problems={(problemsQuery.data ?? []) as ProblemInfo[]}
+          submissions={(submissionsQuery.data ?? []) as SubmissionListItem[]}
+          activeProblemId={activeProblemId}
+        />
+      ) : null}
+
+      <Outlet
+        context={{
+          findingsQuery,
+          submissionsQuery,
+          problemSubmissionCounts,
+          onUnauthorized,
+          findingKey: searchParams.get("finding"),
+        }}
       />
     </>
   );

@@ -17,7 +17,7 @@ import {
 type SensitivityContextValue = {
   /** null — слайдер не показываем (главная и пр.). */
   scopeParallelId: string | null;
-  /** true на странице контеста — там есть findings и группировка. */
+  /** true на /contests/:id/findings — группировка findings. */
   onContestPage: boolean;
   threshold: number;
   setThreshold: (value: number) => void;
@@ -34,8 +34,12 @@ const SensitivityContext = createContext<SensitivityContextValue>({
   setGroupBy: () => {},
 });
 
-/** parallelId из URL: /parallels/:id или parallel контеста /contests/:id (для groupBy). */
-function useSensitivityScope(): { parallelId: string | null; onContestPage: boolean } {
+/** parallelId из URL: /parallels/:id или /contests/:id/… (для groupBy). */
+function useSensitivityScope(): {
+  parallelId: string | null;
+  onFindingsPage: boolean;
+  onReviewPage: boolean;
+} {
   const { pathname } = useLocation();
   const contestsQuery = useQuery({
     ...getContestsOptions({ headers: authHeaders() }),
@@ -45,13 +49,21 @@ function useSensitivityScope(): { parallelId: string | null; onContestPage: bool
     const parallelMatch = pathname.match(/^\/parallels\/([^/]+)\/?$/);
     if (parallelMatch) {
       try {
-        return { parallelId: decodeURIComponent(parallelMatch[1]), onContestPage: false };
+        return {
+          parallelId: decodeURIComponent(parallelMatch[1]),
+          onFindingsPage: false,
+          onReviewPage: false,
+        };
       } catch {
-        return { parallelId: parallelMatch[1], onContestPage: false };
+        return {
+          parallelId: parallelMatch[1],
+          onFindingsPage: false,
+          onReviewPage: false,
+        };
       }
     }
 
-    const contestMatch = pathname.match(/^\/contests\/([^/]+)\/?$/);
+    const contestMatch = pathname.match(/^\/contests\/([^/]+)/);
     if (contestMatch) {
       let contestId = contestMatch[1];
       try {
@@ -60,18 +72,22 @@ function useSensitivityScope(): { parallelId: string | null; onContestPage: bool
         /* keep raw */
       }
       const contest = contestsQuery.data?.find((c) => c.id === contestId);
+      const onFindingsPage = /\/contests\/[^/]+\/findings/.test(pathname);
+      const onReviewPage = /\/contests\/[^/]+\/review/.test(pathname);
       return {
         parallelId: contest ? contest.parallelId || UNGROUPED_PARALLEL : UNGROUPED_PARALLEL,
-        onContestPage: true,
+        onFindingsPage,
+        onReviewPage,
       };
     }
 
-    return { parallelId: null, onContestPage: false };
+    return { parallelId: null, onFindingsPage: false, onReviewPage: false };
   }, [pathname, contestsQuery.data]);
 }
 
 export function SensitivityProvider({ children }: { children: ReactNode }) {
-  const { parallelId: scopeParallelId, onContestPage } = useSensitivityScope();
+  const { parallelId: scopeParallelId, onFindingsPage, onReviewPage } =
+    useSensitivityScope();
   const { threshold, setThreshold } = useUserSensitivity();
   const { groupBy, setGroupBy } = useParallelFindingsGroupBy(
     scopeParallelId ?? UNGROUPED_PARALLEL,
@@ -79,14 +95,22 @@ export function SensitivityProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
-      scopeParallelId,
-      onContestPage,
+      scopeParallelId: onReviewPage ? null : scopeParallelId,
+      onContestPage: onFindingsPage,
       threshold,
       setThreshold,
       groupBy,
       setGroupBy,
     }),
-    [scopeParallelId, onContestPage, threshold, setThreshold, groupBy, setGroupBy],
+    [
+      scopeParallelId,
+      onFindingsPage,
+      onReviewPage,
+      threshold,
+      setThreshold,
+      groupBy,
+      setGroupBy,
+    ],
   );
 
   return (

@@ -134,8 +134,8 @@ export default function ContestLegendModal({ open, onClose }: Props) {
             <div className="legend-diagram__notes">
               <aside className="legend-callout legend-callout--colors">
                 <p lang="ru">
-                  <strong>Цвет</strong> — доля подозрительных посылок задачи: чем больше сигналов
-                  по задаче — тем вероятнее ложноположительные срабатывания.
+                  <strong>Цвет</strong> — доля сигналов задачи (находки ≥ порога / посылки): чем
+                  больше сигналов по задаче — тем вероятнее ложноположительные срабатывания.
                 </p>
                 <ul className="legend-callout__swatches">
                   {COLOR_LEVELS.map((c) => (

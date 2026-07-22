@@ -43,17 +43,11 @@ func TestListRuns_OK(t *testing.T) {
 		t.Fatal(err)
 	}
 	first := 0
-	resp, err := c.ListRunsWithResponse(context.Background(), ejudge.ListRunsParams(42, &first, nil))
+	reply, err := c.ListRuns(context.Background(), 42, &first, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if resp.JSON200 == nil {
-		t.Fatalf("status=%d body=%s", resp.StatusCode(), string(resp.Body))
-	}
-	if err := ejudge.EnsureOK(resp.JSON200.Ok, resp.JSON200.Error); err != nil {
-		t.Fatal(err)
-	}
-	runs := resp.JSON200.Result.Runs
+	runs := reply.Result.Runs
 	if runs == nil || len(*runs) != 1 || (*runs)[0].UserName == nil || *(*runs)[0].UserName != "alice" {
 		t.Fatalf("runs = %+v", runs)
 	}
@@ -79,7 +73,7 @@ func TestAuthorizationHeader(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = c.ListRunsWithResponse(context.Background(), ejudge.ListRunsParams(1, nil, nil))
+	_, err = c.ListRuns(context.Background(), 1, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

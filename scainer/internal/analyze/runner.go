@@ -52,17 +52,18 @@ func (r *Runner) Run(ctx context.Context, id domain.ContestID) (Result, error) {
 		return Result{}, fmt.Errorf("build importer: %w", err)
 	}
 
-	submissions, err := contestImporter.Import(ctx, r.submissionStore)
+	imported, err := contestImporter.Import(ctx, r.submissionStore)
 	if err != nil {
 		return Result{}, err
 	}
-	if err := r.submissionStore.Put(ctx, submissions); err != nil {
+	if err := r.submissionStore.Put(ctx, imported.Submissions); err != nil {
 		return Result{}, err
 	}
 
 	now := time.Now().UTC().Truncate(time.Second)
 	contest := record.Contest
 	contest.LastImportedAt = &now
+	contest.Name = imported.ContestName
 	if err := r.registry.Put(ctx, contests.ContestRecord{Contest: contest, Source: record.Source}); err != nil {
 		return Result{}, fmt.Errorf("persist lastImportedAt: %w", err)
 	}
@@ -70,7 +71,7 @@ func (r *Runner) Run(ctx context.Context, id domain.ContestID) (Result, error) {
 	if err := r.recomputeFindings(ctx, id); err != nil {
 		return Result{}, fmt.Errorf("recompute findings: %w", err)
 	}
-	return Result{ImportedCount: len(submissions), LastImportedAt: now}, nil
+	return Result{ImportedCount: len(imported.Submissions), LastImportedAt: now}, nil
 }
 
 func (r *Runner) recomputeFindings(ctx context.Context, id domain.ContestID) error {

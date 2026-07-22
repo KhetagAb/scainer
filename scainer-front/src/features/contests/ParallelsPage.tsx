@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { getContestsOptions } from "@/client/@tanstack/react-query.gen";
 import { authHeaders } from "@/features/auth/authStorage";
-import { DEFAULT_PARALLELS } from "@/features/contests/parallels";
+import { DEFAULT_PARALLEL_IDS, parallelLabel } from "@/features/contests/parallels";
 import {
   UNGROUPED_PARALLEL,
   collator,
@@ -21,7 +21,6 @@ type ContestChip = {
 
 type ParallelCard = {
   id: string;
-  name: string;
   contests: ContestChip[];
   submissionCount: number;
 };
@@ -42,7 +41,6 @@ export default function ParallelsPage({ onUnauthorized }: Props) {
   const contests = contestsQuery.data ?? [];
   const byParallel = new Map<string, ContestChip[]>();
   const submissionsByParallel = new Map<string, number>();
-  const names = new Map<string, string>();
 
   for (const c of contests) {
     const pid = c.parallelId || UNGROUPED_PARALLEL;
@@ -56,9 +54,6 @@ export default function ParallelsPage({ onUnauthorized }: Props) {
       pid,
       (submissionsByParallel.get(pid) ?? 0) + (c.submissionCount ?? 0),
     );
-    if (c.parallelId && c.parallelName && !names.has(c.parallelId)) {
-      names.set(c.parallelId, c.parallelName);
-    }
   }
 
   for (const list of byParallel.values()) {
@@ -68,22 +63,21 @@ export default function ParallelsPage({ onUnauthorized }: Props) {
   const extras = [...byParallel.keys()]
     .filter(
       (id) =>
-        id !== UNGROUPED_PARALLEL && !DEFAULT_PARALLELS.some((p) => p.id === id),
+        id !== UNGROUPED_PARALLEL &&
+        !(DEFAULT_PARALLEL_IDS as readonly string[]).includes(id),
     )
     .map((id) => ({
       id,
-      name: names.get(id) || id,
       contests: byParallel.get(id) ?? [],
       submissionCount: submissionsByParallel.get(id) ?? 0,
     }))
-    .sort((a, b) => collator.compare(a.name, b.name));
+    .sort((a, b) => collator.compare(a.id, b.id));
 
   const cards: ParallelCard[] = [
-    ...DEFAULT_PARALLELS.map((p) => ({
-      id: p.id,
-      name: p.name,
-      contests: byParallel.get(p.id) ?? [],
-      submissionCount: submissionsByParallel.get(p.id) ?? 0,
+    ...DEFAULT_PARALLEL_IDS.map((id) => ({
+      id,
+      contests: byParallel.get(id) ?? [],
+      submissionCount: submissionsByParallel.get(id) ?? 0,
     })),
     ...extras,
   ];
@@ -92,14 +86,12 @@ export default function ParallelsPage({ onUnauthorized }: Props) {
   if (ungrouped?.length) {
     cards.push({
       id: UNGROUPED_PARALLEL,
-      name: "Без параллели",
       contests: ungrouped,
       submissionCount: submissionsByParallel.get(UNGROUPED_PARALLEL) ?? 0,
     });
   }
 
   const maxContests = Math.max(0, ...cards.map((c) => c.contests.length));
-  // Ориентир ~3 чипа в ряд — одинаковая min-height у всех блоков.
   const minRows = Math.max(1, Math.ceil(maxContests / 3));
 
   return (
@@ -114,19 +106,23 @@ export default function ParallelsPage({ onUnauthorized }: Props) {
             className="parallel-card"
           >
             <div className="parallel-card__head">
-              <span className="parallel-card__title">{p.name}</span>
+              <span className="parallel-card__title">
+                {parallelLabel(p.id, UNGROUPED_PARALLEL)}
+              </span>
               <span className="parallel-card__count">
                 {contestsCountLabel(p.contests.length)}
               </span>
             </div>
-            <ul className="parallel-card__contests">
+            <div className="parallel-card__contests">
               {p.contests.map((c) => (
-                <li key={c.id} className="chip parallel-card__chip" title={c.id}>
+                <span key={c.id} className="chip parallel-card__chip" title={c.id}>
                   {c.label}
-                </li>
+                </span>
               ))}
-            </ul>
-            <span className="parallel-card__subs">{p.submissionCount} посылок</span>
+            </div>
+            {p.submissionCount > 0 ? (
+              <div className="parallel-card__subs">{p.submissionCount} посылок</div>
+            ) : null}
           </Link>
         </li>
       ))}

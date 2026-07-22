@@ -8,159 +8,220 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 	"time"
 
-	"github.com/joho/godotenv"
+	"github.com/labstack/echo/v4"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"scainer/internal/analyze"
+	"scainer/internal/configs"
 	"scainer/internal/contests"
 	"scainer/internal/detect"
 	"scainer/internal/detect/aiusage"
 	"scainer/internal/detect/jplag"
 	"scainer/internal/domain"
-	"scainer/internal/jobs"
-	"scainer/internal/llm"
+	"scainer/internal/importer"
+	ejimporter "scainer/internal/importer/ejudge"
+	"scainer/pkg/jobs"
+	"scainer/pkg/llm"
 	"scainer/internal/repository"
+	"scainer/internal/review"
+	ejreview "scainer/internal/review/ejudge"
 	"scainer/internal/scoring"
 	"scainer/internal/store"
 	"scainer/internal/transport"
 	"scainer/pkg/auth"
+	ejudgeapi "scainer/pkg/ejudge"
+	"scainer/pkg/openai"
 
-	_ "scainer/internal/importer/ejudge"
 	_ "scainer/internal/importer/folder"
 )
 
 const defaultJudgeSystem = "ejudge"
 
-const defaultStoreDir = "./data"
-
-const defaultMongoDatabase = "scainer"
-
-const defaultJobsMaxConcurrent = 4
-
-// JPlag — java-подпроцесс; слишком большое число запустит слишком много JVM разом.
-const defaultAnalyzeConcurrency = 4
-
-const (
-	envAIUsageEnabled = "AIUSAGE_ENABLED"
-)
-
 func main() {
-	_ = godotenv.Load()
-
-	addr := flag.String("addr", ":8080", "адрес HTTP-сервера")
+	configPath := flag.String("config", "", "путь к config.yaml (или CONFIG_PATH)")
 	flag.Parse()
 
-	if err := run(*addr); err != nil {
+	cfg, err := configs.LoadConfig(*configPath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "scainer:", err)
+		os.Exit(1)
+	}
+
+	if err := run(cfg); err != nil {
 		fmt.Fprintln(os.Stderr, "scainer:", err)
 		os.Exit(1)
 	}
 }
 
-func run(addr string) error {
-	username := os.Getenv("ADMIN_USERNAME")
-	password := os.Getenv("ADMIN_PASSWORD")
-	secret := os.Getenv("JWT_SECRET")
-	if username == "" || password == "" || secret == "" {
-		return fmt.Errorf("нужны ADMIN_USERNAME, ADMIN_PASSWORD и JWT_SECRET в окружении")
-	}
-	ttl := 24 * time.Hour
-	if raw := os.Getenv("JWT_TTL"); raw != "" {
-		d, err := time.ParseDuration(raw)
-		if err != nil {
-			return fmt.Errorf("JWT_TTL: %w", err)
-		}
-		ttl = d
-	}
-
-	storeDir := os.Getenv("STORE_DIR")
-	if storeDir == "" {
-		storeDir = defaultStoreDir
-	}
-	st, err := store.NewFS(storeDir)
+func run(cfg *configs.Config) error {
+	store, err := store.NewFS(cfg.Store.Dir)
 	if err != nil {
 		return fmt.Errorf("store: %w", err)
 	}
 
-	det, err := jplag.NewFromEnv(st)
-	if err != nil {
-		return fmt.Errorf("jplag: %w", err)
-	}
-
-	mongoURI, err := repository.URIFromEnv()
+	mongo, err := openMongo(cfg.MongoDB)
 	if err != nil {
 		return err
 	}
-	mongoDB := os.Getenv("MONGODB_DATABASE")
-	if mongoDB == "" {
-		mongoDB = defaultMongoDatabase
-	}
-	mongoClient, db, err := repository.Connect(context.Background(), mongoURI, mongoDB)
-	if err != nil {
-		return fmt.Errorf("mongo: %w", err)
-	}
-	defer mongoClient.Disconnect(context.Background())
+	defer mongo.client.Disconnect(context.Background())
 
-	registry := repository.NewContestRepository(db)
-	findingsStore := repository.NewFindingsRepository(db)
-
-	jobsMaxConcurrent, err := intEnv("JOBS_MAX_CONCURRENT", defaultJobsMaxConcurrent)
+	ejClient, err := openEjudge(cfg.Ejudge)
 	if err != nil {
 		return err
 	}
-	analyzeConcurrency, err := intEnv("ANALYZE_CONCURRENCY", defaultAnalyzeConcurrency)
+	if ejClient != nil {
+		importer.Register("ejudge", ejimporter.Factory(ejClient))
+	}
+
+	pipeline, pool, err := buildAnalyzeRuntime(cfg, store)
 	if err != nil {
 		return err
 	}
-	limiter := detect.NewLimiter(analyzeConcurrency)
-	// Один Limiter на процесс: иначе JOBS_MAX_CONCURRENT job'ов перемножили бы параллелизм JPlag/LLM.
+
+	svcs := wireServices(cfg, store, mongo, ejClient, pipeline, pool)
+	e := transport.New(svcs.contests, svcs.reader, svcs.analyze, svcs.review, svcs.auth).Echo()
+	return serveHTTP(cfg.HTTP, e)
+}
+
+type mongoDeps struct {
+	client        *mongo.Client
+	registry      contests.ContestRegistry
+	findingsStore contests.FindingsStore
+}
+
+func openMongo(mc configs.MongoDBConfig) (mongoDeps, error) {
+	uri, err := mc.URI()
+	if err != nil {
+		return mongoDeps{}, err
+	}
+	client, db, err := repository.Connect(context.Background(), uri, mc.Database)
+	if err != nil {
+		return mongoDeps{}, fmt.Errorf("mongo: %w", err)
+	}
+	return mongoDeps{
+		client:        client,
+		registry:      repository.NewContestRepository(db),
+		findingsStore: repository.NewFindingsRepository(db),
+	}, nil
+}
+
+func openEjudge(ec configs.EjudgeConfig) (*ejudgeapi.Client, error) {
+	if !ec.Enabled() {
+		fmt.Fprintln(os.Stderr, "scainer: ejudge disabled (нет base_url/api_key)")
+		return nil, nil
+	}
+	client, err := ejudgeapi.New(ec.BaseURL, ec.APIKey, ec.Timeout)
+	if err != nil {
+		return nil, fmt.Errorf("ejudge: %w", err)
+	}
+	return client, nil
+}
+
+func buildAnalyzeRuntime(cfg *configs.Config, st *store.FS) (detect.Pipeline, *jobs.Pool, error) {
+	det, err := jplag.New(cfg.JPlag.JarPath, st)
+	if err != nil {
+		return nil, nil, fmt.Errorf("jplag: %w", err)
+	}
+	if err := det.CheckRuntime(); err != nil {
+		return nil, nil, err
+	}
+
+	// Один Limiter на процесс: иначе jobs_max_concurrent job'ов перемножили бы параллелизм JPlag/LLM.
+	limiter := detect.NewLimiter(cfg.Analyze.AnalyzeConcurrency)
 	factories := []detect.StageFactory{
 		func(id domain.ContestID) detect.Stage {
 			return detect.NewStage(detect.ProblemSelector{Contest: id}, limiter, det)
 		},
 	}
-
-	if os.Getenv(envAIUsageEnabled) == "1" {
-		model, err := llm.NewOpenAIFromEnv()
+	if cfg.AIUsage.Enabled {
+		model, err := openAIModel(cfg.OpenAI)
 		if err != nil {
-			return fmt.Errorf("aiusage: %w", err)
+			return nil, nil, fmt.Errorf("aiusage: %w", err)
 		}
 		analyzer := &aiusage.Analyzer{Model: model}
 		taskDet := aiusage.NewTaskDetector(analyzer)
 		factories = append(factories, func(id domain.ContestID) detect.Stage {
-			return detect.NewStage(
-				detect.OkWithLastSelector{Contest: id},
-				limiter,
-				taskDet,
-			)
+			return detect.NewStage(detect.OkWithLastSelector{Contest: id}, limiter, taskDet)
 		})
 		fmt.Fprintln(os.Stderr, "scainer: aiusage enabled")
 	}
 
-	pipeline := detect.Compose(factories...)
-	pool := jobs.NewPool(jobsMaxConcurrent)
+	return detect.Compose(factories...), jobs.NewPool(cfg.Analyze.JobsMaxConcurrent), nil
+}
+
+func openAIModel(oc configs.OpenAIConfig) (llm.IntelligenceModel, error) {
+	baseURL := oc.BaseURL
+	if baseURL == "" {
+		baseURL = llm.DefaultBaseURL
+	}
+	var (
+		client *openai.Client
+		err    error
+	)
+	if oc.Username != "" || oc.Password != "" {
+		client, err = openai.New(baseURL, oc.Username, oc.Password, oc.Timeout)
+	} else if oc.APIKey != "" {
+		client, err = openai.NewWithAPIKey(baseURL, oc.APIKey, oc.Timeout)
+	} else {
+		return nil, fmt.Errorf("задайте openai.username/password или openai.api_key")
+	}
+	if err != nil {
+		return nil, err
+	}
+	return llm.NewOpenAI(client, oc.Model)
+}
+
+type appServices struct {
+	contests *contests.Service
+	reader   *contests.ContestReader
+	analyze  *analyze.Service
+	review   *review.Service
+	auth     auth.Service
+}
+
+func wireServices(
+	cfg *configs.Config,
+	store *store.FS,
+	mongo mongoDeps,
+	ejClient *ejudgeapi.Client,
+	pipeline detect.Pipeline,
+	pool *jobs.Pool,
+) appServices {
 	scorer := scoring.NewWeighted()
-	contestsSvc := contests.NewService(registry, findingsStore, defaultJudgeSystem)
-	reader := contests.NewContestReader(registry, st, findingsStore)
-	analyzeSvc := analyze.New(pool, analyze.NewRunner(registry, st, findingsStore, scorer, pipeline))
+	return appServices{
+		contests: contests.NewService(mongo.registry, mongo.findingsStore, defaultJudgeSystem),
+		reader:   contests.NewContestReader(mongo.registry, store, mongo.findingsStore),
+		analyze:  analyze.New(pool, analyze.NewRunner(mongo.registry, store, mongo.findingsStore, scorer, pipeline)),
+		review: review.New(store, &ejreview.Comments{Client: ejClient}, &ejreview.Status{Client: ejClient}),
+		auth: auth.New(
+			cfg.Admin.Username,
+			cfg.Admin.Password,
+			cfg.Admin.JWTSecret,
+			cfg.Admin.JWTTTL,
+		),
+	}
+}
 
-	authSvc := auth.New(username, password, secret, ttl)
-	e := transport.New(contestsSvc, reader, analyzeSvc, authSvc).Echo()
-
+func serveHTTP(hc configs.HTTPConfig, e *echo.Echo) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	errCh := make(chan error, 1)
 	go func() {
-		fmt.Fprintf(os.Stderr, "scainer: listening on %s\n", addr)
-		errCh <- e.Start(addr)
+		fmt.Fprintf(os.Stderr, "scainer: listening on %s\n", hc.Addr)
+		errCh <- e.Start(hc.Addr)
 	}()
 
 	select {
 	case <-ctx.Done():
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		timeout := hc.ShutdownTimeout
+		if timeout <= 0 {
+			timeout = 5 * time.Second
+		}
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 		if err := e.Shutdown(shutdownCtx); err != nil {
 			return fmt.Errorf("shutdown: %w", err)
@@ -172,16 +233,4 @@ func run(addr string) error {
 		}
 		return err
 	}
-}
-
-func intEnv(name string, defaultVal int) (int, error) {
-	raw := os.Getenv(name)
-	if raw == "" {
-		return defaultVal, nil
-	}
-	n, err := strconv.Atoi(raw)
-	if err != nil {
-		return 0, fmt.Errorf("%s: %w", name, err)
-	}
-	return n, nil
 }

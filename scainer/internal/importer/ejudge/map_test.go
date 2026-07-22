@@ -6,7 +6,6 @@ import (
 
 	ejgen "scainer/generated/ejudge"
 	"scainer/internal/domain"
-	ejudgeapi "scainer/pkg/ejudge"
 )
 
 func TestMapToSubmission(t *testing.T) {
@@ -26,11 +25,9 @@ func TestMapToSubmission(t *testing.T) {
 		RunTimeUs:        &runTimeUs,
 		RunUuid:          &uuid,
 	}
-	env := &ejudgeapi.Env{LangMap: map[string]domain.Lang{"g++": domain.LangCPP}}
-
 	probName := "A"
 	run.ProbName = &probName
-	sub, err := mapToSubmission(50501, run, []byte("int main(){}"), env, "День 01")
+	sub, err := mapToSubmission(50501, run, []byte("int main(){}"), "День 01")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +55,7 @@ func TestMapParticipant_FallbackUserName(t *testing.T) {
 	runID := 1
 	name := "[5] Alice"
 	run := ejgen.Run{RunId: &runID, UserName: &name, ProbId: intPtr(3)}
-	sub, err := mapToSubmission(1, run, nil, nil, "")
+	sub, err := mapToSubmission(1, run, nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +68,7 @@ func TestMapProblem_FallbackShortThenID(t *testing.T) {
 	runID, probID := 1, 42
 	short := "A"
 	run := ejgen.Run{RunId: &runID, UserLogin: strPtr("u"), ProbShortName: &short}
-	sub, err := mapToSubmission(1, run, nil, nil, "")
+	sub, err := mapToSubmission(1, run, nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +77,7 @@ func TestMapProblem_FallbackShortThenID(t *testing.T) {
 	}
 
 	run = ejgen.Run{RunId: &runID, UserLogin: strPtr("u"), ProbId: &probID}
-	sub, err = mapToSubmission(1, run, nil, nil, "")
+	sub, err = mapToSubmission(1, run, nil, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +88,7 @@ func TestMapProblem_FallbackShortThenID(t *testing.T) {
 
 func TestMapToSubmission_MissingParticipant(t *testing.T) {
 	runID := 1
-	_, err := mapToSubmission(1, ejgen.Run{RunId: &runID, ProbId: intPtr(1)}, nil, nil, "")
+	_, err := mapToSubmission(1, ejgen.Run{RunId: &runID, ProbId: intPtr(1)}, nil, "")
 	if err == nil {
 		t.Fatal("expected error")
 	}

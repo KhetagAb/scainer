@@ -10,7 +10,7 @@ import (
 	ejudgeapi "scainer/pkg/ejudge"
 )
 
-func mapToSubmission(contestID int, run ejgen.Run, src []byte, env *ejudgeapi.Env, contestName string) (domain.Submission, error) {
+func mapToSubmission(contestID int, run ejgen.Run, src []byte, contestName string) (domain.Submission, error) {
 	if run.RunId == nil {
 		return domain.Submission{}, fmt.Errorf("ejudge: run без run_id")
 	}
@@ -29,12 +29,7 @@ func mapToSubmission(contestID int, run ejgen.Run, src []byte, env *ejudgeapi.En
 	if run.LangName != nil {
 		langName = *run.LangName
 	}
-	var lang domain.Lang
-	if env != nil {
-		lang = env.NormalizeLang(langName)
-	} else {
-		lang = domain.Lang(langName)
-	}
+	lang := NormalizeLang(langName)
 
 	verdict := mapVerdict(run)
 
@@ -69,12 +64,12 @@ func mapToSubmission(contestID int, run ejgen.Run, src []byte, env *ejudgeapi.En
 		meta["run_uuid"] = *run.RunUuid
 	}
 
-	contest := strconv.Itoa(contestID)
+	key := ejudgeapi.SubmissionKey{ContestID: contestID, RunID: runID}
 	return domain.Submission{
-		ID:          domain.SubmissionID(fmt.Sprintf("ejudge:%s:%d", contest, runID)),
+		ID:          key.ID(),
 		Participant: participant,
 		Problem:     problem,
-		Contest:     domain.ContestID(contest),
+		Contest:     key.Contest(),
 		Lang:        lang,
 		Source:      src,
 		SubmittedAt: submittedAt,
@@ -88,7 +83,7 @@ func mapVerdict(run ejgen.Run) domain.Verdict {
 		return domain.ParseVerdict(*run.StatusStr)
 	}
 	if run.Status != nil {
-		return domain.VerdictFromEjudgeStatus(*run.Status)
+		return ejudgeapi.VerdictFromStatus(*run.Status)
 	}
 	return domain.VerdictUnknown
 }

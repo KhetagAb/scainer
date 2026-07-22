@@ -11,7 +11,7 @@ import (
 
 func TestContestStatus(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/cgi-bin/master" || r.URL.Query().Get("action") != "contest-status-json" {
+		if r.URL.Path != "/cgi-bin/new-master" || r.URL.Query().Get("action") != "contest-status-json" {
 			t.Fatalf("unexpected %s %s", r.URL.Path, r.URL.RawQuery)
 		}
 		if r.Header.Get("Authorization") == "" {

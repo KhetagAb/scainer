@@ -206,7 +206,17 @@ func (f *FS) writeSubmission(s domain.Submission) error {
 	return pkgfs.WriteFileAtomic(filepath.Join(dir, sourceBaseName+ext), s.Source, 0o644)
 }
 
-func (f *FS) Get(ctx context.Context, ids []domain.SubmissionID) ([]domain.Submission, error) {
+func (f *FS) GetByID(ctx context.Context, id domain.SubmissionID) (domain.Submission, error) {
+	f.mu.RLock()
+	defer f.mu.RUnlock()
+	s, ok := f.byID[id]
+	if !ok {
+		return domain.Submission{}, domain.ErrSubmissionNotFound
+	}
+	return s, nil
+}
+
+func (f *FS) GetByIDs(ctx context.Context, ids []domain.SubmissionID) ([]domain.Submission, error) {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
 	out := make([]domain.Submission, 0, len(ids))

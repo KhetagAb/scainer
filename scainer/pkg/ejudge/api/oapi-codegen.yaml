@@ -1,6 +1,9 @@
-# Запуск из pkg/ejudge: go generate ./pkg/ejudge/
+# Запуск: go generate ./pkg/ejudge/
 package: ejudge
 generate:
   models: true
   client: true
 output: ../../generated/ejudge/client.gen.go
+output-options:
+  # *Reply-схемы разбираются обёртками, в responses не $ref'ятся
+  skip-prune: true

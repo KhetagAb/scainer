@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"scainer/internal/domain"
-	"scainer/internal/llm"
+	"scainer/pkg/llm"
 )
 
 const rawResponseMetaLimit = 2000
@@ -14,19 +14,21 @@ type Analyzer struct {
 	Model llm.IntelligenceModel
 }
 
-func (a *Analyzer) Ask(ctx context.Context, detectorName string, subject domain.Subject, prompt string) ([]domain.Signal, error) {
+// Ask вызывает модель и парсит ответ ok/fail (score 0/1).
+// focus — посылка, к которой крепятся spans из fail-строк from:to.
+func (a *Analyzer) Ask(ctx context.Context, detectorName string, subject domain.Subject, prompt string, focus domain.SubmissionID) ([]domain.Signal, error) {
 	raw, err := a.Model.Prompt(ctx, prompt)
 	if err != nil {
 		return nil, fmt.Errorf("aiusage: %w", err)
 	}
-	parsed, err := parseModelJSON(raw)
+	parsed, err := parseModelReply(raw)
 	if err != nil {
-		return nil, fmt.Errorf("aiusage: битый JSON от модели: %w; body=%q", err, truncateRunes(raw, 400))
+		return nil, fmt.Errorf("aiusage: не разобрали ответ модели: %w; body=%q", err, truncateRunes(raw, 400))
 	}
 
 	score := parsed.Score
-	if score < 0 || score > 1 {
-		return nil, fmt.Errorf("aiusage: score вне [0,1]: %v", score)
+	if score != 0 && score != 1 {
+		return nil, fmt.Errorf("aiusage: score вне {0,1}: %v", score)
 	}
 
 	ev := make([]domain.Evidence, 0, len(parsed.Evidence))
@@ -35,23 +37,28 @@ func (a *Analyzer) Ask(ctx context.Context, detectorName string, subject domain.
 			Kind:        "ai_rationale",
 			Description: item.Description,
 		}
-		if item.SubmissionID != "" {
-			// TODO ревью, почему так?
-			start, end := item.StartLine, item.EndLine
+		start, end := item.StartLine, item.EndLine
+		subID := item.SubmissionID
+		if subID == "" {
+			subID = string(focus)
+		}
+		if subID != "" && (start > 0 || end > 0) {
 			if start <= 0 && end <= 0 {
 				start, end = 1, 1
+			} else if start <= 0 {
+				start = end
 			} else if end < start {
 				end = start
 			}
 			e.Spans = []domain.Span{{
-				Submission: domain.SubmissionID(item.SubmissionID),
+				Submission: domain.SubmissionID(subID),
 				StartLine:  start,
 				EndLine:    end,
 			}}
 		}
 		ev = append(ev, e)
 	}
-	if len(ev) == 0 && parsed.Summary != "" {
+	if len(ev) == 0 && parsed.Summary != "" && score > 0 {
 		ev = []domain.Evidence{{Kind: "ai_rationale", Description: parsed.Summary}}
 	}
 

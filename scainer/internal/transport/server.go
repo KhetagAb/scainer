@@ -14,8 +14,9 @@ import (
 	"scainer/internal/contests"
 	"scainer/internal/domain"
 	"scainer/internal/generated/server"
-	"scainer/internal/jobs"
+	"scainer/internal/review"
 	"scainer/pkg/auth"
+	"scainer/pkg/jobs"
 	scainermw "scainer/pkg/middleware"
 )
 
@@ -23,11 +24,12 @@ type Server struct {
 	contests *contests.Service
 	reader   *contests.ContestReader
 	analyze  *analyze.Service
+	review   *review.Service
 	auth     auth.Service
 }
 
-func New(contestsSvc *contests.Service, reader *contests.ContestReader, analyzeSvc *analyze.Service, authSvc auth.Service) *Server {
-	return &Server{contests: contestsSvc, reader: reader, analyze: analyzeSvc, auth: authSvc}
+func New(contestsSvc *contests.Service, reader *contests.ContestReader, analyzeSvc *analyze.Service, reviewSvc *review.Service, authSvc auth.Service) *Server {
+	return &Server{contests: contestsSvc, reader: reader, analyze: analyzeSvc, review: reviewSvc, auth: authSvc}
 }
 
 func (s *Server) Echo() *echo.Echo {
@@ -96,9 +98,8 @@ func (s *Server) PostContests(c echo.Context) error {
 	}
 
 	reg := contests.Registration{
-		ID:           domain.ContestID(req.Id),
-		ParallelID:   domain.ParallelID(ptrToStr(req.ParallelId)),
-		ParallelName: ptrToStr(req.ParallelName),
+		ID:         domain.ContestID(req.Id),
+		ParallelID: ptrToStr(req.ParallelId),
 	}
 
 	contest, err := s.contests.Register(c.Request().Context(), reg)
@@ -118,7 +119,7 @@ func (s *Server) PatchContest(c echo.Context, id server.ContestID) error {
 		return c.JSON(http.StatusBadRequest, server.Error{Error: "invalid request body"})
 	}
 
-	err := s.contests.SetParallel(c.Request().Context(), domain.ContestID(id), domain.ParallelID(ptrToStr(req.ParallelId)), ptrToStr(req.ParallelName))
+	err := s.contests.SetParallel(c.Request().Context(), domain.ContestID(id), ptrToStr(req.ParallelId))
 	if err != nil {
 		return mapContestErr(c, err)
 	}
@@ -180,6 +181,125 @@ func (s *Server) PutExcludedProblems(c echo.Context, id server.ContestID) error 
 	}
 
 	return c.NoContent(http.StatusNoContent)
+}
+
+func (s *Server) GetContestSubmissions(c echo.Context, id server.ContestID) error {
+	if err := s.requireReview(c); err != nil {
+		return err
+	}
+	if _, err := s.reader.Problems(c.Request().Context(), domain.ContestID(id)); err != nil {
+		return mapContestErr(c, err)
+	}
+	items, err := s.review.List(c.Request().Context(), domain.ContestID(id))
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, server.Error{Error: err.Error()})
+	}
+	out := make([]server.SubmissionListItem, 0, len(items))
+	for _, it := range items {
+		out = append(out, server.SubmissionListItem{
+			Id:          string(it.ID),
+			Problem:     string(it.Problem),
+			Participant: string(it.Participant),
+			Lang:        string(it.Lang),
+			SubmittedAt: it.SubmittedAt,
+			Verdict:     string(it.Verdict),
+		})
+	}
+	return c.JSON(http.StatusOK, out)
+}
+
+func (s *Server) GetSubmissionComments(c echo.Context, id server.ContestID, submissionId server.SubmissionID) error {
+	if err := s.requireReview(c); err != nil {
+		return err
+	}
+	if _, err := s.reader.Problems(c.Request().Context(), domain.ContestID(id)); err != nil {
+		return mapContestErr(c, err)
+	}
+	res, err := s.review.LoadComments(c.Request().Context(), domain.ContestID(id), domain.SubmissionID(submissionId))
+	if err != nil {
+		return mapReviewErr(c, err)
+	}
+	out := server.SubmissionCommentsResponse{
+		Verdict:     string(res.Verdict),
+		StatusStale: res.StatusStale,
+		Source:      res.Source,
+		Comments:    make([]server.RunComment, 0, len(res.Comments)),
+	}
+	if out.Source == nil {
+		out.Source = []string{}
+	}
+	if res.StatusError != "" {
+		out.StatusError = &res.StatusError
+	}
+	if res.CommentsError != "" {
+		out.CommentsError = &res.CommentsError
+	}
+	for _, cm := range res.Comments {
+		rc := server.RunComment{
+			Id:   cm.ID,
+			From: cm.From,
+			Text: cm.Text,
+			Time: cm.Time,
+		}
+		if cm.Subject != "" {
+			rc.Subject = strToPtr(cm.Subject)
+		}
+		out.Comments = append(out.Comments, rc)
+	}
+	return c.JSON(http.StatusOK, out)
+}
+
+func (s *Server) PostSubmissionComment(c echo.Context, id server.ContestID, submissionId server.SubmissionID) error {
+	if err := s.requireReview(c); err != nil {
+		return err
+	}
+	var req server.PostCommentRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, server.Error{Error: "invalid request body"})
+	}
+	if _, err := s.reader.Problems(c.Request().Context(), domain.ContestID(id)); err != nil {
+		return mapContestErr(c, err)
+	}
+	err := s.review.Comment(c.Request().Context(), domain.ContestID(id), domain.SubmissionID(submissionId), req.Text)
+	if err != nil {
+		return mapReviewErr(c, err)
+	}
+	return c.NoContent(http.StatusNoContent)
+}
+
+func (s *Server) PostSubmissionVerdict(c echo.Context, id server.ContestID, submissionId server.SubmissionID) error {
+	if err := s.requireReview(c); err != nil {
+		return err
+	}
+	var req server.PostVerdictRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, server.Error{Error: "invalid request body"})
+	}
+	if !req.Verdict.Valid() {
+		return c.JSON(http.StatusBadRequest, server.Error{Error: "verdict must be OK or RJ"})
+	}
+	if _, err := s.reader.Problems(c.Request().Context(), domain.ContestID(id)); err != nil {
+		return mapContestErr(c, err)
+	}
+	comment := ""
+	if req.Comment != nil {
+		comment = *req.Comment
+	}
+	err := s.review.Decide(c.Request().Context(), domain.ContestID(id), domain.SubmissionID(submissionId), review.DecideRequest{
+		Verdict: domain.Verdict(req.Verdict),
+		Comment: comment,
+	})
+	if err != nil {
+		return mapReviewErr(c, err)
+	}
+	return c.NoContent(http.StatusNoContent)
+}
+
+func (s *Server) requireReview(c echo.Context) error {
+	if s.review == nil {
+		return c.JSON(http.StatusServiceUnavailable, server.Error{Error: "review is not configured (ejudge credentials)"})
+	}
+	return nil
 }
 
 func (s *Server) PostContestImport(c echo.Context, id server.ContestID) error {
@@ -290,13 +410,23 @@ func mapContestErr(c echo.Context, err error) error {
 	return c.JSON(http.StatusInternalServerError, server.Error{Error: err.Error()})
 }
 
+func mapReviewErr(c echo.Context, err error) error {
+	switch {
+	case errors.Is(err, domain.ErrSubmissionNotFound):
+		return c.JSON(http.StatusNotFound, server.Error{Error: "submission not found"})
+	case errors.Is(err, review.ErrInvalidVerdict):
+		return c.JSON(http.StatusBadRequest, server.Error{Error: err.Error()})
+	default:
+		return c.JSON(http.StatusBadGateway, server.Error{Error: err.Error()})
+	}
+}
+
 func toContestInfo(contest contests.Contest) server.ContestInfo {
 	st := contest.Statistic
 	out := server.ContestInfo{
 		Id:              string(contest.ID),
 		Name:            contest.Name,
-		ParallelId:      strToPtr(string(contest.ParallelID)),
-		ParallelName:    strToPtr(contest.ParallelName),
+		ParallelId:      strToPtr(contest.ParallelID),
 		LastImportedAt:  contest.LastImportedAt,
 		SubmissionCount: intPtr(st.SubmissionCount),
 		ProblemCount:    intPtr(st.ProblemCount),

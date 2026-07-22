@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"scainer/internal/jobs"
+	"scainer/pkg/jobs"
 	"scainer/internal/progress"
 )
 

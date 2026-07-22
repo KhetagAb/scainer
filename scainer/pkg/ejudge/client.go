@@ -1,9 +1,11 @@
-// Package ejudge — HTTP API ejudge. Auth: Bearer AQAA<token>.
+// Package ejudge — HTTP-клиент ejudge (Bearer AQAA<token>, cgi-bin).
 package ejudge
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -11,18 +13,23 @@ import (
 	ejgen "scainer/generated/ejudge"
 )
 
-//go:generate go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.8.0 -config api/oapi-codegen.yaml api/openapi.yaml
+//go:generate go tool oapi-codegen -config api/oapi-codegen.yaml api/openapi.yaml
 
 const (
 	authPrefix     = "AQAA"
 	defaultTimeout = 15 * time.Second
+
+	actionSendRunComment  = "64"
+	actionChangeRunStatus = "67"
+	actionViewSource      = "36"
 )
 
 type Client struct {
 	*ejgen.ClientWithResponses
-	http    *http.Client
-	baseURL string
-	editors []ejgen.RequestEditorFn
+	baseURL    string
+	httpClient *http.Client
+	authHeader string
+	timeout    time.Duration
 }
 
 func New(baseURL, apiKey string, timeout time.Duration) (*Client, error) {
@@ -31,8 +38,9 @@ func New(baseURL, apiKey string, timeout time.Duration) (*Client, error) {
 	}
 	httpClient := &http.Client{Timeout: timeout}
 	base := strings.TrimRight(baseURL, "/")
+	authHeader := "Bearer " + authPrefix + apiKey
 	auth := func(_ context.Context, req *http.Request) error {
-		req.Header.Set("Authorization", "Bearer "+authPrefix+apiKey)
+		req.Header.Set("Authorization", authHeader)
 		return nil
 	}
 
@@ -46,13 +54,14 @@ func New(baseURL, apiKey string, timeout time.Duration) (*Client, error) {
 	}
 	return &Client{
 		ClientWithResponses: api,
-		http:                httpClient,
 		baseURL:             base,
-		editors:             []ejgen.RequestEditorFn{auth},
+		httpClient:          httpClient,
+		authHeader:          authHeader,
+		timeout:             timeout,
 	}, nil
 }
 
-func (c *Client) Timeout() time.Duration { return c.http.Timeout }
+func (c *Client) Timeout() time.Duration { return c.timeout }
 
 func EnsureOK(ok *bool, apiErr *ejgen.Error) error {
 	if ok != nil && *ok {
@@ -69,16 +78,6 @@ func EnsureOK(ok *bool, apiErr *ejgen.Error) error {
 	return fmt.Errorf("ejudge: ok=false")
 }
 
-func ListRunsParams(contestID int, firstRun, lastRun *int) *ejgen.ListRunsParams {
-	return &ejgen.ListRunsParams{
-		Json:      ejgen.ListRunsParamsJsonN1,
-		Action:    ejgen.ListRunsJson,
-		ContestId: contestID,
-		FirstRun:  firstRun,
-		LastRun:   lastRun,
-	}
-}
-
 func DownloadRunParams(contestID, runID int) *ejgen.DownloadRunParams {
 	noDisp := 1
 	return &ejgen.DownloadRunParams{
@@ -88,4 +87,53 @@ func DownloadRunParams(contestID, runID int) *ejgen.DownloadRunParams {
 		RunId:     runID,
 		NoDisp:    &noDisp,
 	}
+}
+
+func (c *Client) masterJSON(ctx context.Context, params *ejgen.MasterJSONParams) ([]byte, error) {
+	if c == nil || c.ClientWithResponses == nil {
+		return nil, fmt.Errorf("ejudge: клиент не инициализирован")
+	}
+	resp, err := c.MasterJSONWithResponse(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode() != http.StatusOK {
+		return nil, fmt.Errorf("ejudge %s: HTTP %d: %s", params.Action, resp.StatusCode(), truncateBody(resp.Body, 200))
+	}
+	return resp.Body, nil
+}
+
+func (c *Client) masterForm(ctx context.Context, body ejgen.MasterFormFormdataRequestBody) ([]byte, error) {
+	if c == nil || c.ClientWithResponses == nil {
+		return nil, fmt.Errorf("ejudge: клиент не инициализирован")
+	}
+	// WithResponse парсит тело как JSON и падает на пустом ответе ejudge (action 64/67).
+	resp, err := c.MasterFormWithFormdataBody(ctx, body)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("ejudge action=%s: HTTP %d: %s", body.Action, resp.StatusCode, truncateBody(raw, 200))
+	}
+	return raw, nil
+}
+
+func decodeReply[T any](body []byte) (T, error) {
+	var out T
+	if err := json.Unmarshal(body, &out); err != nil {
+		return out, err
+	}
+	return out, nil
+}
+
+func truncateBody(b []byte, n int) string {
+	if len(b) <= n {
+		return string(b)
+	}
+	return string(b[:n]) + "…"
 }

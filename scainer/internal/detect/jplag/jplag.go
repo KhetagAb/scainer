@@ -29,39 +29,40 @@ var defaultLangMap = map[domain.Lang]string{
 }
 
 const (
-	EnvJarPath      = "JPLAG_JAR_PATH"
 	defaultJarPath  = "bin/jplag.jar"
 	jplagWorkSubdir = ".jplag"
 )
 
-func New(jarPath string, fs *store.FS) *Detector {
+func New(jarPath string, fs *store.FS) (*Detector, error) {
+	if fs == nil {
+		return nil, fmt.Errorf("jplag: store.FS обязателен")
+	}
+	if jarPath == "" {
+		jarPath = defaultJarPath
+	}
 	m := make(map[domain.Lang]string, len(defaultLangMap))
 	for k, v := range defaultLangMap {
 		m[k] = v
 	}
-	d := &Detector{JarPath: jarPath, LangMap: m}
-	if fs != nil {
-		d.Sources = fs
-		d.WorkRoot = filepath.Join(fs.Root(), jplagWorkSubdir)
-	}
-	return d
+	return &Detector{
+		JarPath:  jarPath,
+		LangMap:  m,
+		Sources:  fs,
+		WorkRoot: filepath.Join(fs.Root(), jplagWorkSubdir),
+	}, nil
 }
 
-func NewFromEnv(fs *store.FS) (*Detector, error) {
-	if fs == nil {
-		return nil, fmt.Errorf("jplag: store.FS обязателен")
-	}
-	jarPath := os.Getenv(EnvJarPath)
-	if jarPath == "" {
-		jarPath = defaultJarPath
+func (d *Detector) CheckRuntime() error {
+	if d == nil {
+		return fmt.Errorf("jplag: detector nil")
 	}
 	if _, err := exec.LookPath("java"); err != nil {
-		return nil, fmt.Errorf("jplag: java не найден в PATH (нужен JRE 17+): %w", err)
+		return fmt.Errorf("jplag: java не найден в PATH (нужен JRE 17+): %w", err)
 	}
-	if _, err := os.Stat(jarPath); err != nil {
-		return nil, fmt.Errorf("jplag: jar %q не найден (make setup / %s): %w", jarPath, EnvJarPath, err)
+	if _, err := os.Stat(d.JarPath); err != nil {
+		return fmt.Errorf("jplag: jar %q не найден (make setup / jplag.jar_path): %w", d.JarPath, err)
 	}
-	return New(jarPath, fs), nil
+	return nil
 }
 
 var _ detect.Detector[domain.ProblemUnit] = (*Detector)(nil)

@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import type { ProblemInfo, SubmissionListItem } from "@/client/types.gen";
+import { problemDisplay } from "@/features/findings/reportModel";
 import { prCountByProblem } from "@/features/review/reviewFindings";
 
 type Props = {
@@ -17,8 +18,8 @@ export default function ReviewProblemPicker({
 }: Props) {
   const prCounts = prCountByProblem(submissions);
   const sorted = problems.slice().sort((a, b) => {
-    const la = a.name || a.id;
-    const lb = b.name || b.id;
+    const la = problemDisplay(a.id, a.name);
+    const lb = problemDisplay(b.id, b.name);
     return la < lb ? -1 : la > lb ? 1 : 0;
   });
 
@@ -31,16 +32,18 @@ export default function ReviewProblemPicker({
   return (
     <ul className="review-picker" aria-label="Задачи для ревью">
       {sorted.map((p) => {
-        const pr = prCounts.get(p.id) ?? 0;
+        // submissions актуальнее после смены verdict; pendingCount — fallback с /problems
+        const pr = prCounts.get(p.id) ?? p.pendingCount ?? 0;
         const active = activeProblemId === p.id;
+        const label = problemDisplay(p.id, p.name);
         return (
           <li key={p.id} className="review-picker__item">
             <NavLink
               to={`${base}/review?problem=${encodeURIComponent(p.id)}`}
-              className={`review-picker__chip${active ? " is-active" : ""}${pr === 0 ? " is-empty" : ""}`}
-              title={p.name || p.id}
+              className={`chip problem-chip review-picker__chip${active ? " is-active" : ""}${pr === 0 ? " is-empty" : ""}`}
+              title={label}
             >
-              <span className="review-picker__label">{p.name || p.id}</span>
+              {label}
               <span className="review-picker__pr" aria-label={`${pr} pending review`}>
                 {pr}
               </span>

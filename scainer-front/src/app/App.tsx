@@ -54,6 +54,7 @@ function App() {
               path: "/contests/:id",
               element: <ContestPage onUnauthorized={handleUnauthorized} />,
               children: [
+                { index: true, element: <Navigate to="review" replace /> },
                 { path: "findings", element: <ContestFindingsRoute /> },
                 { path: "review", element: <ContestReviewRoute /> },
                 {

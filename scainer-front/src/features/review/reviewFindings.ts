@@ -1,4 +1,5 @@
 import type { FindingView, ReportData, SubmissionListItem } from "@/client/types.gen";
+import { problemDisplay } from "@/features/findings/reportModel";
 
 export function prCountByProblem(items: SubmissionListItem[]): Map<string, number> {
   const map = new Map<string, number>();
@@ -7,6 +8,46 @@ export function prCountByProblem(items: SubmissionListItem[]): Map<string, numbe
     map.set(item.problem, (map.get(item.problem) ?? 0) + 1);
   }
   return map;
+}
+
+/** Первая задача (в порядке чипов) с числом PR > 0. */
+export function firstProblemWithPr(
+  problems: { id: string; name?: string | null }[],
+  items: SubmissionListItem[],
+): string | null {
+  const counts = prCountByProblem(items);
+  const sorted = problems.slice().sort((a, b) => {
+    const la = problemDisplay(a.id, a.name);
+    const lb = problemDisplay(b.id, b.name);
+    return la < lb ? -1 : la > lb ? 1 : 0;
+  });
+  for (const p of sorted) {
+    if ((counts.get(p.id) ?? 0) > 0) return p.id;
+  }
+  for (const [id, n] of counts) {
+    if (n > 0) return id;
+  }
+  return null;
+}
+
+/** Следующая задача с PR после current (порядок как у чипов). */
+export function nextProblemWithPr(
+  problems: { id: string; name?: string | null }[],
+  items: SubmissionListItem[],
+  currentProblemId: string,
+): string | null {
+  const counts = prCountByProblem(items);
+  const sorted = problems.slice().sort((a, b) => {
+    const la = problemDisplay(a.id, a.name);
+    const lb = problemDisplay(b.id, b.name);
+    return la < lb ? -1 : la > lb ? 1 : 0;
+  });
+  const idx = sorted.findIndex((p) => p.id === currentProblemId);
+  const start = idx >= 0 ? idx + 1 : 0;
+  for (let i = start; i < sorted.length; i++) {
+    if ((counts.get(sorted[i].id) ?? 0) > 0) return sorted[i].id;
+  }
+  return null;
 }
 
 export function prQueueForProblem(
@@ -30,6 +71,10 @@ export function nextPrInQueue(
     if (after) return after;
   }
   return queue.find((s) => s.id !== currentId);
+}
+
+export function submissionPanelId(submissionId: string): string {
+  return `review-sub-${submissionId.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
 }
 
 export function submissionIdsInFindings(report: ReportData | undefined): Set<string> {

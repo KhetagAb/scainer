@@ -1,6 +1,6 @@
 import { useOutletContext } from "react-router-dom";
 import type { UseQueryResult } from "@tanstack/react-query";
-import type { SubmissionListItem } from "@/client/types.gen";
+import type { ProblemInfo, SubmissionListItem } from "@/client/types.gen";
 import FindingsPage from "@/features/findings/FindingsPage";
 import ReviewPage from "@/features/review/ReviewPage";
 import ReviewSubmissionPage from "@/features/review/ReviewSubmissionPage";
@@ -8,6 +8,7 @@ import ReviewSubmissionPage from "@/features/review/ReviewSubmissionPage";
 export type ContestOutletContext = {
   findingsQuery: UseQueryResult<unknown>;
   submissionsQuery: UseQueryResult<SubmissionListItem[]>;
+  problems: ProblemInfo[];
   problemSubmissionCounts: Record<string, number>;
   onUnauthorized: () => void;
   findingKey: string | null;
@@ -26,12 +27,13 @@ export function ContestFindingsRoute() {
 }
 
 export function ContestReviewRoute() {
-  const { submissionsQuery, findingsQuery, onUnauthorized } =
+  const { submissionsQuery, findingsQuery, problems, onUnauthorized } =
     useOutletContext<ContestOutletContext>();
   return (
     <ReviewPage
       submissionsQuery={submissionsQuery}
       findingsQuery={findingsQuery}
+      problems={problems}
       onUnauthorized={onUnauthorized}
     />
   );

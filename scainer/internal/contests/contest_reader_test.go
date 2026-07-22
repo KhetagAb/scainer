@@ -67,6 +67,47 @@ func TestListStatsZeroBeforeImport(t *testing.T) {
 	}
 }
 
+func TestProblemsPendingCount(t *testing.T) {
+	ctx := context.Background()
+	st := store.NewMem()
+	reg := newFakeRegistry()
+	findingsStore := newFakeFindingsStore()
+	svc := contests.NewService(reg, findingsStore, "stub")
+	reader := contests.NewContestReader(reg, st, findingsStore)
+
+	if _, err := svc.Register(ctx, contests.Registration{
+		ID:     "contest01",
+		Source: &contests.SourceSpec{Type: "stub"},
+	}); err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+	if err := st.Put(ctx, []domain.Submission{
+		{ID: "1", Contest: "contest01", Problem: "A", Participant: "alice", Lang: domain.LangCPP, Source: []byte("a"), Verdict: domain.VerdictPR},
+		{ID: "2", Contest: "contest01", Problem: "A", Participant: "bob", Lang: domain.LangCPP, Source: []byte("b"), Verdict: domain.VerdictOK},
+		{ID: "3", Contest: "contest01", Problem: "A", Participant: "carol", Lang: domain.LangCPP, Source: []byte("c"), Verdict: domain.VerdictPR},
+		{ID: "4", Contest: "contest01", Problem: "B", Participant: "alice", Lang: domain.LangCPP, Source: []byte("d"), Verdict: domain.VerdictWA},
+	}); err != nil {
+		t.Fatalf("Put: %v", err)
+	}
+
+	problems, err := reader.Problems(ctx, "contest01")
+	if err != nil {
+		t.Fatalf("Problems: %v", err)
+	}
+	byID := map[domain.ProblemID]contests.ProblemInfo{}
+	for _, p := range problems {
+		byID[p.ID] = p
+	}
+	a := byID["A"]
+	if a.SubmissionCount != 3 || a.PendingCount != 2 {
+		t.Fatalf("A: subs=%d pending=%d, want 3/2", a.SubmissionCount, a.PendingCount)
+	}
+	b := byID["B"]
+	if b.SubmissionCount != 1 || b.PendingCount != 0 {
+		t.Fatalf("B: subs=%d pending=%d, want 1/0", b.SubmissionCount, b.PendingCount)
+	}
+}
+
 func TestListEnrichStats(t *testing.T) {
 	ctx := context.Background()
 	st := store.NewMem()

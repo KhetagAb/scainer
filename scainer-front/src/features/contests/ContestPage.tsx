@@ -1,8 +1,7 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Link,
-  NavLink,
   Outlet,
   useNavigate,
   useParams,
@@ -17,15 +16,22 @@ import {
   getContestSubmissionsOptions,
   getContestSubmissionsQueryKey,
   getContestsOptions,
+  getSubmissionCommentsOptions,
 } from "@/client/@tanstack/react-query.gen";
 import type { ProblemInfo, SubmissionListItem } from "@/client/types.gen";
 import { authHeaders } from "@/features/auth/authStorage";
 import ContestStats from "@/features/contests/ContestStats";
-import { UNGROUPED_PARALLEL } from "@/features/contests/contestHelpers";
+import {
+  UNGROUPED_PARALLEL,
+  compactContestName,
+} from "@/features/contests/contestHelpers";
 import { formatImportProgress } from "@/features/contests/importJobShared";
 import ImportProgressBar from "@/features/contests/ImportProgressBar";
 import { problemSubmissionCountsMap } from "@/features/contests/problemSignalStats";
 import { useImportJob } from "@/features/contests/useImportJob";
+import { useSensitivity } from "@/features/contests/SensitivityContext";
+import { parallelLabel } from "@/features/contests/parallels";
+import FindingsGroupTabs from "@/features/findings/FindingsGroupTabs";
 import ReviewProblemPicker from "@/features/review/ReviewProblemPicker";
 import importIconUrl from "@/assets/import-icon.png";
 
@@ -46,6 +52,7 @@ export default function ContestPage({ onUnauthorized }: Props) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const location = useLocation();
+  const { onFindingsPage, groupBy, setGroupBy } = useSensitivity();
   const queryClient = useQueryClient();
 
   const contestsQuery = useQuery({
@@ -79,6 +86,21 @@ export default function ContestPage({ onUnauthorized }: Props) {
     }),
     enabled: Boolean(contestId),
   });
+
+  const onReviewPage = location.pathname.includes("/review");
+
+  useEffect(() => {
+    if (!onReviewPage || !contestId || !submissionsQuery.data) return;
+    for (const s of submissionsQuery.data) {
+      if (s.verdict !== "PR") continue;
+      void queryClient.prefetchQuery(
+        getSubmissionCommentsOptions({
+          path: { id: contestId, submissionId: s.id },
+          headers: authHeaders(),
+        }),
+      );
+    }
+  }, [onReviewPage, contestId, submissionsQuery.data, queryClient]);
 
   const problemSubmissionCounts = useMemo(
     () => problemSubmissionCountsMap((problemsQuery.data ?? []) as ProblemInfo[]),
@@ -170,17 +192,25 @@ export default function ContestPage({ onUnauthorized }: Props) {
   const importLabel = importJob.isRunning
     ? formatImportProgress(importJob.progress)
     : "Догрузить посылки";
-  const backTo = `/parallels/${encodeURIComponent(contest.parallelId || UNGROUPED_PARALLEL)}`;
-  const base = `/contests/${encodeURIComponent(contestId)}`;
+  const parallelId = contest.parallelId || UNGROUPED_PARALLEL;
+  const parallelTo = `/parallels/${encodeURIComponent(parallelId)}`;
+  const shortName = compactContestName(contest.name || "") || contest.id;
 
   return (
     <>
-      <Link to={backTo} className="back-link">
-        ← К параллели
-      </Link>
-
       <div className="contest-head">
-        <h1>{contest.name || contest.id}</h1>
+        <h1>
+          <Link to={parallelTo} className="contest-head__parallel">
+            {parallelLabel(parallelId, UNGROUPED_PARALLEL)}
+          </Link>
+          <span className="contest-head__sep-title" aria-hidden>
+            /
+          </span>
+          <span className="contest-head__name">{shortName}</span>
+          {onFindingsPage ? (
+            <FindingsGroupTabs groupBy={groupBy} onChange={setGroupBy} />
+          ) : null}
+        </h1>
         <div className="contest-head__actions">
           {headerStats && <ContestStats stats={headerStats} />}
           <span className="contest-head__sep" aria-hidden>
@@ -216,23 +246,7 @@ export default function ContestPage({ onUnauthorized }: Props) {
         )}
       </div>
 
-      <nav className="contest-tabs" aria-label="Разделы контеста">
-        <NavLink
-          to={`${base}/findings`}
-          className={({ isActive }) => `contest-tabs__link${isActive ? " is-active" : ""}`}
-          end
-        >
-          Findings
-        </NavLink>
-        <NavLink
-          to={`${base}/review`}
-          className={({ isActive }) => `contest-tabs__link${isActive ? " is-active" : ""}`}
-        >
-          Review
-        </NavLink>
-      </nav>
-
-      {location.pathname.includes("/review") ? (
+      {onReviewPage ? (
         <ReviewProblemPicker
           contestId={contestId}
           problems={(problemsQuery.data ?? []) as ProblemInfo[]}
@@ -245,6 +259,7 @@ export default function ContestPage({ onUnauthorized }: Props) {
         context={{
           findingsQuery,
           submissionsQuery,
+          problems: (problemsQuery.data ?? []) as ProblemInfo[],
           problemSubmissionCounts,
           onUnauthorized,
           findingKey: searchParams.get("finding"),

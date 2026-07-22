@@ -71,27 +71,6 @@ export function subjectTitle(subject: SubjectView, groupBy: GroupBy, groupKey: s
   return label;
 }
 
-export function searchBlob(finding: FindingView): string {
-  const parts: Array<string | undefined | null> = [
-    finding.key,
-    finding.subject.kind,
-    finding.subject.contest,
-    finding.subject.contest_name,
-    finding.subject.problem,
-    finding.subject.problem_name,
-    finding.subject.submission,
-  ];
-  (finding.subject.participants ?? []).forEach((p) => parts.push(p));
-  finding.signals.forEach((sig) => {
-    parts.push(sig.detector);
-    if (sig.ai) parts.push("ai");
-    (sig.evidence ?? []).forEach((ev) => {
-      (ev.spans ?? []).forEach((sp) => parts.push(sp.submission));
-    });
-  });
-  return parts.filter(Boolean).join(" ").toLowerCase();
-}
-
 export function uniqueDetectors(signals: FindingView["signals"]): string[] {
   const seen = new Set<string>();
   const out: string[] = [];

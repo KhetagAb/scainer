@@ -6,10 +6,12 @@ export type ProblemSignalStat = {
   name: string;
   /** Доля сигналов, %; null если посылок 0. */
   suspiciousSharePercent: number | null;
+  /** Посылки со статусом PR (pending review). */
+  pendingCount: number;
 };
 
 export const PROBLEM_SUSPICION_TOOLTIP =
-  "Доля сигналов задачи: 100 × сигналы (≥ порога) / все посылки задачи";
+  "Доля сигналов задачи: 100 × сигналы / все посылки задачи";
 
 /** >15% сигналов — жёлтый; ≤15% (и >0) — зелёный. */
 export const PROBLEM_SUSPICION_LOW_MIN = 0.15;
@@ -36,6 +38,7 @@ export function buildProblemSignalStats(
       p.id,
       p.submissionCount ?? 0,
     ),
+    pendingCount: p.pendingCount ?? 0,
   }));
   stats.sort((a, b) => {
     const byName = collator.compare(a.name || a.id, b.name || b.id);
@@ -88,7 +91,7 @@ export function problemSuspiciousSharePercent(
 }
 
 /**
- * Цвет по абсолютной доле сигналов (чипы, % внутри, корешок):
+ * Цвет чипа по абсолютной доле сигналов:
  * 0 / null → серый; ≤15% → зелёный; >15% → жёлтый.
  */
 export function problemSuspicionLevel(percent: number | null | undefined): string {
@@ -99,20 +102,24 @@ export function problemSuspicionLevel(percent: number | null | undefined): strin
 }
 
 /**
- * Корешок карточки контеста:
- * есть зелёные задачи → green; иначе есть жёлтые → yellow; иначе без окраски.
+ * Есть ли у контеста «сильные» (зелёные) задачи — для подсветки иконки детекта.
  */
-export function contestSpineFromProblemStats(
+export function contestHasStrongSignals(
   problemStats: ProblemSignalStat[] | undefined,
-): "green" | "yellow" | null {
-  if (!problemStats?.length) return null;
-  let hasYellow = false;
+): boolean {
+  if (!problemStats?.length) return false;
   for (const p of problemStats) {
-    const heat = problemSuspicionLevel(p.suspiciousSharePercent);
-    if (heat === "level-high") return "green";
-    if (heat === "level-low") hasYellow = true;
+    if (problemSuspicionLevel(p.suspiciousSharePercent) === "level-high") return true;
   }
-  return hasYellow ? "yellow" : null;
+  return false;
+}
+
+/** Сумма PR по задачам контеста. */
+export function contestPendingCount(problemStats: ProblemSignalStat[] | undefined): number {
+  if (!problemStats?.length) return 0;
+  let n = 0;
+  for (const p of problemStats) n += p.pendingCount;
+  return n;
 }
 
 export function problemSubmissionCountsMap(problems: ProblemInfo[]): Record<string, number> {

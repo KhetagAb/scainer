@@ -10,11 +10,12 @@ import {
   formatSubmissionCount,
   problemDisplay,
   scoreLevel,
-  searchBlob,
   subjectTitle,
   uniqueDetectors,
   type GroupBy,
 } from "@/features/findings/reportModel";
+import SourceCode from "@/features/code/SourceCode";
+import { ejudgeRunUrl } from "@/features/findings/ejudgeLinks";
 
 type Props = {
   finding: FindingView;
@@ -38,11 +39,13 @@ export function FindingCard({ finding, groupBy, groupKey, submissions, hidden }:
     <details
       className={`finding-card${hidden ? " hidden" : ""}`}
       open={open}
-      onToggle={(e) => onToggle((e.target as HTMLDetailsElement).open)}
+      onToggle={(e) => {
+        if (e.target !== e.currentTarget) return;
+        onToggle((e.currentTarget as HTMLDetailsElement).open);
+      }}
       data-key={finding.key}
       data-finding-key={finding.key}
       data-score={String(finding.score)}
-      data-search={searchBlob(finding)}
     >
       <summary className="finding-head">
         <span className={`score-badge ${scoreLevel(finding.score)}`}>{fmtScore(finding.score)}</span>
@@ -110,6 +113,23 @@ function Chip({
     <span className={className ? `chip ${className}` : "chip"} title={title}>
       {children}
     </span>
+  );
+}
+
+function SubmissionIdChip({ id }: { id: string }) {
+  const href = ejudgeRunUrl(id);
+  if (!href) return <Chip title={id}>{id}</Chip>;
+  return (
+    <a
+      className="chip chip--link"
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      title="Открыть в ejudge"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {id}
+    </a>
   );
 }
 
@@ -182,7 +202,14 @@ function CodePane({
   return (
     <div className="code-pane">
       <div className="code-pane-head">
-        <details className="code-pane-more" open={moreOpen} onToggle={(e) => setMoreOpen((e.target as HTMLDetailsElement).open)}>
+        <details
+          className="code-pane-more"
+          open={moreOpen}
+          onToggle={(e) => {
+            e.stopPropagation();
+            setMoreOpen((e.currentTarget as HTMLDetailsElement).open);
+          }}
+        >
           <summary className="code-pane-summary">
             <span className={`code-pane-participant${!sub?.participant ? " code-pane-participant-missing" : ""}`}>
               {sub?.participant || "исходник недоступен"}
@@ -190,7 +217,7 @@ function CodePane({
             <span className="code-pane-toggle">{moreOpen ? "свернуть" : "подробнее"}</span>
           </summary>
           <div className="code-pane-meta">
-            <Chip>{subID}</Chip>
+            <SubmissionIdChip id={subID} />
             {sub?.problem ? (
               <Chip className="problem-chip" title={sub.problem}>
                 {problemDisplay(sub.problem, sub.problem_name)}
@@ -200,13 +227,11 @@ function CodePane({
           </div>
         </details>
       </div>
-      <pre className="code-lines">
-        {lines.map((line, idx) => (
-          <code key={idx} className={inRange(idx + 1) ? "line line-match" : "line"}>
-            {line}
-          </code>
-        ))}
-      </pre>
+      <SourceCode
+        lines={lines}
+        lang={sub?.lang}
+        matchLine={inRange}
+      />
     </div>
   );
 }
@@ -280,18 +305,15 @@ export function Logo() {
 
 export function useFilteredVisibility(
   findings: FindingView[],
-  query: string,
   threshold: number
 ) {
   return useMemo(() => {
-    const q = query.trim().toLowerCase();
     const visible = new Set<string>();
     for (const f of findings) {
-      const searchOk = !q || searchBlob(f).includes(q);
-      if (f.score >= threshold && searchOk) visible.add(f.key);
+      if (f.score >= threshold) visible.add(f.key);
     }
     return visible;
-  }, [findings, query, threshold]);
+  }, [findings, threshold]);
 }
 
 export type { ReportData };

@@ -604,7 +604,7 @@ components:
 
     ProblemInfo:
       type: object
-      required: [id, name, excluded, submissionCount]
+      required: [id, name, excluded, submissionCount, pendingCount]
       properties:
         id:
           type: string
@@ -618,6 +618,9 @@ components:
         submissionCount:
           type: integer
           description: Число посылок по этой задаче в store
+        pendingCount:
+          type: integer
+          description: Число посылок со статусом PR (pending review) по этой задаче
 
     ExcludedProblemsRequest:
       type: object

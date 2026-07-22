@@ -46,6 +46,7 @@ type ProblemInfo struct {
 	Name            string
 	Excluded        bool
 	SubmissionCount int
+	PendingCount    int
 }
 
 type FindingsSnapshot struct {

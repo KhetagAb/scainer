@@ -1,11 +1,15 @@
 import { useCallback, useState } from "react";
 
-export const DEFAULT_SENSITIVITY = 0.7;
-export const SENSITIVITY_MARKS: Record<number, string> = { 50: "50%", 70: "70%", 95: "95%" };
+export const DEFAULT_SENSITIVITY = 0.75;
+export const SENSITIVITY_MARKS: Record<number, string> = {
+  50: "50%",
+  75: "75%",
+  90: "90%",
+};
 
 const STORAGE_KEY = "scainer.sensitivity";
 const LEGACY_PREFIX = "scainer.sensitivity.";
-const MARKS = [0.5, 0.7, 0.95] as const;
+const MARKS = [0.5, 0.75, 0.9] as const;
 
 function snapMark(value: number): number {
   return MARKS.reduce((best, m) => (Math.abs(m - value) < Math.abs(best - value) ? m : best));

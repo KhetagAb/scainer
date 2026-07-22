@@ -83,12 +83,19 @@ func (r *ContestReader) Problems(ctx context.Context, id domain.ContestID) ([]Pr
 				}
 			}
 		}
+		pending := 0
+		for _, sub := range submissions {
+			if sub.Verdict == domain.VerdictPR {
+				pending++
+			}
+		}
 
 		out = append(out, ProblemInfo{
 			ID:              problemID,
 			Name:            problemName,
 			Excluded:        excluded[problemID],
 			SubmissionCount: len(submissions),
+			PendingCount:    pending,
 		})
 	}
 	return out, nil

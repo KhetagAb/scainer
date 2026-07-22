@@ -159,6 +159,7 @@ func (s *Server) GetContestProblems(c echo.Context, id server.ContestID) error {
 			Name:            p.Name,
 			Excluded:        p.Excluded,
 			SubmissionCount: p.SubmissionCount,
+			PendingCount:    p.PendingCount,
 		})
 	}
 	return c.JSON(http.StatusOK, out)

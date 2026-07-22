@@ -18,7 +18,13 @@ import ContestLegendModal, {
   wasContestLegendSeen,
 } from "@/features/contests/ContestLegendModal";
 import ContestStats from "@/features/contests/ContestStats";
+import ContestIdCopy from "@/features/contests/ContestIdCopy";
+import {
+  ContestFindingsIcon,
+  ContestReviewIcon,
+} from "@/features/contests/ContestSectionNav";
 import ImportProgressBar from "@/features/contests/ImportProgressBar";
+import SensitivitySlider from "@/features/contests/SensitivitySlider";
 import { useSensitivity } from "@/features/contests/SensitivityContext";
 import { parallelLabel } from "@/features/contests/parallels";
 import {
@@ -28,7 +34,8 @@ import {
 } from "@/features/contests/contestHelpers";
 import {
   buildProblemSignalStats,
-  contestSpineFromProblemStats,
+  contestHasStrongSignals,
+  contestPendingCount,
 } from "@/features/contests/problemSignalStats";
 import { useParallelImportJobs } from "@/features/contests/useParallelImportJobs";
 
@@ -41,7 +48,7 @@ export default function ParallelPage({ onUnauthorized }: Props) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const parallelId = parallelIdParam ? decodeURIComponent(parallelIdParam) : UNGROUPED_PARALLEL;
-  const { threshold } = useSensitivity();
+  const { threshold, setThreshold } = useSensitivity();
   const [legendOpen, setLegendOpen] = useState(() => !wasContestLegendSeen());
 
   const closeLegend = useCallback(() => {
@@ -157,7 +164,8 @@ export default function ParallelPage({ onUnauthorized }: Props) {
         id: c.id,
         name: c.name,
         displayName: compactContestName(c.name),
-        spine: contestSpineFromProblemStats(problemStats),
+        hasStrongSignals: contestHasStrongSignals(problemStats),
+        pendingCount: contestPendingCount(problemStats),
         stats: {
           id: c.id,
           submissionCount,
@@ -176,12 +184,10 @@ export default function ParallelPage({ onUnauthorized }: Props) {
 
   return (
     <>
-      <Link to="/" className="back-link">
-        ← К параллелям
-      </Link>
-
       <div className="contest-head">
-        <h1>{title}</h1>
+        <h1>
+          <span className="contest-head__name">{title}</span>
+        </h1>
         <div className="contest-head__actions">
           {importJobs.isRunning && importJobs.batchProgress ? (
             <ImportProgressBar
@@ -217,36 +223,78 @@ export default function ParallelPage({ onUnauthorized }: Props) {
       </div>
 
       <ul className="contest-grid">
-        {rows.map((c) => (
-          <li key={c.id}>
-            <Link
-              to={`/contests/${encodeURIComponent(c.id)}/findings`}
-              className={
-                "contest-card" +
-                (c.spine === "green"
-                  ? " contest-card--spine-green"
-                  : c.spine === "yellow"
-                    ? " contest-card--spine-yellow"
-                    : "")
-              }
-              title={c.name || c.id}
-            >
-              <div className="contest-card__top">
-                <span className="contest-card__name">{c.displayName || c.id}</span>
+        {rows.map((c) => {
+          const reviewTo = `/contests/${encodeURIComponent(c.id)}/review`;
+          const findingsTo = `/contests/${encodeURIComponent(c.id)}/findings`;
+          const title = c.name || c.id;
+          return (
+            <li key={c.id}>
+              <div className="contest-card">
+                <Link
+                  to={reviewTo}
+                  className="contest-card__hit"
+                  title={title}
+                  aria-label={c.displayName || c.id}
+                />
+                <div className="contest-card__top">
+                  <div className="contest-card__title">
+                    <span className="contest-card__name">{c.displayName || c.id}</span>
+                    {c.id !== c.name ? <ContestIdCopy id={c.id} /> : null}
+                  </div>
+                  <div className="contest-card__nav">
+                    <div className="contest-card__nav-icons">
+                      <Link
+                        to={reviewTo}
+                        className={
+                          "contest-card__nav-link contest-card__nav-link--review" +
+                          (c.pendingCount > 0 ? " contest-card__nav-link--review-pending" : "")
+                        }
+                        aria-label={
+                          c.pendingCount > 0
+                            ? `Ревью, ${c.pendingCount} PR`
+                            : "Ревью"
+                        }
+                      >
+                        <ContestReviewIcon size={16} />
+                      </Link>
+                      <Link
+                        to={findingsTo}
+                        className={
+                          "contest-card__nav-link contest-card__nav-link--findings" +
+                          (c.hasStrongSignals ? " contest-card__nav-link--findings-green" : "")
+                        }
+                        aria-label="Детект"
+                      >
+                        <ContestFindingsIcon size={16} />
+                      </Link>
+                    </div>
+                    <span className="contest-card__nav-hint contest-card__nav-hint--review" aria-hidden>
+                      Ревью
+                      {c.pendingCount > 0 ? (
+                        <span className="contest-card__nav-key contest-card__nav-key--violet">
+                          <span className="contest-card__nav-key__dot" />
+                          {c.pendingCount} PR
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="contest-card__nav-hint contest-card__nav-hint--findings" aria-hidden>
+                      Детект
+                    </span>
+                  </div>
+                </div>
+                <ContestStats
+                  stats={c.stats}
+                  problemStats={c.problemStats}
+                  importProgress={
+                    c.id in importJobs.progressById
+                      ? importJobs.progressById[c.id]
+                      : undefined
+                  }
+                />
               </div>
-              {c.id !== c.name && <span className="contest-card__id">{c.id}</span>}
-              <ContestStats
-                stats={c.stats}
-                problemStats={c.problemStats}
-                importProgress={
-                  c.id in importJobs.progressById
-                    ? importJobs.progressById[c.id]
-                    : undefined
-                }
-              />
-            </Link>
-          </li>
-        ))}
+            </li>
+          );
+        })}
         {canAdd && (
           <li className="contest-grid__add">
             <AddContestForm
@@ -259,19 +307,22 @@ export default function ParallelPage({ onUnauthorized }: Props) {
 
       {rows.length === 0 && !canAdd && <p className="empty-state">Нет контестов</p>}
 
-      <button
-        type="button"
-        className="page-help-btn"
-        aria-label="Что означают % и цвета на карточке контеста"
-        title="Справка по карточке контеста"
-        onClick={() => setLegendOpen(true)}
-      >
-        <span
-          className="page-help-btn__glyph"
-          style={{ maskImage: `url(${helpIconUrl})`, WebkitMaskImage: `url(${helpIconUrl})` }}
-          aria-hidden
-        />
-      </button>
+      <div className="page-corner-actions">
+        <SensitivitySlider threshold={threshold} onChange={setThreshold} />
+        <button
+          type="button"
+          className="page-help-btn"
+          aria-label="Что означают % и цвета на карточке контеста"
+          title="Справка по карточке контеста"
+          onClick={() => setLegendOpen(true)}
+        >
+          <span
+            className="page-help-btn__glyph"
+            style={{ maskImage: `url(${helpIconUrl})`, WebkitMaskImage: `url(${helpIconUrl})` }}
+            aria-hidden
+          />
+        </button>
+      </div>
       <ContestLegendModal open={legendOpen} onClose={closeLegend} />
     </>
   );

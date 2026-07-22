@@ -15,10 +15,12 @@ import {
 } from "@/features/findings/useParallelFindingsGroupBy";
 
 type SensitivityContextValue = {
-  /** null — слайдер не показываем (главная и пр.). */
+  /** null — вне параллели/контеста (главная и пр.). */
   scopeParallelId: string | null;
-  /** true на /contests/:id/findings — группировка findings. */
+  /** true на /contests/:id/(findings|review) — контролы в AppHeader. */
   onContestPage: boolean;
+  /** true только на findings — табы группировки. */
+  onFindingsPage: boolean;
   threshold: number;
   setThreshold: (value: number) => void;
   groupBy: GroupBy;
@@ -28,6 +30,7 @@ type SensitivityContextValue = {
 const SensitivityContext = createContext<SensitivityContextValue>({
   scopeParallelId: null,
   onContestPage: false,
+  onFindingsPage: false,
   threshold: DEFAULT_SENSITIVITY,
   setThreshold: () => {},
   groupBy: DEFAULT_GROUP_BY,
@@ -95,8 +98,10 @@ export function SensitivityProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
-      scopeParallelId: onReviewPage ? null : scopeParallelId,
-      onContestPage: onFindingsPage,
+      // threshold общий; groupBy — только на findings.
+      scopeParallelId,
+      onContestPage: onFindingsPage || onReviewPage,
+      onFindingsPage,
       threshold,
       setThreshold,
       groupBy,

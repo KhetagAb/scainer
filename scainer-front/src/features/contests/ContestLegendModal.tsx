@@ -1,5 +1,9 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import {
+  ContestFindingsIcon,
+  ContestReviewIcon,
+} from "@/features/contests/ContestSectionNav";
 
 const SEEN_KEY = "scainer.contestLegend.seen";
 
@@ -103,7 +107,7 @@ export default function ContestLegendModal({ open, onClose }: Props) {
                 Карточка контеста
               </h2>
               <p className="contest-legend-modal__subtitle">
-                Как читать цвета задач
+                Разделы и цвета задач
               </p>
             </div>
           </div>
@@ -115,6 +119,23 @@ export default function ContestLegendModal({ open, onClose }: Props) {
               <div className="contest-card legend-diagram__card" aria-hidden>
                 <div className="contest-card__top">
                   <span className="contest-card__name">День 01</span>
+                  <div className="contest-card__nav">
+                    <div className="contest-card__nav-icons">
+                      <span className="contest-card__nav-link contest-card__nav-link--review contest-card__nav-link--review-pending">
+                        <ContestReviewIcon size={16} />
+                      </span>
+                      <span className="contest-card__nav-link contest-card__nav-link--findings contest-card__nav-link--findings-green">
+                        <ContestFindingsIcon size={16} />
+                      </span>
+                    </div>
+                    <span className="contest-card__nav-hint contest-card__nav-hint--review" aria-hidden>
+                      Ревью
+                      <span className="contest-card__nav-key contest-card__nav-key--violet">
+                        <span className="contest-card__nav-key__dot" />
+                        67 PR
+                      </span>
+                    </span>
+                  </div>
                 </div>
                 <div className="contest-stats contest-stats--meta-only">
                   <div className="contest-stats__left">
@@ -132,10 +153,35 @@ export default function ContestLegendModal({ open, onClose }: Props) {
             </div>
 
             <div className="legend-diagram__notes">
+              <aside className="legend-callout legend-callout--sections">
+                <ul className="legend-callout__sections">
+                  <li>
+                    <span className="legend-callout__section-icon legend-callout__section-icon--review" aria-hidden>
+                      <ContestReviewIcon size={16} />
+                    </span>
+                    <p lang="ru">
+                      <strong>Ревью</strong> — очередь посылок на ручную проверку.
+                      {" "}
+                      <span className="contest-card__nav-key contest-card__nav-key--violet">
+                        <span className="contest-card__nav-key__dot" />
+                        67 PR
+                      </span>
+                      {" "}— число ожидающих.
+                    </p>
+                  </li>
+                  <li>
+                    <span className="legend-callout__section-icon legend-callout__section-icon--findings" aria-hidden>
+                      <ContestFindingsIcon size={16} />
+                    </span>
+                    <p lang="ru">
+                      <strong>Детект</strong> — автоматические находки похожести и сигналов.
+                    </p>
+                  </li>
+                </ul>
+              </aside>
               <aside className="legend-callout legend-callout--colors">
                 <p lang="ru">
-                  <strong>Цвет</strong> — доля сигналов задачи (находки ≥ порога / посылки): чем
-                  больше сигналов по задаче — тем вероятнее ложноположительные срабатывания.
+                  <strong>Цвет</strong> — доля сигналов задачи: чем больше сигналов по задаче — тем вероятнее ложноположительные срабатывания.
                 </p>
                 <ul className="legend-callout__swatches">
                   {COLOR_LEVELS.map((c) => (

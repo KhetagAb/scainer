@@ -15,15 +15,18 @@ const DefaultConfigPath = "configs/config.yaml"
 
 type (
 	Config struct {
-		HTTP    HTTPConfig    `mapstructure:"http"`
-		Store   StoreConfig   `mapstructure:"store"`
-		MongoDB MongoDBConfig `mapstructure:"mongodb"`
-		Admin   AdminConfig   `mapstructure:"admin"`
-		Ejudge  EjudgeConfig  `mapstructure:"ejudge"`
-		JPlag   JPlagConfig   `mapstructure:"jplag"`
-		Analyze AnalyzeConfig `mapstructure:"analyze"`
-		AIUsage AIUsageConfig `mapstructure:"aiusage"`
-		OpenAI  OpenAIConfig  `mapstructure:"openai"`
+		HTTP              HTTPConfig        `mapstructure:"http"`
+		Store             StoreConfig       `mapstructure:"store"`
+		MongoDB           MongoDBConfig     `mapstructure:"mongodb"`
+		Admin             AdminConfig       `mapstructure:"admin"`
+		Ejudge            EjudgeConfig      `mapstructure:"ejudge"`
+		JPlag             JPlagConfig       `mapstructure:"jplag"`
+		Analyze           AnalyzeConfig     `mapstructure:"analyze"`
+		AIUsage           AIUsageConfig     `mapstructure:"aiusage"`
+		OpenAI            OpenAIConfig      `mapstructure:"openai"`
+
+		// shit happens
+		TeachersPasswords map[string]string `mapstructure:"-"`
 	}
 
 	HTTPConfig struct {
@@ -124,6 +127,11 @@ func LoadConfig(path string) (*Config, error) {
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("config: unmarshal: %w", err)
 	}
+	passwords, err := ParseTeachersPasswords(os.Getenv("TEACHERS_PASSWORDS"))
+	if err != nil {
+		return nil, fmt.Errorf("config: %w", err)
+	}
+	cfg.TeachersPasswords = passwords
 	if err := cfg.validate(); err != nil {
 		return nil, err
 	}

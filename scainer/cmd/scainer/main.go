@@ -66,6 +66,10 @@ func run(cfg *configs.Config) error {
 	}
 	defer mongo.client.Disconnect(context.Background())
 
+	if err := seedTeachers(context.Background(), cfg.TeachersPasswords, mongo.teachers); err != nil {
+		return fmt.Errorf("teachers: %w", err)
+	}
+
 	teachersSvc := teachers.NewService(mongo.teachers)
 	ejGateway := ejgateway.New(mongo.teachers, mongo.credentials, cfg.Ejudge.BaseURL, cfg.Ejudge.Timeout)
 	if cfg.Ejudge.Enabled() {
@@ -91,6 +95,17 @@ type mongoDeps struct {
 	credentials   *repository.EjudgeCredentialsRepository
 	registry      contests.ContestRegistry
 	findingsRepo contests.FindingsRepository
+}
+
+func seedTeachers(ctx context.Context, passwords map[string]string, repo *repository.TeachersRepository) error {
+	if len(passwords) == 0 {
+		return nil
+	}
+	if err := repo.UpsertPasswords(ctx, passwords); err != nil {
+		return err
+	}
+	fmt.Fprintf(os.Stderr, "scainer: seeded %d teacher(s) from TEACHERS_PASSWORDS\n", len(passwords))
+	return nil
 }
 
 func openMongo(mc configs.MongoDBConfig) (mongoDeps, error) {

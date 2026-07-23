@@ -15,7 +15,6 @@ import {
   type GroupBy,
 } from "@/features/findings/reportModel";
 import SourceCode from "@/features/code/SourceCode";
-import { ejudgeRunUrl } from "@/features/findings/ejudgeLinks";
 
 type Props = {
   finding: FindingView;
@@ -116,23 +115,6 @@ function Chip({
   );
 }
 
-function SubmissionIdChip({ id }: { id: string }) {
-  const href = ejudgeRunUrl(id);
-  if (!href) return <Chip title={id}>{id}</Chip>;
-  return (
-    <a
-      className="chip chip--link"
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      title="Открыть в ejudge"
-      onClick={(e) => e.stopPropagation()}
-    >
-      {id}
-    </a>
-  );
-}
-
 function SignalBlock({
   signal,
   submissions,
@@ -217,7 +199,7 @@ function CodePane({
             <span className="code-pane-toggle">{moreOpen ? "свернуть" : "подробнее"}</span>
           </summary>
           <div className="code-pane-meta">
-            <SubmissionIdChip id={subID} />
+            <Chip title={subID}>{subID}</Chip>
             {sub?.problem ? (
               <Chip className="problem-chip" title={sub.problem}>
                 {problemDisplay(sub.problem, sub.problem_name)}

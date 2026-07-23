@@ -28,14 +28,14 @@ func TestLogin_OK(t *testing.T) {
 	svc := teachers.NewService(&fakeRepository{
 		ok: true,
 		rec: teachers.Record{Login: "alice", Password: "secret"},
-	})
+	}, nil)
 	if err := svc.Login(context.Background(), "alice", "secret"); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestLogin_NotFound(t *testing.T) {
-	svc := teachers.NewService(&fakeRepository{})
+	svc := teachers.NewService(&fakeRepository{}, nil)
 	err := svc.Login(context.Background(), "alice", "secret")
 	if !errors.Is(err, teachers.ErrNotFound) {
 		t.Fatalf("err = %v", err)
@@ -46,7 +46,7 @@ func TestLogin_InvalidPassword(t *testing.T) {
 	svc := teachers.NewService(&fakeRepository{
 		ok: true,
 		rec: teachers.Record{Login: "alice", Password: "secret"},
-	})
+	}, nil)
 	err := svc.Login(context.Background(), "alice", "wrong")
 	if !errors.Is(err, teachers.ErrInvalidCredentials) {
 		t.Fatalf("err = %v", err)

@@ -83,6 +83,12 @@ func parseSID(s string) string {
 	return m[1]
 }
 
+func (s Session) HTTPClient(timeout time.Duration) *http.Client {
+	return s.client(timeout)
+}
+
+func (s Session) BaseURL() string { return s.base }
+
 func (s Session) client(timeout time.Duration) *http.Client {
 	if s.jar != nil {
 		return &http.Client{Timeout: timeout, Jar: s.jar}

@@ -70,7 +70,7 @@ func run(cfg *configs.Config) error {
 		return fmt.Errorf("teachers: %w", err)
 	}
 
-	teachersSvc := teachers.NewService(mongo.teachers)
+	teachersSvc := teachers.NewService(mongo.teachers, mongo.loginAudit)
 	ejGateway := ejgateway.New(mongo.teachers, mongo.credentials, cfg.Ejudge.BaseURL, cfg.Ejudge.Timeout)
 	if cfg.Ejudge.Enabled() {
 		importer.Register("ejudge", ejudge.ImporterFactory(ejGateway))
@@ -90,11 +90,12 @@ func run(cfg *configs.Config) error {
 }
 
 type mongoDeps struct {
-	client        *mongo.Client
-	teachers      *repository.TeachersRepository
-	credentials   *repository.EjudgeCredentialsRepository
-	registry      contests.ContestRegistry
+	client       *mongo.Client
+	teachers     *repository.TeachersRepository
+	credentials  *repository.EjudgeCredentialsRepository
+	registry     contests.ContestRegistry
 	findingsRepo contests.FindingsRepository
+	loginAudit   *repository.LoginAuditRepository
 }
 
 func seedTeachers(ctx context.Context, passwords map[string]string, repo *repository.TeachersRepository) error {
@@ -118,11 +119,12 @@ func openMongo(mc configs.MongoDBConfig) (mongoDeps, error) {
 		return mongoDeps{}, fmt.Errorf("mongo: %w", err)
 	}
 	return mongoDeps{
-		client:        client,
-		teachers:      repository.NewTeachersRepository(db),
-		credentials:   repository.NewEjudgeCredentialsRepository(db),
-		registry:      repository.NewContestRepository(db),
+		client:       client,
+		teachers:     repository.NewTeachersRepository(db),
+		credentials:  repository.NewEjudgeCredentialsRepository(db),
+		registry:     repository.NewContestRepository(db),
 		findingsRepo: repository.NewFindingsRepository(db),
+		loginAudit:   repository.NewLoginAuditRepository(db),
 	}, nil
 }
 

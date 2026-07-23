@@ -148,7 +148,7 @@ export default function ReviewSubmissionPanel({
   const commentRef = useRef<HTMLTextAreaElement>(null);
   const [comment, setComment] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
-  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(true);
   const [celebrate, setCelebrate] = useState(false);
 
   const submissionId = submission.id;
@@ -158,7 +158,7 @@ export default function ReviewSubmissionPanel({
   const nextEnabled = Boolean(nextSubmissionId || nextProblemId);
 
   useEffect(() => {
-    setCommentsOpen(false);
+    setCommentsOpen(true);
     setComment("");
     setActionError(null);
   }, [submissionId]);
@@ -213,10 +213,12 @@ export default function ReviewSubmissionPanel({
   const liveVerdict = commentsQuery.data?.verdict ?? submission.verdict ?? "—";
   const verdictTone = verdictChipTone(liveVerdict);
   const commentText = comment.trim();
-  const thread = useMemo(
-    () => [...(commentsQuery.data?.comments ?? [])].reverse(),
-    [commentsQuery.data?.comments],
-  );
+  const thread = useMemo(() => {
+    const comments = commentsQuery.data?.comments ?? [];
+    return [...comments].sort(
+      (a, b) => new Date(b.time).getTime() - new Date(a.time).getTime(),
+    );
+  }, [commentsQuery.data?.comments]);
   const commentsCollapsed = !commentsOpen && thread.length > 1;
   const base = `/contests/${encodeURIComponent(contestId)}`;
 
@@ -312,8 +314,10 @@ export default function ReviewSubmissionPanel({
       {thread.map((c) => (
         <li key={c.id} className="review-comments__item">
           <div className="review-comments__meta">
-            <span>{c.from}</span>
-            <time dateTime={c.time}>{formatSubmittedAt(c.time)}</time>
+            <span className="review-comments__author">{c.from}:</span>
+            <time className="review-comments__time" dateTime={c.time}>
+              {formatSubmittedAt(c.time)}
+            </time>
           </div>
           {c.subject ? <div className="review-comments__subject">{c.subject}</div> : null}
           <pre className="review-comments__text">{c.text}</pre>

@@ -1,40 +1,98 @@
 package ejudge
 
 import (
+	"bytes"
+	stdhtml "html"
 	"fmt"
-	"html"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/antchfx/htmlquery"
+	"golang.org/x/net/html"
 )
 
 var ejudgeWallClock = time.FixedZone("MSK", 3*60*60)
 
 var (
-	reRunCommentsSection = regexp.MustCompile(`(?is)<h2>\s*Run comments\s*</h2>(.*?)(?:<h2>\s*Run comments for previous runs\s*</h2>|<h2>\s*Add a new run comment\s*</h2>|$)`)
-	reMessageRow         = regexp.MustCompile(`(?is)<tr>\s*<td\s+class="profile">\s*<b>(.*?)</b>\s*<br\s*/?>\s*([0-9]{4}-[0-9]{2}-[0-9]{2}\s+[0-9]{2}:[0-9]{2}:[0-9]{2}).*?</td>\s*<td>\s*<pre>(.*?)</pre>`)
+	reProfileTimestamp = regexp.MustCompile(`\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}`)
+	commentSectionTitles = []string{
+		"Run comments",
+		"Run comments for previous runs",
+	}
 )
 
+// Семантический XPath: h2 заголовок секции → ближайшая table.message-table → строки с td.profile.
+func commentRowsXPath(sectionTitle string) string {
+	return fmt.Sprintf(
+		`//h2[normalize-space()='%s']/following::div[contains(concat(' ', normalize-space(@class), ' '), ' width-100 ')][1]//tr[td[@class='profile']]`,
+		sectionTitle,
+	)
+}
+
 func parseViewSourceComments(body []byte) ([]RunMessage, error) {
-	section := reRunCommentsSection.FindSubmatch(body)
-	if section == nil {
-		return nil, nil
+	doc, err := htmlquery.Parse(bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("ejudge view-source: html: %w", err)
 	}
-	rows := reMessageRow.FindAllSubmatch(section[1], -1)
-	out := make([]RunMessage, 0, len(rows))
-	for i, row := range rows {
-		author := strings.TrimSpace(html.UnescapeString(string(row[1])))
-		ts, err := time.ParseInLocation("2006-01-02 15:04:05", strings.TrimSpace(string(row[2])), ejudgeWallClock)
+
+	var out []RunMessage
+	clarID := 1
+	for _, title := range commentSectionTitles {
+		rows, err := parseCommentSection(doc, commentRowsXPath(title), clarID)
 		if err != nil {
-			return nil, fmt.Errorf("ejudge view-source: time %q: %w", row[2], err)
+			return nil, err
 		}
-		text := strings.TrimSuffix(html.UnescapeString(string(row[3])), "\n")
-		out = append(out, RunMessage{
-			ClarID: i + 1,
-			From:   author,
-			Text:   text,
-			Time:   ts,
-		})
+		out = append(out, rows...)
+		clarID += len(rows)
 	}
 	return out, nil
+}
+
+func parseCommentSection(doc *html.Node, xpath string, startClarID int) ([]RunMessage, error) {
+	nodes, err := htmlquery.QueryAll(doc, xpath)
+	if err != nil {
+		return nil, fmt.Errorf("ejudge view-source: xpath %q: %w", xpath, err)
+	}
+
+	out := make([]RunMessage, 0, len(nodes))
+	for i, tr := range nodes {
+		msg, err := parseCommentRow(tr, startClarID+i)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, msg)
+	}
+	return out, nil
+}
+
+func parseCommentRow(tr *html.Node, clarID int) (RunMessage, error) {
+	profile := htmlquery.FindOne(tr, `./td[@class='profile']`)
+	pre := htmlquery.FindOne(tr, `./td/pre`)
+	if profile == nil || pre == nil {
+		return RunMessage{}, fmt.Errorf("ejudge view-source: неполная строка комментария")
+	}
+
+	authorNode := htmlquery.FindOne(profile, `./b`)
+	if authorNode == nil {
+		return RunMessage{}, fmt.Errorf("ejudge view-source: автор не найден")
+	}
+	author := strings.TrimSpace(htmlquery.InnerText(authorNode))
+
+	tsText := reProfileTimestamp.FindString(htmlquery.InnerText(profile))
+	if tsText == "" {
+		return RunMessage{}, fmt.Errorf("ejudge view-source: время не найдено у %q", author)
+	}
+	ts, err := time.ParseInLocation("2006-01-02 15:04:05", tsText, ejudgeWallClock)
+	if err != nil {
+		return RunMessage{}, fmt.Errorf("ejudge view-source: time %q: %w", tsText, err)
+	}
+
+	text := strings.TrimSuffix(stdhtml.UnescapeString(htmlquery.InnerText(pre)), "\n")
+	return RunMessage{
+		ClarID: clarID,
+		From:   author,
+		Text:   text,
+		Time:   ts,
+	}, nil
 }

@@ -109,7 +109,7 @@ func (noopTeacherRepository) Get(context.Context, string) (teachers.Record, bool
 }
 
 func testTeachers() *teachers.Service {
-	return teachers.NewService(noopTeacherRepository{})
+	return teachers.NewService(noopTeacherRepository{}, nil)
 }
 
 func testAuth() auth.Service {

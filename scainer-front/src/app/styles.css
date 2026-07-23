@@ -2683,12 +2683,12 @@ a.chip--link:hover {
   font-family: var(--font-ui);
   font-size: 0.8rem;
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--text);
 }
 
 .review-comments__count {
   font-weight: 500;
-  color: var(--text-faint);
+  color: var(--text-muted);
 }
 
 .review-comments__empty {
@@ -2700,24 +2700,8 @@ a.chip--link:hover {
 
 .review-comments__clip {
   position: relative;
-  max-height: 5.5rem;
+  max-height: 7rem;
   overflow: hidden;
-}
-
-.review-comments__clip::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 2.25rem;
-  background: linear-gradient(
-    to bottom,
-    transparent 0%,
-    color-mix(in srgb, var(--bg) 35%, transparent) 50%,
-    var(--bg) 100%
-  );
-  pointer-events: none;
 }
 
 .review-comments__preview {
@@ -2756,16 +2740,12 @@ a.chip--link:hover {
 }
 
 .review-comments__item {
-  padding: 0.4rem 0;
+  padding: 0.55rem 0;
   border: none;
-  border-radius: 0;
-  background: transparent;
-  border-bottom: 1px solid color-mix(in srgb, var(--chip-border) 70%, transparent);
 }
 
 .review-comments__item:last-child {
-  border-bottom: none;
-  padding-bottom: 0.15rem;
+  padding-bottom: 0.1rem;
 }
 
 .review-comments__item:first-child {
@@ -2774,12 +2754,27 @@ a.chip--link:hover {
 
 .review-comments__meta {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
-  gap: 0.45rem;
-  margin-bottom: 0.15rem;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
   font-family: var(--font-ui);
   font-size: 0.72rem;
+}
+
+.review-comments__time {
+  flex-shrink: 0;
   color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.review-comments__author {
+  font-weight: 500;
+  color: var(--text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .review-comments__subject {
@@ -2791,10 +2786,12 @@ a.chip--link:hover {
 
 .review-comments__text {
   margin: 0;
+  padding: 0.1rem 0 0.1rem 0.7rem;
+  border-left: 2px solid var(--chip-border);
   white-space: pre-wrap;
   font-family: var(--font-mono, var(--font-body));
   font-size: 0.78rem;
-  line-height: 1.35;
+  line-height: 1.45;
   color: var(--text);
 }
 

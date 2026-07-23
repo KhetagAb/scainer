@@ -26,7 +26,11 @@ export default function LoginPage() {
       const body = (await res.json()) as LoginResponse & ErrorBody;
       if (!res.ok) {
         setError(
-          body.error === "invalid credentials" ? "Неверный логин или пароль" : body.error || "Ошибка входа"
+          body.error === "invalid credentials"
+            ? "Неверный логин или пароль"
+            : body.error === "teacher not found"
+              ? "Обратитесь к Хету"
+              : body.error || "Ошибка входа"
         );
         return;
       }

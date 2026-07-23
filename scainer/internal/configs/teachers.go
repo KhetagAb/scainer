@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// ParseTeachersPasswords разбирает TEACHERS_PASSWORDS: "login:password,login2:password2".
+// ParseTeachersPasswords разбирает TEACHERS_PASSWORDS: "login:password;login2:password2".
 // Пароль может содержать ":" — разделитель только первый в паре.
 func ParseTeachersPasswords(raw string) (map[string]string, error) {
 	raw = strings.TrimSpace(raw)
@@ -14,7 +14,7 @@ func ParseTeachersPasswords(raw string) (map[string]string, error) {
 	}
 
 	out := make(map[string]string)
-	for _, pair := range strings.Split(raw, ",") {
+	for _, pair := range strings.Split(raw, ";") {
 		pair = strings.TrimSpace(pair)
 		if pair == "" {
 			continue

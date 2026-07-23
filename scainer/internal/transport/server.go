@@ -65,7 +65,10 @@ func (s *Server) PostAuthLogin(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, server.Error{Error: "authentication is not configured"})
 	}
 	if err := s.teachers.Login(c.Request().Context(), req.Username, req.Password); err != nil {
-		if errors.Is(err, teachers.ErrNotFound) || errors.Is(err, teachers.ErrInvalidCredentials) {
+		if errors.Is(err, teachers.ErrNotFound) {
+			return c.JSON(http.StatusUnauthorized, server.Error{Error: "teacher not found"})
+		}
+		if errors.Is(err, teachers.ErrInvalidCredentials) {
 			return c.JSON(http.StatusUnauthorized, server.Error{Error: "invalid credentials"})
 		}
 		return c.JSON(http.StatusInternalServerError, server.Error{Error: "login failed"})

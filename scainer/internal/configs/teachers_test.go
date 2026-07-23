@@ -7,7 +7,7 @@ import (
 )
 
 func TestParseTeachersPasswords(t *testing.T) {
-	got, err := configs.ParseTeachersPasswords("alice:secret,bob:pass2")
+	got, err := configs.ParseTeachersPasswords("alice:secret;bob:pass2")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,7 +38,7 @@ func TestParseTeachersPasswords_Invalid(t *testing.T) {
 		"alice",
 		":secret",
 		"alice:",
-		"alice:secret,alice:other",
+		"alice:secret;alice:other",
 	}
 	for _, raw := range cases {
 		if _, err := configs.ParseTeachersPasswords(raw); err == nil {

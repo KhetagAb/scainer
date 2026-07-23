@@ -1,0 +1,920 @@
+<html><head>
+<meta http-equiv="Content-type" content="text/html; charset=utf-8">
+<link rel="stylesheet" href="/ejudge/priv.css" type="text/css">
+<link rel="stylesheet" href="/ejudge/ejudge3_ss.css" type="text/css">
+<script>
+MathJax = {
+  chtml: {
+    scale: 1,
+    mtextInheritFont: true
+  },
+  options: {
+    enableMenu: false
+  }
+};
+</script>
+<script type="text/javascript" id="MathJax-script" async="" src="/ejudge/mathjax/tex-mml-chtml.js">
+</script>
+<script type="text/javascript" charset="UTF-8" src="/ejudge/priv.js"></script>
+<title>Administrator [Хетаг Дзестелов, 50506, ЛКШ.2026.Параллель 5.День 06.ДО]: Viewing run 114</title>
+<style type="text/css">.CtxtMenu_InfoClose {  top:.2em; right:.2em;}
+.CtxtMenu_InfoContent {  overflow:auto; text-align:left; font-size:80%;  padding:.4em .6em; border:1px inset; margin:1em 0px;  max-height:20em; max-width:30em; background-color:#EEEEEE;  white-space:normal;}
+.CtxtMenu_Info.CtxtMenu_MousePost {outline:none;}
+.CtxtMenu_Info {  position:fixed; left:50%; width:auto; text-align:center;  border:3px outset; padding:1em 2em; background-color:#DDDDDD;  color:black;  cursor:default; font-family:message-box; font-size:120%;  font-style:normal; text-indent:0; text-transform:none;  line-height:normal; letter-spacing:normal; word-spacing:normal;  word-wrap:normal; white-space:nowrap; float:none; z-index:201;  border-radius: 15px;                     /* Opera 10.5 and IE9 */  -webkit-border-radius:15px;               /* Safari and Chrome */  -moz-border-radius:15px;                  /* Firefox */  -khtml-border-radius:15px;                /* Konqueror */  box-shadow:0px 10px 20px #808080;         /* Opera 10.5 and IE9 */  -webkit-box-shadow:0px 10px 20px #808080; /* Safari 3 & Chrome */  -moz-box-shadow:0px 10px 20px #808080;    /* Forefox 3.5 */  -khtml-box-shadow:0px 10px 20px #808080;  /* Konqueror */  filter:progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color="gray", Positive="true"); /* IE */}
+</style><style type="text/css">.CtxtMenu_MenuClose {  position:absolute;  cursor:pointer;  display:inline-block;  border:2px solid #AAA;  border-radius:18px;  -webkit-border-radius: 18px;             /* Safari and Chrome */  -moz-border-radius: 18px;                /* Firefox */  -khtml-border-radius: 18px;              /* Konqueror */  font-family: "Courier New", Courier;  font-size:24px;  color:#F0F0F0}
+.CtxtMenu_MenuClose span {  display:block; background-color:#AAA; border:1.5px solid;  border-radius:18px;  -webkit-border-radius: 18px;             /* Safari and Chrome */  -moz-border-radius: 18px;                /* Firefox */  -khtml-border-radius: 18px;              /* Konqueror */  line-height:0;  padding:8px 0 6px     /* may need to be browser-specific */}
+.CtxtMenu_MenuClose:hover {  color:white!important;  border:2px solid #CCC!important}
+.CtxtMenu_MenuClose:hover span {  background-color:#CCC!important}
+.CtxtMenu_MenuClose:hover:focus {  outline:none}
+</style><style type="text/css">.CtxtMenu_Menu {  position:absolute;  background-color:white;  color:black;  width:auto; padding:5px 0px;  border:1px solid #CCCCCC; margin:0; cursor:default;  font: menu; text-align:left; text-indent:0; text-transform:none;  line-height:normal; letter-spacing:normal; word-spacing:normal;  word-wrap:normal; white-space:nowrap; float:none; z-index:201;  border-radius: 5px;                     /* Opera 10.5 and IE9 */  -webkit-border-radius: 5px;             /* Safari and Chrome */  -moz-border-radius: 5px;                /* Firefox */  -khtml-border-radius: 5px;              /* Konqueror */  box-shadow:0px 10px 20px #808080;         /* Opera 10.5 and IE9 */  -webkit-box-shadow:0px 10px 20px #808080; /* Safari 3 & Chrome */  -moz-box-shadow:0px 10px 20px #808080;    /* Forefox 3.5 */  -khtml-box-shadow:0px 10px 20px #808080;  /* Konqueror */}
+.CtxtMenu_MenuItem {  padding: 1px 2em;  background:transparent;}
+.CtxtMenu_MenuArrow {  position:absolute; right:.5em; padding-top:.25em; color:#666666;  font-family: null; font-size: .75em}
+.CtxtMenu_MenuActive .CtxtMenu_MenuArrow {color:white}
+.CtxtMenu_MenuArrow.CtxtMenu_RTL {left:.5em; right:auto}
+.CtxtMenu_MenuCheck {  position:absolute; left:.7em;  font-family: null}
+.CtxtMenu_MenuCheck.CtxtMenu_RTL { right:.7em; left:auto }
+.CtxtMenu_MenuRadioCheck {  position:absolute; left: .7em;}
+.CtxtMenu_MenuRadioCheck.CtxtMenu_RTL {  right: .7em; left:auto}
+.CtxtMenu_MenuInputBox {  padding-left: 1em; right:.5em; color:#666666;  font-family: null;}
+.CtxtMenu_MenuInputBox.CtxtMenu_RTL {  left: .1em;}
+.CtxtMenu_MenuComboBox {  left:.1em; padding-bottom:.5em;}
+.CtxtMenu_MenuSlider {  left: .1em;}
+.CtxtMenu_SliderValue {  position:absolute; right:.1em; padding-top:.25em; color:#333333;  font-size: .75em}
+.CtxtMenu_SliderBar {  outline: none; background: #d3d3d3}
+.CtxtMenu_MenuLabel {  padding: 1px 2em 3px 1.33em;  font-style:italic}
+.CtxtMenu_MenuRule {  border-top: 1px solid #DDDDDD;  margin: 4px 3px;}
+.CtxtMenu_MenuDisabled {  color:GrayText}
+.CtxtMenu_MenuActive {  background-color: #606872;  color: white;}
+.CtxtMenu_MenuDisabled:focus {  background-color: #E8E8E8}
+.CtxtMenu_MenuLabel:focus {  background-color: #E8E8E8}
+.CtxtMenu_ContextMenu:focus {  outline:none}
+.CtxtMenu_ContextMenu .CtxtMenu_MenuItem:focus {  outline:none}
+.CtxtMenu_SelectionMenu {  position:relative; float:left;  border-bottom: none; -webkit-box-shadow:none; -webkit-border-radius:0px; }
+.CtxtMenu_SelectionItem {  padding-right: 1em;}
+.CtxtMenu_Selection {  right: 40%; width:50%; }
+.CtxtMenu_SelectionBox {  padding: 0em; max-height:20em; max-width: none;  background-color:#FFFFFF;}
+.CtxtMenu_SelectionDivider {  clear: both; border-top: 2px solid #000000;}
+.CtxtMenu_Menu .CtxtMenu_MenuClose {  top:-10px; left:-10px}
+</style><style id="MJX-CHTML-styles">
+mjx-container[jax="CHTML"] {
+  line-height: 0;
+}
+
+mjx-container [space="1"] {
+  margin-left: .111em;
+}
+
+mjx-container [space="2"] {
+  margin-left: .167em;
+}
+
+mjx-container [space="3"] {
+  margin-left: .222em;
+}
+
+mjx-container [space="4"] {
+  margin-left: .278em;
+}
+
+mjx-container [space="5"] {
+  margin-left: .333em;
+}
+
+mjx-container [rspace="1"] {
+  margin-right: .111em;
+}
+
+mjx-container [rspace="2"] {
+  margin-right: .167em;
+}
+
+mjx-container [rspace="3"] {
+  margin-right: .222em;
+}
+
+mjx-container [rspace="4"] {
+  margin-right: .278em;
+}
+
+mjx-container [rspace="5"] {
+  margin-right: .333em;
+}
+
+mjx-container [size="s"] {
+  font-size: 70.7%;
+}
+
+mjx-container [size="ss"] {
+  font-size: 50%;
+}
+
+mjx-container [size="Tn"] {
+  font-size: 60%;
+}
+
+mjx-container [size="sm"] {
+  font-size: 85%;
+}
+
+mjx-container [size="lg"] {
+  font-size: 120%;
+}
+
+mjx-container [size="Lg"] {
+  font-size: 144%;
+}
+
+mjx-container [size="LG"] {
+  font-size: 173%;
+}
+
+mjx-container [size="hg"] {
+  font-size: 207%;
+}
+
+mjx-container [size="HG"] {
+  font-size: 249%;
+}
+
+mjx-container [width="full"] {
+  width: 100%;
+}
+
+mjx-box {
+  display: inline-block;
+}
+
+mjx-block {
+  display: block;
+}
+
+mjx-itable {
+  display: inline-table;
+}
+
+mjx-row {
+  display: table-row;
+}
+
+mjx-row > * {
+  display: table-cell;
+}
+
+mjx-mtext {
+  display: inline-block;
+}
+
+mjx-mstyle {
+  display: inline-block;
+}
+
+mjx-merror {
+  display: inline-block;
+  color: red;
+  background-color: yellow;
+}
+
+mjx-mphantom {
+  visibility: hidden;
+}
+
+_::-webkit-full-page-media, _:future, :root mjx-container {
+  will-change: opacity;
+}
+
+mjx-assistive-mml {
+  position: absolute !important;
+  top: 0px;
+  left: 0px;
+  clip: rect(1px, 1px, 1px, 1px);
+  padding: 1px 0px 0px 0px !important;
+  border: 0px !important;
+  display: block !important;
+  width: auto !important;
+  overflow: hidden !important;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+mjx-assistive-mml[display="block"] {
+  width: 100% !important;
+}
+
+mjx-c::before {
+  display: block;
+  width: 0;
+}
+
+.MJX-TEX {
+  font-family: MJXZERO, MJXTEX;
+}
+
+.TEX-B {
+  font-family: MJXZERO, MJXTEX-B;
+}
+
+.TEX-I {
+  font-family: MJXZERO, MJXTEX-I;
+}
+
+.TEX-MI {
+  font-family: MJXZERO, MJXTEX-MI;
+}
+
+.TEX-BI {
+  font-family: MJXZERO, MJXTEX-BI;
+}
+
+.TEX-S1 {
+  font-family: MJXZERO, MJXTEX-S1;
+}
+
+.TEX-S2 {
+  font-family: MJXZERO, MJXTEX-S2;
+}
+
+.TEX-S3 {
+  font-family: MJXZERO, MJXTEX-S3;
+}
+
+.TEX-S4 {
+  font-family: MJXZERO, MJXTEX-S4;
+}
+
+.TEX-A {
+  font-family: MJXZERO, MJXTEX-A;
+}
+
+.TEX-C {
+  font-family: MJXZERO, MJXTEX-C;
+}
+
+.TEX-CB {
+  font-family: MJXZERO, MJXTEX-CB;
+}
+
+.TEX-FR {
+  font-family: MJXZERO, MJXTEX-FR;
+}
+
+.TEX-FRB {
+  font-family: MJXZERO, MJXTEX-FRB;
+}
+
+.TEX-SS {
+  font-family: MJXZERO, MJXTEX-SS;
+}
+
+.TEX-SSB {
+  font-family: MJXZERO, MJXTEX-SSB;
+}
+
+.TEX-SSI {
+  font-family: MJXZERO, MJXTEX-SSI;
+}
+
+.TEX-SC {
+  font-family: MJXZERO, MJXTEX-SC;
+}
+
+.TEX-T {
+  font-family: MJXZERO, MJXTEX-T;
+}
+
+.TEX-V {
+  font-family: MJXZERO, MJXTEX-V;
+}
+
+.TEX-VB {
+  font-family: MJXZERO, MJXTEX-VB;
+}
+
+mjx-stretchy-v mjx-c, mjx-stretchy-h mjx-c {
+  font-family: MJXZERO, MJXTEX-S1, MJXTEX-S4, MJXTEX, MJXTEX-A ! important;
+}
+
+@font-face /* 0 */ {
+  font-family: MJXZERO;
+  src: url("https://ejudge.lksh.ru/ejudge/mathjax/output/chtml/fonts/woff-v2/MathJax_Zero.woff") format("woff");
+}
+
+@font-face /* 1 */ {
+  font-family: MJXTEX;
+  src: url("https://ejudge.lksh.ru/ejudge/mathjax/output/chtml/fonts/woff-v2/MathJax_Main-Regular.woff") format("woff");
+}
+
+@font-face /* 2 */ {
+  font-family: MJXTEX-B;
+  src: url("https://ejudge.lksh.ru/ejudge/mathjax/output/chtml/fonts/woff-v2/MathJax_Main-Bold.woff") format("woff");
+}
+
+@font-face /* 3 */ {
+  font-family: MJXTEX-I;
+  src: url("https://ejudge.lksh.ru/ejudge/mathjax/output/chtml/fonts/woff-v2/MathJax_Math-Italic.woff") format("woff");
+}
+
+@font-face /* 4 */ {
+  font-family: MJXTEX-MI;
+  src: url("https://ejudge.lksh.ru/ejudge/mathjax/output/chtml/fonts/woff-v2/MathJax_Main-Italic.woff") format("woff");
+}
+
+@font-face /* 5 */ {
+  font-family: MJXTEX-BI;
+  src: url("https://ejudge.lksh.ru/ejudge/mathjax/output/chtml/fonts/woff-v2/MathJax_Math-BoldItalic.woff") format("woff");
+}
+
+@font-face /* 6 */ {
+  font-family: MJXTEX-S1;
+  src: url("https://ejudge.lksh.ru/ejudge/mathjax/output/chtml/fonts/woff-v2/MathJax_Size1-Regular.woff") format("woff");
+}
+
+@font-face /* 7 */ {
+  font-family: MJXTEX-S2;
+  src: url("https://ejudge.lksh.ru/ejudge/mathjax/output/chtml/fonts/woff-v2/MathJax_Size2-Regular.woff") format("woff");
+}
+
+@font-face /* 8 */ {
+  font-family: MJXTEX-S3;
+  src: url("https://ejudge.lksh.ru/ejudge/mathjax/output/chtml/fonts/woff-v2/MathJax_Size3-Regular.woff") format("woff");
+}
+
+@font-face /* 9 */ {
+  font-family: MJXTEX-S4;
+  src: url("https://ejudge.lksh.ru/ejudge/mathjax/output/chtml/fonts/woff-v2/MathJax_Size4-Regular.woff") format("woff");
+}
+
+@font-face /* 10 */ {
+  font-family: MJXTEX-A;
+  src: url("https://ejudge.lksh.ru/ejudge/mathjax/output/chtml/fonts/woff-v2/MathJax_AMS-Regular.woff") format("woff");
+}
+
+@font-face /* 11 */ {
+  font-family: MJXTEX-C;
+  src: url("https://ejudge.lksh.ru/ejudge/mathjax/output/chtml/fonts/woff-v2/MathJax_Calligraphic-Regular.woff") format("woff");
+}
+
+@font-face /* 12 */ {
+  font-family: MJXTEX-CB;
+  src: url("https://ejudge.lksh.ru/ejudge/mathjax/output/chtml/fonts/woff-v2/MathJax_Calligraphic-Bold.woff") format("woff");
+}
+
+@font-face /* 13 */ {
+  font-family: MJXTEX-FR;
+  src: url("https://ejudge.lksh.ru/ejudge/mathjax/output/chtml/fonts/woff-v2/MathJax_Fraktur-Regular.woff") format("woff");
+}
+
+@font-face /* 14 */ {
+  font-family: MJXTEX-FRB;
+  src: url("https://ejudge.lksh.ru/ejudge/mathjax/output/chtml/fonts/woff-v2/MathJax_Fraktur-Bold.woff") format("woff");
+}
+
+@font-face /* 15 */ {
+  font-family: MJXTEX-SS;
+  src: url("https://ejudge.lksh.ru/ejudge/mathjax/output/chtml/fonts/woff-v2/MathJax_SansSerif-Regular.woff") format("woff");
+}
+
+@font-face /* 16 */ {
+  font-family: MJXTEX-SSB;
+  src: url("https://ejudge.lksh.ru/ejudge/mathjax/output/chtml/fonts/woff-v2/MathJax_SansSerif-Bold.woff") format("woff");
+}
+
+@font-face /* 17 */ {
+  font-family: MJXTEX-SSI;
+  src: url("https://ejudge.lksh.ru/ejudge/mathjax/output/chtml/fonts/woff-v2/MathJax_SansSerif-Italic.woff") format("woff");
+}
+
+@font-face /* 18 */ {
+  font-family: MJXTEX-SC;
+  src: url("https://ejudge.lksh.ru/ejudge/mathjax/output/chtml/fonts/woff-v2/MathJax_Script-Regular.woff") format("woff");
+}
+
+@font-face /* 19 */ {
+  font-family: MJXTEX-T;
+  src: url("https://ejudge.lksh.ru/ejudge/mathjax/output/chtml/fonts/woff-v2/MathJax_Typewriter-Regular.woff") format("woff");
+}
+
+@font-face /* 20 */ {
+  font-family: MJXTEX-V;
+  src: url("https://ejudge.lksh.ru/ejudge/mathjax/output/chtml/fonts/woff-v2/MathJax_Vector-Regular.woff") format("woff");
+}
+
+@font-face /* 21 */ {
+  font-family: MJXTEX-VB;
+  src: url("https://ejudge.lksh.ru/ejudge/mathjax/output/chtml/fonts/woff-v2/MathJax_Vector-Bold.woff") format("woff");
+}
+</style></head>
+<body>
+<div id="main-cont"><div id="container">
+<div id="header">
+<div id="logo"><img src="/ejudge/logo3.png" alt="logo"></div>
+
+<h1>Administrator [Хетаг Дзестелов, 50506, ЛКШ.2026.Параллель 5.День 06.ДО]: Viewing run 114</h1>
+
+    
+
+    
+
+    
+
+    
+
+<div id="main-menu">
+<ul>
+<li><a href="https://ejudge.lksh.ru/cgi-bin/new-master?SID=4c6e64e2eb4b3b7f&amp;action=2">Main page</a></li>
+<li><a class="current" href="https://ejudge.lksh.ru/cgi-bin/new-master?SID=4c6e64e2eb4b3b7f&amp;action=36&amp;run_id=114">Source</a></li>
+<li><a href="https://ejudge.lksh.ru/cgi-bin/new-master?SID=4c6e64e2eb4b3b7f&amp;action=37&amp;run_id=114">Report</a></li>
+<li><a href="https://ejudge.lksh.ru/cgi-bin/new-master?SID=4c6e64e2eb4b3b7f&amp;action=147&amp;run_id=114">User report</a></li>
+<li><a href="https://ejudge.lksh.ru/cgi-bin/new-master?SID=4c6e64e2eb4b3b7f&amp;action=113&amp;run_id=114">Audit log</a></li>
+</ul></div>
+</div>
+
+    
+
+<div id="info-brief">
+<div class="h2-long" style="margin-top: 0;"><h2>Information about run 114 [<a href="https://ejudge.lksh.ru/cgi-bin/new-master?SID=4c6e64e2eb4b3b7f&amp;action=267&amp;run_id=114">Edit</a>]
+</h2></div>
+
+<div class="table-scroll" style="margin-top: -10px; margin-bottom: 5px;">
+<table class="table">
+<tbody><tr>
+
+    <th style="width: 10em;">Run ID</th>
+    <th>Submission time</th>
+    <th>Originator IP</th>
+    <th>User ID</th>
+    <th>User login</th>
+    <th>User name</th>
+    <th>Problem</th>
+
+    <th>Language</th>
+    <th>EOLN Type</th>
+    <th>Status</th>
+
+    <th>Tests passed</th>
+
+    <th>Marked?</th>
+</tr>
+<tr>
+
+    <td>114</td>
+    <td>2026-07-23 18:56:03</td>
+
+    
+    <td><a href="https://ejudge.lksh.ru/cgi-bin/new-master?SID=4c6e64e2eb4b3b7f&amp;action=2&amp;filter_expr=ip%20%3d%3d%20ip%28114%29">10.5.239.198</a></td>
+
+    
+    <td><a href="https://ejudge.lksh.ru/cgi-bin/new-master?SID=4c6e64e2eb4b3b7f&amp;action=2&amp;filter_expr=uid%20%3d%3d%2031181">31181</a></td>
+    <td>5-verkhoshinsky</td>
+    <td>[5] Верхошинский Марк</td>
+
+    
+    <td><a href="https://ejudge.lksh.ru/cgi-bin/new-master?SID=4c6e64e2eb4b3b7f&amp;action=2&amp;filter_expr=uid%20%3d%3d%2031181%20%26%26%20prob%20%3d%3d%20%22C%22">C - Прибавление и максимум</a></td>
+
+    
+<td><a href="https://ejudge.lksh.ru/cgi-bin/new-master?SID=4c6e64e2eb4b3b7f&amp;action=2&amp;filter_expr=lang%20%3d%3d%20%22g%2b%2b%22">g++ - GNU C++ 16.1.1</a></td>
+
+<td>&nbsp;</td>
+
+<td><a href="https://ejudge.lksh.ru/cgi-bin/new-master?SID=4c6e64e2eb4b3b7f&amp;action=2&amp;filter_expr=status%20%3d%3d%20PR">Pending review</a></td>
+
+    <td>9</td>
+
+    <td>No</td></tr>
+</tbody></table></div>
+
+<script language="javascript">
+function setDivVisibility(oper, value)
+{
+  obj1 = document.getElementById("Show" + oper + "Div");
+  obj2 = document.getElementById("Hide" + oper + "Div");
+  if (value) {
+    obj1.style.display = "none";
+    obj2.style.display = "";
+  } else {
+    obj1.style.display = "";
+    obj2.style.display = "none";
+  }
+}
+</script>
+<div id="ShowExtraDiv">
+<a onclick="setDivVisibility('Extra', true)">[More info]</a>
+</div>
+<div style="display: none;" id="HideExtraDiv">
+<a onclick="setDivVisibility('Extra', false)">[Hide extended info]</a>
+
+<br>
+
+<div class="table-scroll" style="margin-top: 7px;">
+<table class="table">
+<tbody><tr>
+<th>Full time</th>
+<th>Duration from start</th>
+
+    <th>UUID</th>
+
+<th style="width: 10em;">Imported?</th>
+<th>Hidden?</th>
+<th>Saved?</th>
+<th>Read-only?</th>
+<th>Locale ID</th>
+
+<th>Size</th>
+<th>Hash value</th>
+<th>Pages printed:</th>
+</tr>
+<tr>
+<td>2026-07-23 18:56:03:693589000</td>
+<td>7:23:03.693589</td>
+
+    <td>8a195e4b-c213-4a12-9331-e75512e159cd</td>
+
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>1</td>
+
+<td><a href="https://ejudge.lksh.ru/cgi-bin/new-master?SID=4c6e64e2eb4b3b7f&amp;action=2&amp;filter_expr=size%20%3d%3d%20size%28114%29">2140</a></td>
+
+<td><a href="https://ejudge.lksh.ru/cgi-bin/new-master?SID=4c6e64e2eb4b3b7f&amp;action=2&amp;filter_expr=hash%20%3d%3d%20hash%28114%29">1c9031d07f9da6dabc33d615bed3303774585faf</a></td>
+<td>0</td>
+</tr>
+
+</tbody></table>
+</div>
+</div>
+
+ <div id="brief-actions">
+
+    
+
+    
+    
+<p style="display: inline-block;"><a href="https://ejudge.lksh.ru/cgi-bin/new-master?SID=4c6e64e2eb4b3b7f&amp;action=206&amp;problem=3&amp;lang_id=3">Resubmit</a>&nbsp;&nbsp;<a href="https://ejudge.lksh.ru/cgi-bin/new-master?SID=4c6e64e2eb4b3b7f&amp;action=91&amp;run_id=114">Download run</a></p>
+
+<form method="post" enctype="application/x-www-form-urlencoded" action="https://ejudge.lksh.ru/cgi-bin/new-master"><input type="hidden" name="SID" value="4c6e64e2eb4b3b7f">
+<input type="hidden" name="run_id" value="114">
+<p><input type="submit" name="action_66" value="Clear this entry"></p>
+</form>
+
+<form method="post" enctype="application/x-www-form-urlencoded" action="https://ejudge.lksh.ru/cgi-bin/new-master"><input type="hidden" name="SID" value="4c6e64e2eb4b3b7f">
+<input type="hidden" name="run_id" value="114">
+<p><input type="submit" name="action_38" value="Print"></p>
+</form>
+
+<form method="post" enctype="application/x-www-form-urlencoded" action="https://ejudge.lksh.ru/cgi-bin/new-master"><input type="hidden" name="SID" value="4c6e64e2eb4b3b7f">
+<input type="hidden" name="run_id" value="114">
+<p>Compare this run with run: <input type="text" name="run_id2" size="10" value="68"> <input type="submit" name="action_92" value="Compare"></p>
+</form>
+
+<form method="post" enctype="application/x-www-form-urlencoded" action="https://ejudge.lksh.ru/cgi-bin/new-master"><input type="hidden" name="SID" value="4c6e64e2eb4b3b7f">
+<input type="hidden" name="run_id" value="114">
+<p>Charset: <select name="run_charset"><option></option><option>utf-8</option><option>koi8-r</option><option>cp1251</option><option>cp866</option></select> <input type="submit" name="action_36" value="Submit"></p>
+</form>
+
+</div>
+
+</div>
+<hr>
+
+<div id="prog">
+
+<table class="b0"><tbody><tr><td valign="top" class="b0"><span onclick="markLine(1)"><tt>[1]</tt></span><br>
+<span onclick="markLine(2)"><tt>[2]</tt></span><br>
+<span onclick="markLine(3)"><tt>[3]</tt></span><br>
+<span onclick="markLine(4)"><tt>[4]</tt></span><br>
+<span onclick="markLine(5)"><tt>[5]</tt></span><br>
+<span onclick="markLine(6)"><tt>[6]</tt></span><br>
+<span onclick="markLine(7)"><tt>[7]</tt></span><br>
+<span onclick="markLine(8)"><tt>[8]</tt></span><br>
+<span onclick="markLine(9)"><tt>[9]</tt></span><br>
+<span onclick="markLine(10)"><tt>[10]</tt></span><br>
+<span onclick="markLine(11)"><tt>[11]</tt></span><br>
+<span onclick="markLine(12)"><tt>[12]</tt></span><br>
+<span onclick="markLine(13)"><tt>[13]</tt></span><br>
+<span onclick="markLine(14)"><tt>[14]</tt></span><br>
+<span onclick="markLine(15)"><tt>[15]</tt></span><br>
+<span onclick="markLine(16)"><tt>[16]</tt></span><br>
+<span onclick="markLine(17)"><tt>[17]</tt></span><br>
+<span onclick="markLine(18)"><tt>[18]</tt></span><br>
+<span onclick="markLine(19)"><tt>[19]</tt></span><br>
+<span onclick="markLine(20)"><tt>[20]</tt></span><br>
+<span onclick="markLine(21)"><tt>[21]</tt></span><br>
+<span onclick="markLine(22)"><tt>[22]</tt></span><br>
+<span onclick="markLine(23)"><tt>[23]</tt></span><br>
+<span onclick="markLine(24)"><tt>[24]</tt></span><br>
+<span onclick="markLine(25)"><tt>[25]</tt></span><br>
+<span onclick="markLine(26)"><tt>[26]</tt></span><br>
+<span onclick="markLine(27)"><tt>[27]</tt></span><br>
+<span onclick="markLine(28)"><tt>[28]</tt></span><br>
+<span onclick="markLine(29)"><tt>[29]</tt></span><br>
+<span onclick="markLine(30)"><tt>[30]</tt></span><br>
+<span onclick="markLine(31)"><tt>[31]</tt></span><br>
+<span onclick="markLine(32)"><tt>[32]</tt></span><br>
+<span onclick="markLine(33)"><tt>[33]</tt></span><br>
+<span onclick="markLine(34)"><tt>[34]</tt></span><br>
+<span onclick="markLine(35)"><tt>[35]</tt></span><br>
+<span onclick="markLine(36)"><tt>[36]</tt></span><br>
+<span onclick="markLine(37)"><tt>[37]</tt></span><br>
+<span onclick="markLine(38)"><tt>[38]</tt></span><br>
+<span onclick="markLine(39)"><tt>[39]</tt></span><br>
+<span onclick="markLine(40)"><tt>[40]</tt></span><br>
+<span onclick="markLine(41)"><tt>[41]</tt></span><br>
+<span onclick="markLine(42)"><tt>[42]</tt></span><br>
+<span onclick="markLine(43)"><tt>[43]</tt></span><br>
+<span onclick="markLine(44)"><tt>[44]</tt></span><br>
+<span onclick="markLine(45)"><tt>[45]</tt></span><br>
+<span onclick="markLine(46)"><tt>[46]</tt></span><br>
+<span onclick="markLine(47)"><tt>[47]</tt></span><br>
+<span onclick="markLine(48)"><tt>[48]</tt></span><br>
+<span onclick="markLine(49)"><tt>[49]</tt></span><br>
+<span onclick="markLine(50)"><tt>[50]</tt></span><br>
+<span onclick="markLine(51)"><tt>[51]</tt></span><br>
+<span onclick="markLine(52)"><tt>[52]</tt></span><br>
+<span onclick="markLine(53)"><tt>[53]</tt></span><br>
+<span onclick="markLine(54)"><tt>[54]</tt></span><br>
+<span onclick="markLine(55)"><tt>[55]</tt></span><br>
+<span onclick="markLine(56)"><tt>[56]</tt></span><br>
+<span onclick="markLine(57)"><tt>[57]</tt></span><br>
+<span onclick="markLine(58)"><tt>[58]</tt></span><br>
+<span onclick="markLine(59)"><tt>[59]</tt></span><br>
+<span onclick="markLine(60)"><tt>[60]</tt></span><br>
+<span onclick="markLine(61)"><tt>[61]</tt></span><br>
+<span onclick="markLine(62)"><tt>[62]</tt></span><br>
+<span onclick="markLine(63)"><tt>[63]</tt></span><br>
+<span onclick="markLine(64)"><tt>[64]</tt></span><br>
+<span onclick="markLine(65)"><tt>[65]</tt></span><br>
+<span onclick="markLine(66)"><tt>[66]</tt></span><br>
+<span onclick="markLine(67)"><tt>[67]</tt></span><br>
+<span onclick="markLine(68)"><tt>[68]</tt></span><br>
+<span onclick="markLine(69)"><tt>[69]</tt></span><br>
+<span onclick="markLine(70)"><tt>[70]</tt></span><br>
+<span onclick="markLine(71)"><tt>[71]</tt></span><br>
+<span onclick="markLine(72)"><tt>[72]</tt></span><br>
+<span onclick="markLine(73)"><tt>[73]</tt></span><br>
+<span onclick="markLine(74)"><tt>[74]</tt></span><br>
+<span onclick="markLine(75)"><tt>[75]</tt></span><br>
+<span onclick="markLine(76)"><tt>[76]</tt></span><br>
+<span onclick="markLine(77)"><tt>[77]</tt></span><br>
+<span onclick="markLine(78)"><tt>[78]</tt></span><br>
+<span onclick="markLine(79)"><tt>[79]</tt></span><br>
+<span onclick="markLine(80)"><tt>[80]</tt></span><br>
+<span onclick="markLine(81)"><tt>[81]</tt></span><br>
+<span onclick="markLine(82)"><tt>[82]</tt></span><br>
+<span onclick="markLine(83)"><tt>[83]</tt></span><br>
+<span onclick="markLine(84)"><tt>[84]</tt></span><br>
+<span onclick="markLine(85)"><tt>[85]</tt></span><br>
+<span onclick="markLine(86)"><tt>[86]</tt></span><br>
+<span onclick="markLine(87)"><tt>[87]</tt></span><br>
+<span onclick="markLine(88)"><tt>[88]</tt></span><br>
+<span onclick="markLine(89)"><tt>[89]</tt></span><br>
+<span onclick="markLine(90)"><tt>[90]</tt></span><br>
+<span onclick="markLine(91)"><tt>[91]</tt></span><br>
+<span onclick="markLine(92)"><tt>[92]</tt></span><br>
+<span onclick="markLine(93)"><tt>[93]</tt></span><br>
+<span onclick="markLine(94)"><tt>[94]</tt></span><br>
+<span onclick="markLine(95)"><tt>[95]</tt></span><br>
+<span onclick="markLine(96)"><tt>[96]</tt></span><br>
+<span onclick="markLine(97)"><tt>[97]</tt></span><br>
+<span onclick="markLine(98)"><tt>[98]</tt></span><br>
+</td><td valign="top" class="b0"><span><tt>#include&nbsp;&lt;bits/stdc++.h&gt;</tt></span><br>
+<span><tt></tt></span><br>
+<span><tt>using&nbsp;namespace&nbsp;std;</tt></span><br>
+<span><tt></tt></span><br>
+<span><tt>struct&nbsp;SegmentTree&nbsp;{</tt></span><br>
+<span><tt>&nbsp;&nbsp;vector&lt;long&nbsp;long&gt;&nbsp;t;</tt></span><br>
+<span><tt>&nbsp;&nbsp;vector&lt;long&nbsp;long&gt;&nbsp;tag;</tt></span><br>
+<span><tt>&nbsp;&nbsp;vector&lt;long&nbsp;long&gt;&nbsp;a;</tt></span><br>
+<span><tt>&nbsp;&nbsp;int&nbsp;n;</tt></span><br>
+<span><tt>&nbsp;&nbsp;SegmentTree(vector&lt;long&nbsp;long&gt;&nbsp;arr)&nbsp;{</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;=&nbsp;arr;</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;n&nbsp;=&nbsp;a.size();</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;t.resize(n&nbsp;*&nbsp;4,&nbsp;-1);</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;tag.resize(n&nbsp;*&nbsp;4,&nbsp;0);</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;build(0,&nbsp;0,&nbsp;n);</tt></span><br>
+<span><tt>&nbsp;&nbsp;}</tt></span><br>
+<span><tt>&nbsp;&nbsp;void&nbsp;build(int&nbsp;p,&nbsp;int&nbsp;l,&nbsp;int&nbsp;r)&nbsp;{</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(r&nbsp;-&nbsp;l&nbsp;==&nbsp;1)&nbsp;{</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;t[p]&nbsp;=&nbsp;a[l];</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;}</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;int&nbsp;mid&nbsp;=&nbsp;(l&nbsp;+&nbsp;r)&nbsp;/&nbsp;2;</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;build(p&nbsp;*&nbsp;2&nbsp;+&nbsp;1,&nbsp;l,&nbsp;mid);</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;build(p&nbsp;*&nbsp;2&nbsp;+&nbsp;2,&nbsp;mid,&nbsp;r);</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;t[p]&nbsp;=&nbsp;max(t[p&nbsp;*&nbsp;2&nbsp;+&nbsp;1],&nbsp;t[p&nbsp;*&nbsp;2&nbsp;+&nbsp;2]);</tt></span><br>
+<span><tt>&nbsp;&nbsp;}</tt></span><br>
+<span><tt>&nbsp;&nbsp;void&nbsp;push(int&nbsp;p,&nbsp;int&nbsp;l,&nbsp;int&nbsp;r)&nbsp;{</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;t[p]&nbsp;+=&nbsp;tag[p];</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(r&nbsp;-&nbsp;l&nbsp;&gt;&nbsp;1)&nbsp;{</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tag[p&nbsp;*&nbsp;2&nbsp;+&nbsp;1]&nbsp;+=&nbsp;tag[p];</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tag[p&nbsp;*&nbsp;2&nbsp;+&nbsp;2]&nbsp;+=&nbsp;tag[p];</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;}</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;tag[p]&nbsp;=&nbsp;0;</tt></span><br>
+<span><tt>&nbsp;&nbsp;}</tt></span><br>
+<span><tt>&nbsp;&nbsp;void&nbsp;update(int&nbsp;p,&nbsp;int&nbsp;l,&nbsp;int&nbsp;r,&nbsp;int&nbsp;ql,&nbsp;int&nbsp;qr,&nbsp;long&nbsp;long&nbsp;add)&nbsp;{</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;push(p,&nbsp;l,&nbsp;r);</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(r&nbsp;&lt;=&nbsp;ql&nbsp;||&nbsp;l&nbsp;&gt;=&nbsp;qr)&nbsp;{</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;}</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(r&nbsp;&lt;=&nbsp;qr&nbsp;&amp;&amp;&nbsp;l&nbsp;&gt;=&nbsp;ql)&nbsp;{</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tag[p]&nbsp;+=&nbsp;add;</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;push(p,&nbsp;l,&nbsp;r);</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;}</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;int&nbsp;mid&nbsp;=&nbsp;(l&nbsp;+&nbsp;r)&nbsp;/&nbsp;2;</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;update(p&nbsp;*&nbsp;2&nbsp;+&nbsp;1,&nbsp;l,&nbsp;mid,&nbsp;ql,&nbsp;qr,&nbsp;add);</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;update(p&nbsp;*&nbsp;2&nbsp;+&nbsp;2,&nbsp;mid,&nbsp;r,&nbsp;ql,&nbsp;qr,&nbsp;add);</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;t[p]&nbsp;=&nbsp;max(t[p&nbsp;*&nbsp;2&nbsp;+&nbsp;1],&nbsp;t[p&nbsp;*&nbsp;2&nbsp;+&nbsp;2]);</tt></span><br>
+<span><tt>&nbsp;&nbsp;}</tt></span><br>
+<span><tt>&nbsp;&nbsp;void&nbsp;update(int&nbsp;ql,&nbsp;int&nbsp;qr,&nbsp;long&nbsp;long&nbsp;add)&nbsp;{</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;update(0,&nbsp;0,&nbsp;n,&nbsp;ql,&nbsp;qr,&nbsp;add);</tt></span><br>
+<span><tt>&nbsp;&nbsp;}</tt></span><br>
+<span><tt>&nbsp;&nbsp;long&nbsp;long&nbsp;query(int&nbsp;p,&nbsp;int&nbsp;l,&nbsp;int&nbsp;r,&nbsp;int&nbsp;ql,&nbsp;int&nbsp;qr)&nbsp;{</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;push(p,&nbsp;l,&nbsp;r);</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(r&nbsp;&lt;=&nbsp;ql&nbsp;||&nbsp;l&nbsp;&gt;=&nbsp;qr)&nbsp;{</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;-1;</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;}</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(r&nbsp;&lt;=&nbsp;qr&nbsp;&amp;&amp;&nbsp;l&nbsp;&gt;=&nbsp;ql)&nbsp;{</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;t[p];</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;}</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;int&nbsp;mid&nbsp;=&nbsp;(l&nbsp;+&nbsp;r)&nbsp;/&nbsp;2;</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;long&nbsp;long&nbsp;left&nbsp;=&nbsp;query(p&nbsp;*&nbsp;2&nbsp;+&nbsp;1,&nbsp;l,&nbsp;mid,&nbsp;ql,&nbsp;qr);</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;long&nbsp;long&nbsp;right&nbsp;=&nbsp;query(p&nbsp;*&nbsp;2&nbsp;+&nbsp;2,&nbsp;mid,&nbsp;r,&nbsp;ql,&nbsp;qr);</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;max(left,&nbsp;right);</tt></span><br>
+<span><tt>&nbsp;&nbsp;}</tt></span><br>
+<span><tt>&nbsp;&nbsp;long&nbsp;long&nbsp;query(int&nbsp;ql,&nbsp;int&nbsp;qr)&nbsp;{</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;query(0,&nbsp;0,&nbsp;n,&nbsp;ql,&nbsp;qr);</tt></span><br>
+<span><tt>&nbsp;&nbsp;}</tt></span><br>
+<span><tt>};</tt></span><br>
+<span><tt></tt></span><br>
+<span><tt>int&nbsp;main()&nbsp;{</tt></span><br>
+<span><tt>&nbsp;&nbsp;int&nbsp;n;</tt></span><br>
+<span><tt>&nbsp;&nbsp;cin&nbsp;&gt;&gt;&nbsp;n;</tt></span><br>
+<span><tt>&nbsp;&nbsp;vector&lt;long&nbsp;long&gt;&nbsp;a(n);</tt></span><br>
+<span><tt>&nbsp;&nbsp;for&nbsp;(int&nbsp;i&nbsp;=&nbsp;0;&nbsp;i&nbsp;&lt;&nbsp;n;&nbsp;i++)&nbsp;{</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;cin&nbsp;&gt;&gt;&nbsp;a[i];</tt></span><br>
+<span><tt>&nbsp;&nbsp;}</tt></span><br>
+<span><tt>&nbsp;&nbsp;SegmentTree&nbsp;st(a);</tt></span><br>
+<span><tt>&nbsp;&nbsp;int&nbsp;q;</tt></span><br>
+<span><tt>&nbsp;&nbsp;cin&nbsp;&gt;&gt;&nbsp;q;</tt></span><br>
+<span><tt>&nbsp;&nbsp;while&nbsp;(q--)&nbsp;{</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;op;</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;cin&nbsp;&gt;&gt;&nbsp;op;</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(op&nbsp;==&nbsp;"m")&nbsp;{</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int&nbsp;l,&nbsp;r;</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cin&nbsp;&gt;&gt;&nbsp;l&nbsp;&gt;&gt;&nbsp;r;</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;l--;</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cout&nbsp;&lt;&lt;&nbsp;st.query(l,&nbsp;r)&nbsp;&lt;&lt;&nbsp;'\n';</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;}</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;else&nbsp;{</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int&nbsp;l,&nbsp;r;</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;long&nbsp;long&nbsp;add;</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cin&nbsp;&gt;&gt;&nbsp;l&nbsp;&gt;&gt;&nbsp;r&nbsp;&gt;&gt;&nbsp;add;</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;l--;</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;st.update(l,&nbsp;r,&nbsp;add);</tt></span><br>
+<span><tt>&nbsp;&nbsp;&nbsp;&nbsp;}</tt></span><br>
+<span><tt>&nbsp;&nbsp;}</tt></span><br>
+<span><tt>}</tt></span><br>
+</td></tr></tbody></table></div>
+
+<div id="output">
+<h2>Compiler/style checker output</h2>
+<pre>Done processing f7aa753b4d10bcc5.cpp
+
+</pre></div>
+
+<hr style="clear: both;">
+
+<div class="h2-long" style="margin-top: 13px; margin-bottom: 5px;">
+<h2>Change status</h2>
+</div>
+
+<div class="buttons">
+<form method="post" enctype="application/x-www-form-urlencoded" id="just_change" action="https://ejudge.lksh.ru/cgi-bin/new-master"><input type="hidden" name="SID" value="4c6e64e2eb4b3b7f">
+<input type="hidden" name="run_id" value="114">
+
+<input type="submit" name="action_240" value="Just ignore the run">
+
+<input type="submit" name="action_241" value="Just OK the run">
+<br>
+<input type="submit" name="action_242" value="Just SUMMON the run">
+</form>
+</div>
+
+<div class="h2-long" style="margin-top: 13px; margin-bottom: 10px;">
+<h2>Run comments</h2>
+</div>
+
+<div class="width-100">
+<table class="message-table">
+    <tbody><tr class="mes-top">
+        <td>Author</td>
+        <td>Run comment</td>
+    </tr>
+
+   <tr>
+       <td class="profile">
+<b>Хетаг Дзестелов</b>
+<br>
+2026-07-23 19:13:11
+
+<br>
+10.2.128.172
+
+       </td>
+       <td>
+<pre>Пойдёт
+
+Для сельской местности
+</pre>
+       </td>
+   </tr>
+
+</tbody></table>
+</div>
+
+<div class="h2-long" style="margin-top: 13px; margin-bottom: 5px;">
+    <h2>Run comments for previous runs</h2>
+</div>
+
+<div class="width-100">
+<table class="message-table">
+    <tbody><tr class="mes-top">
+        <td>Author</td>
+        <td>Run comment</td>
+    </tr>
+
+   <tr>
+       <td class="profile">
+<b>Артём Сацкий</b>
+<br>
+2026-07-23 16:37:11
+
+<br>
+Old status: PR
+
+<br>
+New status: RJ
+
+<br>
+10.2.128.124
+
+    
+<br>
+Run Id: <a href="https://ejudge.lksh.ru/cgi-bin/new-master?SID=4c6e64e2eb4b3b7f&amp;action=36&amp;run_id=68">68</a>
+
+       </td>
+       <td>
+<pre>Строка 5
+SegmentTree
+</pre>
+       </td>
+   </tr>
+
+</tbody></table>
+</div>
+
+<div class="h2-long" style="margin-top: 13px; margin-bottom: 5px;">
+<h2>Add a new run comment</h2></div>
+
+<form method="post" enctype="application/x-www-form-urlencoded" id="run_comment" action="https://ejudge.lksh.ru/cgi-bin/new-master"><input type="hidden" name="SID" value="4c6e64e2eb4b3b7f">
+
+<p><textarea id="msg_text" name="msg_text" rows="20" cols="60"></textarea></p>
+
+<div class="buttons" style="margin-top: -13px;">
+<input type="hidden" name="run_id" value="114">
+<input type="button" value="Formatting rules violation" onclick="formatViolation()"><br>
+<input type="submit" name="action_64" value="Send run comment">
+
+<input type="submit" name="action_233" value="Send run comment and ignore run">
+
+<input type="submit" name="action_237" value="Send run comment and OK run">
+<input type="submit" name="action_238" value="Send run comment and REJECT run">
+<br>
+<input type="submit" name="action_239" value="Send run comment and SUMMON run">
+</div></form>
+
+<div class="h2-long" style="margin-top: 13px; margin-bottom: 5px;">
+  <h2>Add a permanent problem review comment</h2>
+</div>
+
+<form method="post" enctype="application/x-www-form-urlencoded" id="review_comment" action="https://ejudge.lksh.ru/cgi-bin/new-master"><input type="hidden" name="SID" value="4c6e64e2eb4b3b7f">
+<input type="hidden" name="run_id" value="114">
+<input type="text" name="review_comment" size="80"><br>
+<input type="submit" name="action_275" value="Add Review Comment">
+</form>
+
+<br>
+
+<hr>
+<p class="ejudge_copyright"><a href="https://ejudge.ru">ejudge 3.14.0+ (GIT 69f11ee03) #1 (2026-07-16 21:17:15)</a>.</p>
+<p class="ejudge_copyright">Copyright © 2000-2026 Alexander Chernov.</p>
+
+</div>
+</div>
+
+</body></html>

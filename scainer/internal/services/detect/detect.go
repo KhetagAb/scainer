@@ -69,6 +69,9 @@ func (st stage[U]) Run(ctx context.Context, s Store) ([]domain.Signal, error) {
 	}
 
 	total := len(units) * len(st.dets)
+	if total > 0 {
+		progress.Report(ctx, progress.Event{Phase: "analyzing", Done: 0, Total: total})
+	}
 	var (
 		mu   sync.Mutex
 		out  []domain.Signal

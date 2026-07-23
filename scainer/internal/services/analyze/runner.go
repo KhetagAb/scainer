@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"time"
 
+	"scainer/internal/domain"
 	"scainer/internal/services/contests"
 	"scainer/internal/services/detect"
-	"scainer/internal/domain"
 	"scainer/internal/services/importer"
 	"scainer/internal/services/scoring"
+	"scainer/pkg/progress"
 )
 
 type Result struct {
@@ -67,6 +68,8 @@ func (r *Runner) Run(ctx context.Context, id domain.ContestID) (Result, error) {
 	if err := r.registry.Put(ctx, contests.ContestRecord{Contest: contest, Source: record.Source}); err != nil {
 		return Result{}, fmt.Errorf("persist lastImportedAt: %w", err)
 	}
+
+	progress.Report(ctx, progress.Event{Phase: "analyzing"})
 
 	if err := r.recomputeFindings(ctx, id); err != nil {
 		return Result{}, fmt.Errorf("recompute findings: %w", err)

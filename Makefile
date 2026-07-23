@@ -16,6 +16,3 @@ logs:
 
 ps:
 	$(COMPOSE) ps
-
-up-dev: up
-	npm run dev

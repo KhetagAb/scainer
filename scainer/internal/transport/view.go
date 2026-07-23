@@ -73,9 +73,10 @@ func BuildData(findings []domain.Finding, subs map[domain.SubmissionID]domain.Su
 	}
 
 	for _, f := range findings {
+		referencedFromSubject(f.Subject, referenced)
 		fv := FindingView{
 			Key:     domain.SubjectKey(f.Subject),
-			Subject: toSubjectView(f.Subject, labels),
+			Subject: toSubjectView(f.Subject, labels, subs),
 			Score:   f.Score,
 			Signals: make([]SignalView, 0, len(f.Signals)),
 		}
@@ -153,12 +154,22 @@ func metaString(meta map[string]any, key string) string {
 	return s
 }
 
-func toSubjectView(s domain.Subject, labels displayNames) SubjectView {
+func referencedFromSubject(s domain.Subject, referenced map[domain.SubmissionID]bool) {
+	if x, ok := s.(domain.SubmissionSubject); ok {
+		referenced[x.Submission] = true
+	}
+}
+
+func toSubjectView(s domain.Subject, labels displayNames, subs map[domain.SubmissionID]domain.Submission) SubjectView {
 	v := SubjectView{Kind: string(s.Kind())}
 	switch x := s.(type) {
 	case domain.SubmissionSubject:
 		v.Contest = string(x.Contest)
 		v.Submission = string(x.Submission)
+		if sub, ok := subs[x.Submission]; ok {
+			v.Participants = []string{string(sub.Participant)}
+			v.Problem = string(sub.Problem)
+		}
 	case domain.PairSubject:
 		v.Contest = string(x.Contest)
 		v.Problem = string(x.Problem)

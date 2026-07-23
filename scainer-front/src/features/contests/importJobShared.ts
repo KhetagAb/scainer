@@ -15,7 +15,7 @@ export function formatImportProgress(progress: ImportProgress): string {
     }
     return progress.label.trim();
   }
-  const phaseLabel = progress.phase === "analyzing" ? "Анализ" : "Выгрузка";
+  const phaseLabel = progress.phase === "analyzing" ? "Анализируем" : "Выгружаем";
   if (progress.total > 0) {
     return `${phaseLabel}: ${progress.done}/${progress.total}`;
   }
@@ -24,6 +24,8 @@ export function formatImportProgress(progress: ImportProgress): string {
 
 export function importProgressPercent(progress: ImportProgress): number | null {
   if (!progress || progress.total <= 0) return null;
+  
+  if (progress.phase === "analyzing" && progress.done === 0) return null;
   return Math.min(100, Math.round((100 * progress.done) / progress.total));
 }
 

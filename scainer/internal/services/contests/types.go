@@ -93,15 +93,24 @@ func compareContestID(a, b domain.ContestID) int {
 func loadReferencedSubmissions(ctx context.Context, store SubmissionStore, findings []domain.Finding) (map[domain.SubmissionID]domain.Submission, error) {
 	seen := make(map[domain.SubmissionID]bool)
 	var ids []domain.SubmissionID
+	mark := func(id domain.SubmissionID) {
+		if id == "" || seen[id] {
+			return
+		}
+		seen[id] = true
+		ids = append(ids, id)
+	}
 	for _, finding := range findings {
+		if subj, ok := finding.Subject.(domain.SubmissionSubject); ok {
+			mark(subj.Submission)
+		}
 		for _, signal := range finding.Signals {
+			if subj, ok := signal.Subject.(domain.SubmissionSubject); ok {
+				mark(subj.Submission)
+			}
 			for _, evidence := range signal.Evidence {
 				for _, span := range evidence.Spans {
-					if seen[span.Submission] {
-						continue
-					}
-					seen[span.Submission] = true
-					ids = append(ids, span.Submission)
+					mark(span.Submission)
 				}
 			}
 		}

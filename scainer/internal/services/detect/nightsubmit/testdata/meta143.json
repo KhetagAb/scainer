@@ -1,0 +1,18 @@
+{
+  "ID": "ejudge:50506:143",
+  "Participant": "Хетаг Дзестелов",
+  "Problem": "subseq",
+  "Contest": "50506",
+  "Lang": "cpp",
+  "SubmittedAt": "2026-07-23T20:08:47.03954Z",
+  "Verdict": "PR",
+  "Meta": {
+    "contest_id": 50506,
+    "contest_name": "ЛКШ.2026.Параллель 5.День 06.ДО",
+    "lang_name": "g++",
+    "problem_name": "E",
+    "run_id": 143,
+    "status": 16,
+    "status_str": "PR"
+  }
+}

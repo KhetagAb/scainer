@@ -146,11 +146,14 @@ func TestStageRun_ProgressReportsDoneTotal(t *testing.T) {
 
 	mu.Lock()
 	defer mu.Unlock()
-	if len(seen) != 4 {
-		t.Fatalf("events: got %d, want 4: %+v", len(seen), seen)
+	if len(seen) != 5 {
+		t.Fatalf("events: got %d, want 5: %+v", len(seen), seen)
+	}
+	if seen[0].Phase != "analyzing" || seen[0].Done != 0 || seen[0].Total != 4 {
+		t.Fatalf("first event = %+v, want analyzing 0/4", seen[0])
 	}
 	maxDone := 0
-	for _, e := range seen {
+	for _, e := range seen[1:] {
 		if e.Phase != "analyzing" {
 			t.Fatalf("phase = %q, want analyzing", e.Phase)
 		}

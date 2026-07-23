@@ -12,8 +12,10 @@ import {
   scoreLevel,
   subjectTitle,
   uniqueDetectors,
+  detectorLabel,
   type GroupBy,
 } from "@/features/findings/reportModel";
+import { DetectorChip } from "@/features/findings/DetectorChip";
 import SourceCode from "@/features/code/SourceCode";
 
 type Props = {
@@ -55,16 +57,20 @@ export function FindingCard({ finding, groupBy, groupKey, submissions, hidden }:
         </span>
         <span className="detectors">
           {uniqueDetectors(finding.signals).map((d) => (
-            <span key={d} className="chip detector-chip">
-              {d}
-            </span>
+            <DetectorChip key={d} detectorId={d} />
           ))}
         </span>
       </summary>
       <div className="finding-body">
         {rendered
           ? (finding.signals ?? []).map((sig, i) => (
-              <SignalBlock key={`${sig.detector}-${i}`} signal={sig} submissions={submissions} showDetector={multiSignal} />
+              <SignalBlock
+                key={`${sig.detector}-${i}`}
+                signal={sig}
+                submissions={submissions}
+                showDetector={multiSignal}
+                subjectSubmission={finding.subject.submission ?? undefined}
+              />
             ))
           : null}
       </div>
@@ -119,23 +125,29 @@ function SignalBlock({
   signal,
   submissions,
   showDetector,
+  subjectSubmission,
 }: {
   signal: FindingView["signals"][number];
   submissions: Record<string, SubmissionView>;
   showDetector: boolean;
+  subjectSubmission?: string;
 }) {
   return (
     <div className="signal-block">
       {showDetector ? (
         <div className="signal-meta">
-          <Chip>{signal.detector}</Chip>
+          <Chip>{detectorLabel(signal.detector)}</Chip>
           {signal.ai ? <AiBadge /> : null}
         </div>
       ) : null}
       {(signal.evidence ?? []).map((ev, i) => (
         <div key={i}>
           {ev.description ? <p className="evidence-text">{ev.description}</p> : null}
-          <SideBySide evidence={ev} submissions={submissions} />
+          <SideBySide
+            evidence={ev}
+            submissions={submissions}
+            fallbackSubmissionId={subjectSubmission}
+          />
         </div>
       ))}
     </div>
@@ -145,12 +157,35 @@ function SignalBlock({
 function SideBySide({
   evidence,
   submissions,
+  fallbackSubmissionId,
 }: {
   evidence: EvidenceView;
   submissions: Record<string, SubmissionView>;
+  fallbackSubmissionId?: string;
 }) {
   const spans = evidence.spans ?? [];
-  if (spans.length < 2) return null;
+  if (spans.length === 0) {
+    if (!fallbackSubmissionId) return null;
+    return (
+      <div className="side-by-side side-by-side--single">
+        <CodePane
+          subID={fallbackSubmissionId}
+          sub={submissions[fallbackSubmissionId]}
+          ranges={[]}
+        />
+      </div>
+    );
+  }
+
+  if (spans.length === 1) {
+    const id = spans[0].submission;
+    return (
+      <div className="side-by-side side-by-side--single">
+        <CodePane subID={id} sub={submissions[id]} ranges={[]} />
+      </div>
+    );
+  }
+
   const aID = spans[0].submission;
   const bID = spans[1].submission;
   const rangesA: Array<{ start: number; end: number }> = [];

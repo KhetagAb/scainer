@@ -195,3 +195,49 @@ func TestGetFindingsBeforeImport_EmptyNotError(t *testing.T) {
 		t.Fatalf("ожидали (nil, nil) до Import, получили (%v, %v)", findings, subs)
 	}
 }
+
+func TestGetFindings_LoadsSubmissionSubjectSubmissions(t *testing.T) {
+	ctx := context.Background()
+	reg := newFakeRegistry()
+	fs := newFakeFindingsRepository()
+	st := store.NewMem()
+	reader := contests.NewContestReader(reg, st, fs)
+
+	subID := domain.SubmissionID("ejudge:50506:143")
+	if err := st.Put(ctx, []domain.Submission{{
+		ID: subID, Contest: "50506", Problem: "subseq", Participant: "alice",
+		Source: []byte("int main(){}"),
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := reg.Put(ctx, contests.ContestRecord{
+		Contest: contests.Contest{ID: "50506"},
+		Source:  contests.SourceSpec{Type: "stub"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	subj := domain.NewSubmissionSubject("50506", subID)
+	if err := fs.Put(ctx, contests.FindingsSnapshot{
+		ContestID: "50506",
+		Findings: []domain.Finding{{
+			Subject: subj,
+			Score:   1,
+			Signals: []domain.Signal{{
+				Detector: "night-submit",
+				Subject:  subj,
+				Score:    1,
+			}},
+		}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	_, subs, err := reader.GetFindings(ctx, "50506")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := subs[subID]; !ok {
+		t.Fatalf("subs map missing %q: %#v", subID, subs)
+	}
+}

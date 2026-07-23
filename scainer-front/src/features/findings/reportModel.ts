@@ -71,6 +71,18 @@ export function subjectTitle(subject: SubjectView, groupBy: GroupBy, groupKey: s
   return label;
 }
 
+const DETECTOR_LABELS: Record<string, string> = {
+  jplag: "JPlag",
+  "aiusage-task": "AI-использование",
+  "night-submit": "Ночная посылка",
+};
+
+export const NIGHT_SUBMIT_DETECTOR = "night-submit";
+
+export function detectorLabel(id: string): string {
+  return DETECTOR_LABELS[id] ?? id;
+}
+
 export function uniqueDetectors(signals: FindingView["signals"]): string[] {
   const seen = new Set<string>();
   const out: string[] = [];

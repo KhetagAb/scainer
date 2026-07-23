@@ -22,6 +22,7 @@ import (
 	"scainer/internal/services/detect"
 	"scainer/internal/services/detect/aiusage"
 	"scainer/internal/services/detect/jplag"
+	"scainer/internal/services/detect/nightsubmit"
 	"scainer/internal/services/ejudge"
 	ejgateway "scainer/internal/services/ejudge/gateway"
 	"scainer/internal/services/importer"
@@ -139,7 +140,11 @@ func buildAnalyzeRuntime(cfg *configs.Config, st *store.FS) (detect.Pipeline, *j
 
 	// Один Limiter на процесс: иначе jobs_max_concurrent job'ов перемножили бы параллелизм JPlag/LLM.
 	limiter := detect.NewLimiter(cfg.Analyze.AnalyzeConcurrency)
+	nightDet := nightsubmit.NewDetector()
 	factories := []detect.StageFactory{
+		func(id domain.ContestID) detect.Stage {
+			return detect.NewStage(detect.SubmissionsSelector{Contest: id}, limiter, nightDet)
+		},
 		func(id domain.ContestID) detect.Stage {
 			return detect.NewStage(detect.ProblemSelector{Contest: id}, limiter, det)
 		},

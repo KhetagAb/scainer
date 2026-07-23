@@ -25,6 +25,8 @@ func RequireJWT(svc auth.Service) echo.MiddlewareFunc {
 				return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 			}
 			c.Set(auth.ContextUsernameKey, claims.Username)
+			req := c.Request().WithContext(auth.WithLogin(c.Request().Context(), claims.Username))
+			c.SetRequest(req)
 			return next(c)
 		}
 	}

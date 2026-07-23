@@ -12,13 +12,12 @@ import (
 	"time"
 
 	ejgen "scainer/generated/ejudge"
-	"scainer/internal/domain"
 )
 
 type RunInfo struct {
 	RunID   int
 	Status  int
-	Verdict domain.Verdict
+	Verdict Verdict
 }
 
 type RunMessage struct {
@@ -59,7 +58,7 @@ func (c *Client) RunStatus(ctx context.Context, contestID, runID int) (RunInfo, 
 		info.Status = *run.Status
 	}
 	if run.StatusStr != nil && *run.StatusStr != "" {
-		info.Verdict = domain.ParseVerdict(*run.StatusStr)
+		info.Verdict = ParseVerdict(*run.StatusStr)
 	} else {
 		info.Verdict = VerdictFromStatus(info.Status)
 	}
@@ -134,7 +133,7 @@ func (c *Client) SendRunComment(ctx context.Context, contestID, runID int, text 
 	return ensureWriteOK(body, "send-run-comment")
 }
 
-func (c *Client) ChangeRunStatus(ctx context.Context, contestID, runID int, verdict domain.Verdict) error {
+func (c *Client) ChangeRunStatus(ctx context.Context, contestID, runID int, verdict Verdict) error {
 	code, ok := StatusCode(verdict)
 	if !ok {
 		return fmt.Errorf("ejudge: неизвестный вердикт %q", verdict)

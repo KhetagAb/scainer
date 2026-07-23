@@ -12,7 +12,7 @@ import (
 
 	oaigen "scainer/generated/openai"
 	"scainer/pkg/llm"
-	"scainer/pkg/openai"
+	"scainer/pkg/llm/openai"
 )
 
 func TestOpenAI_Prompt(t *testing.T) {

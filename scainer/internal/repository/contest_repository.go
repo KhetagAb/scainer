@@ -7,7 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"scainer/internal/contests"
+	"scainer/internal/services/contests"
 	"scainer/internal/domain"
 )
 

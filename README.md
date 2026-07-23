@@ -88,7 +88,7 @@ npm run dev   # http://localhost:5173, /api → :8080
 | -------------------------- | ---------------- | ------------------------------ |
 | `make setup`               | `scainer/`       | Скачать `jplag.jar`            |
 | `make build` / `make test` | `scainer/`       | Сборка и тесты                 |
-| `make code-gen`            | `scainer/`       | OpenAPI → `internal/generated` |
+| `make code-gen`            | `scainer/`       | OpenAPI → `generated/` |
 | `make run-serve`           | `scainer/`       | HTTP на `:8080`                |
 | `npm run build`            | `scainer-front/` | Production-сборка              |
 | `npm run generate-client`  | `scainer-front/` | Клиент из OpenAPI              |

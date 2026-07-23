@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"scainer/internal/progress"
+	"scainer/pkg/progress"
 )
 
 type Status string

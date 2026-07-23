@@ -17,7 +17,6 @@ scainer/scainer
 *.jar
 
 # codegen (make code-gen / openapi-ts / Dockerfile)
-scainer/internal/generated/
 scainer/generated/
 scainer-front/src/client/
 scainer-front/node_modules/

@@ -43,15 +43,12 @@ type (
 	}
 
 	AdminConfig struct {
-		Username string        `mapstructure:"username"`
-		Password string        `mapstructure:"password"`
-		JWTSecret string       `mapstructure:"jwt_secret"`
-		JWTTTL   time.Duration `mapstructure:"jwt_ttl"`
+		JWTSecret string        `mapstructure:"jwt_secret"`
+		JWTTTL    time.Duration `mapstructure:"jwt_ttl"`
 	}
 
 	EjudgeConfig struct {
 		BaseURL string        `mapstructure:"base_url"`
-		APIKey  string        `mapstructure:"api_key"`
 		Timeout time.Duration `mapstructure:"timeout"`
 	}
 
@@ -79,13 +76,11 @@ type (
 )
 
 func (c AdminConfig) Enabled() bool {
-	return strings.TrimSpace(c.Username) != "" &&
-		strings.TrimSpace(c.Password) != "" &&
-		strings.TrimSpace(c.JWTSecret) != ""
+	return strings.TrimSpace(c.JWTSecret) != ""
 }
 
 func (c EjudgeConfig) Enabled() bool {
-	return strings.TrimSpace(c.BaseURL) != "" && strings.TrimSpace(c.APIKey) != ""
+	return strings.TrimSpace(c.BaseURL) != ""
 }
 
 func (c MongoDBConfig) URI() (string, error) {
@@ -137,7 +132,7 @@ func LoadConfig(path string) (*Config, error) {
 
 func (c *Config) validate() error {
 	if !c.Admin.Enabled() {
-		return fmt.Errorf("нужны admin.username, admin.password и admin.jwt_secret (или ADMIN_*/JWT_SECRET)")
+		return fmt.Errorf("нужен admin.jwt_secret (или JWT_SECRET)")
 	}
 	if c.Admin.JWTTTL <= 0 {
 		return fmt.Errorf("admin.jwt_ttl должен быть > 0")
@@ -173,12 +168,9 @@ func bindEnv(v *viper.Viper) {
 	_ = v.BindEnv("mongodb.password", "MONGO_INITDB_ROOT_PASSWORD")
 	_ = v.BindEnv("mongodb.host", "MONGODB_HOST")
 	_ = v.BindEnv("mongodb.database", "MONGODB_DATABASE")
-	_ = v.BindEnv("admin.username", "ADMIN_USERNAME")
-	_ = v.BindEnv("admin.password", "ADMIN_PASSWORD")
 	_ = v.BindEnv("admin.jwt_secret", "JWT_SECRET")
 	_ = v.BindEnv("admin.jwt_ttl", "JWT_TTL")
 	_ = v.BindEnv("ejudge.base_url", "EJUDGE_BASE_URL")
-	_ = v.BindEnv("ejudge.api_key", "EJUDGE_API_KEY")
 	_ = v.BindEnv("ejudge.timeout", "EJUDGE_TIMEOUT")
 	_ = v.BindEnv("jplag.jar_path", "JPLAG_JAR_PATH")
 	_ = v.BindEnv("analyze.jobs_max_concurrent", "JOBS_MAX_CONCURRENT")

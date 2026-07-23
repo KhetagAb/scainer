@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"scainer/internal/contests"
+	"scainer/internal/services/contests"
 	"scainer/internal/domain"
 	"scainer/internal/repository"
 )

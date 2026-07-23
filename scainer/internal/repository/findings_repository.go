@@ -8,7 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"scainer/internal/contests"
+	"scainer/internal/services/contests"
 	"scainer/internal/domain"
 )
 
@@ -41,4 +41,4 @@ func (r *FindingsRepository) Delete(ctx context.Context, id domain.ContestID) er
 	return err
 }
 
-var _ contests.FindingsStore = (*FindingsRepository)(nil)
+var _ contests.FindingsRepository = (*FindingsRepository)(nil)

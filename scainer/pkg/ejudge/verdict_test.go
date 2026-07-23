@@ -1,35 +1,31 @@
 package ejudge
 
-import (
-	"testing"
-
-	"scainer/internal/domain"
-)
+import "testing"
 
 func TestVerdictFromStatus(t *testing.T) {
-	if VerdictFromStatus(0) != domain.VerdictOK || VerdictFromStatus(5) != domain.VerdictWA || VerdictFromStatus(12) != domain.VerdictML {
+	if VerdictFromStatus(0) != VerdictOK || VerdictFromStatus(5) != VerdictWA || VerdictFromStatus(12) != VerdictML {
 		t.Fatal("codes")
 	}
-	if VerdictFromStatus(16) != domain.VerdictPR {
+	if VerdictFromStatus(16) != VerdictPR {
 		t.Fatal("PR")
 	}
-	if VerdictFromStatus(17) != domain.VerdictRJ {
+	if VerdictFromStatus(17) != VerdictRJ {
 		t.Fatal("RJ")
 	}
-	if VerdictFromStatus(1) != domain.VerdictUnknown { // CE
+	if VerdictFromStatus(1) != VerdictUnknown { // CE
 		t.Fatal("CE -> unknown")
 	}
-	if VerdictFromStatus(11) != domain.VerdictUnknown { // PD (pending, not review)
+	if VerdictFromStatus(11) != VerdictUnknown { // PD (pending, not review)
 		t.Fatal("PD -> unknown")
 	}
 }
 
 func TestStatusCode(t *testing.T) {
-	code, ok := StatusCode(domain.VerdictRJ)
+	code, ok := StatusCode(VerdictRJ)
 	if !ok || code != 17 {
 		t.Fatalf("RJ: %d %v", code, ok)
 	}
-	if _, ok := StatusCode(domain.VerdictUnknown); ok {
+	if _, ok := StatusCode(VerdictUnknown); ok {
 		t.Fatal("unknown must fail")
 	}
 }

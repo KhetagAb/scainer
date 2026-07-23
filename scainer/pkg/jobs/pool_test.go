@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"scainer/pkg/jobs"
-	"scainer/internal/progress"
+	"scainer/pkg/progress"
 )
 
 func waitUntil(t *testing.T, timeout time.Duration, cond func() bool) {

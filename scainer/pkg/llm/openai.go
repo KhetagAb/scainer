@@ -7,7 +7,7 @@ import (
 	"time"
 
 	oaigen "scainer/generated/openai"
-	"scainer/pkg/openai"
+	"scainer/pkg/llm/openai"
 )
 
 const promptAttempts = 3

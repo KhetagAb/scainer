@@ -10,15 +10,16 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"scainer/internal/analyze"
-	"scainer/internal/contests"
-	"scainer/internal/detect"
+	"scainer/internal/services/analyze"
+	"scainer/internal/services/contests"
+	"scainer/internal/services/detect"
 	"scainer/internal/domain"
-	"scainer/internal/importer"
+	"scainer/internal/services/importer"
 	"scainer/pkg/jobs"
-	"scainer/internal/review"
-	"scainer/internal/scoring"
-	"scainer/internal/store"
+	"scainer/internal/services/review"
+	"scainer/internal/services/scoring"
+	"scainer/pkg/store"
+	"scainer/internal/services/teachers"
 	"scainer/internal/transport"
 	"scainer/pkg/auth"
 )
@@ -76,40 +77,54 @@ func (r *fakeRegistry) List(context.Context) ([]contests.ContestRecord, error) {
 
 var _ contests.ContestRegistry = (*fakeRegistry)(nil)
 
-type fakeFindingsStore struct {
+type fakeFindingsRepository struct {
 	byID map[domain.ContestID]contests.FindingsSnapshot
 }
 
-func newFakeFindingsStore() *fakeFindingsStore {
-	return &fakeFindingsStore{byID: make(map[domain.ContestID]contests.FindingsSnapshot)}
+func newFakeFindingsRepository() *fakeFindingsRepository {
+	return &fakeFindingsRepository{byID: make(map[domain.ContestID]contests.FindingsSnapshot)}
 }
 
-func (f *fakeFindingsStore) Put(_ context.Context, snap contests.FindingsSnapshot) error {
+func (f *fakeFindingsRepository) Put(_ context.Context, snap contests.FindingsSnapshot) error {
 	f.byID[snap.ContestID] = snap
 	return nil
 }
 
-func (f *fakeFindingsStore) Get(_ context.Context, id domain.ContestID) (contests.FindingsSnapshot, bool, error) {
+func (f *fakeFindingsRepository) Get(_ context.Context, id domain.ContestID) (contests.FindingsSnapshot, bool, error) {
 	snap, ok := f.byID[id]
 	return snap, ok, nil
 }
 
-func (f *fakeFindingsStore) Delete(_ context.Context, id domain.ContestID) error {
+func (f *fakeFindingsRepository) Delete(_ context.Context, id domain.ContestID) error {
 	delete(f.byID, id)
 	return nil
 }
 
-var _ contests.FindingsStore = (*fakeFindingsStore)(nil)
+var _ contests.FindingsRepository = (*fakeFindingsRepository)(nil)
+
+type noopTeacherRepository struct{}
+
+func (noopTeacherRepository) Get(context.Context, string) (teachers.Record, bool, error) {
+	return teachers.Record{}, false, nil
+}
+
+func testTeachers() *teachers.Service {
+	return teachers.NewService(noopTeacherRepository{})
+}
+
+func testAuth() auth.Service {
+	return auth.New("jwt-secret", time.Hour)
+}
 
 func TestPostContestImportNotFound(t *testing.T) {
-	authSvc := auth.New("admin", "secret", "jwt-secret", time.Hour)
+	authSvc := testAuth()
 	token, _, err := authSvc.IssueToken("admin")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	reg := newFakeRegistry()
-	fs := newFakeFindingsStore()
+	fs := newFakeFindingsRepository()
 	st := store.NewMem()
 	pipeline := emptyPipeline()
 	svc := contests.NewService(reg, fs, "stub")
@@ -123,7 +138,7 @@ func TestPostContestImportNotFound(t *testing.T) {
 		t.Fatalf("Register: %v", err)
 	}
 
-	e := transport.New(svc, reader, analyzeSvc, nil, authSvc).Echo()
+	e := transport.New(svc, reader, analyzeSvc, nil, testTeachers(), authSvc).Echo()
 
 	req := httptest.NewRequest(http.MethodPost, "/api/contests/missing/import", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -143,14 +158,14 @@ func TestPostContestImportNotFound(t *testing.T) {
 }
 
 func TestPostContestImportSubmitsJob(t *testing.T) {
-	authSvc := auth.New("admin", "secret", "jwt-secret", time.Hour)
+	authSvc := testAuth()
 	token, _, err := authSvc.IssueToken("admin")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	reg := newFakeRegistry()
-	fs := newFakeFindingsStore()
+	fs := newFakeFindingsRepository()
 	st := store.NewMem()
 	pipeline := emptyPipeline()
 	svc := contests.NewService(reg, fs, "stub")
@@ -164,7 +179,7 @@ func TestPostContestImportSubmitsJob(t *testing.T) {
 		t.Fatalf("Register: %v", err)
 	}
 
-	e := transport.New(svc, reader, analyzeSvc, nil, authSvc).Echo()
+	e := transport.New(svc, reader, analyzeSvc, nil, testTeachers(), authSvc).Echo()
 
 	req := httptest.NewRequest(http.MethodPost, "/api/contests/contest01/import", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -194,14 +209,14 @@ func TestPostContestImportSubmitsJob(t *testing.T) {
 }
 
 func TestGetJobNotFound(t *testing.T) {
-	authSvc := auth.New("admin", "secret", "jwt-secret", time.Hour)
+	authSvc := testAuth()
 	token, _, err := authSvc.IssueToken("admin")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	reg := newFakeRegistry()
-	fs := newFakeFindingsStore()
+	fs := newFakeFindingsRepository()
 	st := store.NewMem()
 	pipeline := emptyPipeline()
 	e := transport.New(
@@ -209,6 +224,7 @@ func TestGetJobNotFound(t *testing.T) {
 		contests.NewContestReader(reg, st, fs),
 		analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, scoring.NewWeighted(), pipeline)),
 		nil,
+		testTeachers(),
 		authSvc,
 	).Echo()
 
@@ -245,14 +261,14 @@ func (fakeReviewStatus) SetVerdict(_ context.Context, sub domain.Submission, v d
 }
 
 func TestGetContestSubmissions(t *testing.T) {
-	authSvc := auth.New("admin", "secret", "jwt-secret", time.Hour)
+	authSvc := testAuth()
 	token, _, err := authSvc.IssueToken("admin")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	reg := newFakeRegistry()
-	fs := newFakeFindingsStore()
+	fs := newFakeFindingsRepository()
 	st := store.NewMem()
 	_ = st.Put(context.Background(), []domain.Submission{{
 		ID: "ejudge:contest01:1", Contest: "contest01", Problem: "A", Participant: "alice",
@@ -271,7 +287,7 @@ func TestGetContestSubmissions(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	e := transport.New(svc, reader, analyzeSvc, reviewSvc, authSvc).Echo()
+	e := transport.New(svc, reader, analyzeSvc, reviewSvc, testTeachers(), authSvc).Echo()
 	req := httptest.NewRequest(http.MethodGet, "/api/contests/contest01/submissions", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
@@ -289,14 +305,14 @@ func TestGetContestSubmissions(t *testing.T) {
 }
 
 func TestGetSubmissionComments(t *testing.T) {
-	authSvc := auth.New("admin", "secret", "jwt-secret", time.Hour)
+	authSvc := testAuth()
 	token, _, err := authSvc.IssueToken("admin")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	reg := newFakeRegistry()
-	fs := newFakeFindingsStore()
+	fs := newFakeFindingsRepository()
 	st := store.NewMem()
 	_ = st.Put(context.Background(), []domain.Submission{{
 		ID: "ejudge:contest01:1", Contest: "contest01", Problem: "A", Participant: "alice",
@@ -314,7 +330,7 @@ func TestGetSubmissionComments(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	e := transport.New(svc, reader, analyzeSvc, reviewSvc, authSvc).Echo()
+	e := transport.New(svc, reader, analyzeSvc, reviewSvc, testTeachers(), authSvc).Echo()
 	req := httptest.NewRequest(http.MethodGet, "/api/contests/contest01/submissions/ejudge:contest01:1/comments", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()

@@ -13,7 +13,7 @@ import (
 )
 
 func TestRequireJWT(t *testing.T) {
-	svc := auth.New("admin", "secret", "jwt-secret", time.Hour)
+	svc := auth.New("jwt-secret", time.Hour)
 	token, _, err := svc.IssueToken("admin")
 	if err != nil {
 		t.Fatal(err)

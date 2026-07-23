@@ -14,28 +14,26 @@ import (
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/mongo"
 
-	"scainer/internal/analyze"
 	"scainer/internal/configs"
-	"scainer/internal/contests"
-	"scainer/internal/detect"
-	"scainer/internal/detect/aiusage"
-	"scainer/internal/detect/jplag"
 	"scainer/internal/domain"
-	"scainer/internal/importer"
-	ejimporter "scainer/internal/importer/ejudge"
-	"scainer/pkg/jobs"
-	"scainer/pkg/llm"
 	"scainer/internal/repository"
-	"scainer/internal/review"
-	ejreview "scainer/internal/review/ejudge"
-	"scainer/internal/scoring"
-	"scainer/internal/store"
+	"scainer/internal/services/analyze"
+	"scainer/internal/services/contests"
+	"scainer/internal/services/detect"
+	"scainer/internal/services/detect/aiusage"
+	"scainer/internal/services/detect/jplag"
+	"scainer/internal/services/ejudge"
+	ejgateway "scainer/internal/services/ejudge/gateway"
+	"scainer/internal/services/importer"
+	"scainer/internal/services/review"
+	"scainer/internal/services/scoring"
+	"scainer/internal/services/teachers"
 	"scainer/internal/transport"
 	"scainer/pkg/auth"
-	ejudgeapi "scainer/pkg/ejudge"
-	"scainer/pkg/openai"
-
-	_ "scainer/internal/importer/folder"
+	"scainer/pkg/jobs"
+	"scainer/pkg/llm"
+	"scainer/pkg/llm/openai"
+	"scainer/pkg/store"
 )
 
 const defaultJudgeSystem = "ejudge"
@@ -68,12 +66,13 @@ func run(cfg *configs.Config) error {
 	}
 	defer mongo.client.Disconnect(context.Background())
 
-	ejClient, err := openEjudge(cfg.Ejudge)
-	if err != nil {
-		return err
-	}
-	if ejClient != nil {
-		importer.Register("ejudge", ejimporter.Factory(ejClient))
+	teachersSvc := teachers.NewService(mongo.teachers)
+	ejGateway := ejgateway.New(mongo.teachers, mongo.credentials, cfg.Ejudge.BaseURL, cfg.Ejudge.Timeout)
+	if cfg.Ejudge.Enabled() {
+		importer.Register("ejudge", ejudge.ImporterFactory(ejGateway))
+		fmt.Fprintln(os.Stderr, "scainer: ejudge enabled")
+	} else {
+		fmt.Fprintln(os.Stderr, "scainer: ejudge disabled (нет base_url)")
 	}
 
 	pipeline, pool, err := buildAnalyzeRuntime(cfg, store)
@@ -81,15 +80,17 @@ func run(cfg *configs.Config) error {
 		return err
 	}
 
-	svcs := wireServices(cfg, store, mongo, ejClient, pipeline, pool)
-	e := transport.New(svcs.contests, svcs.reader, svcs.analyze, svcs.review, svcs.auth).Echo()
+	svcs := wireServices(cfg, store, mongo, ejGateway, teachersSvc, pipeline, pool)
+	e := transport.New(svcs.contests, svcs.reader, svcs.analyze, svcs.review, svcs.teachers, svcs.auth).Echo()
 	return serveHTTP(cfg.HTTP, e)
 }
 
 type mongoDeps struct {
 	client        *mongo.Client
+	teachers      *repository.TeachersRepository
+	credentials   *repository.EjudgeCredentialsRepository
 	registry      contests.ContestRegistry
-	findingsStore contests.FindingsStore
+	findingsRepo contests.FindingsRepository
 }
 
 func openMongo(mc configs.MongoDBConfig) (mongoDeps, error) {
@@ -103,21 +104,11 @@ func openMongo(mc configs.MongoDBConfig) (mongoDeps, error) {
 	}
 	return mongoDeps{
 		client:        client,
+		teachers:      repository.NewTeachersRepository(db),
+		credentials:   repository.NewEjudgeCredentialsRepository(db),
 		registry:      repository.NewContestRepository(db),
-		findingsStore: repository.NewFindingsRepository(db),
+		findingsRepo: repository.NewFindingsRepository(db),
 	}, nil
-}
-
-func openEjudge(ec configs.EjudgeConfig) (*ejudgeapi.Client, error) {
-	if !ec.Enabled() {
-		fmt.Fprintln(os.Stderr, "scainer: ejudge disabled (нет base_url/api_key)")
-		return nil, nil
-	}
-	client, err := ejudgeapi.New(ec.BaseURL, ec.APIKey, ec.Timeout)
-	if err != nil {
-		return nil, fmt.Errorf("ejudge: %w", err)
-	}
-	return client, nil
 }
 
 func buildAnalyzeRuntime(cfg *configs.Config, st *store.FS) (detect.Pipeline, *jobs.Pool, error) {
@@ -179,6 +170,7 @@ type appServices struct {
 	reader   *contests.ContestReader
 	analyze  *analyze.Service
 	review   *review.Service
+	teachers *teachers.Service
 	auth     auth.Service
 }
 
@@ -186,22 +178,27 @@ func wireServices(
 	cfg *configs.Config,
 	store *store.FS,
 	mongo mongoDeps,
-	ejClient *ejudgeapi.Client,
+	ejGateway *ejgateway.Gateway,
+	teachersSvc *teachers.Service,
 	pipeline detect.Pipeline,
 	pool *jobs.Pool,
 ) appServices {
 	scorer := scoring.NewWeighted()
+
+	var comments review.CommentsProvider
+	var status review.StatusProvider
+	if cfg.Ejudge.Enabled() {
+		comments = ejudge.NewComments(ejGateway)
+		status = ejudge.NewStatus(ejGateway)
+	}
+
 	return appServices{
-		contests: contests.NewService(mongo.registry, mongo.findingsStore, defaultJudgeSystem),
-		reader:   contests.NewContestReader(mongo.registry, store, mongo.findingsStore),
-		analyze:  analyze.New(pool, analyze.NewRunner(mongo.registry, store, mongo.findingsStore, scorer, pipeline)),
-		review: review.New(store, &ejreview.Comments{Client: ejClient}, &ejreview.Status{Client: ejClient}),
-		auth: auth.New(
-			cfg.Admin.Username,
-			cfg.Admin.Password,
-			cfg.Admin.JWTSecret,
-			cfg.Admin.JWTTTL,
-		),
+		contests: contests.NewService(mongo.registry, mongo.findingsRepo, defaultJudgeSystem),
+		reader:   contests.NewContestReader(mongo.registry, store, mongo.findingsRepo),
+		analyze:  analyze.New(pool, analyze.NewRunner(mongo.registry, store, mongo.findingsRepo, scorer, pipeline)),
+		review:   review.New(store, comments, status),
+		teachers: teachersSvc,
+		auth:     auth.New(cfg.Admin.JWTSecret, cfg.Admin.JWTTTL),
 	}
 }
 

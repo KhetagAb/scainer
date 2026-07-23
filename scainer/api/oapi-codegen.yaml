@@ -4,4 +4,4 @@ generate:
   echo-server: true
   models: true
   embedded-spec: true
-output: ../internal/generated/server/api.gen.go
+output: ../generated/server/api.gen.go

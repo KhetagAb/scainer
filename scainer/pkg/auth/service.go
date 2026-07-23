@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"crypto/subtle"
 	"errors"
 	"fmt"
 	"strings"
@@ -20,30 +19,22 @@ type Claims struct {
 }
 
 type Service struct {
-	username, password, secret []byte
-	ttl                        time.Duration
+	secret []byte
+	ttl    time.Duration
 }
 
-func New(username, password, secret string, ttl time.Duration) Service {
+func New(secret string, ttl time.Duration) Service {
 	if ttl <= 0 {
 		ttl = 24 * time.Hour
 	}
 	return Service{
-		username: []byte(username),
-		password: []byte(password),
-		secret:   []byte(secret),
-		ttl:      ttl,
+		secret: []byte(secret),
+		ttl:    ttl,
 	}
 }
 
-func (s Service) ValidateCredentials(username, password string) bool {
-	if subtle.ConstantTimeCompare([]byte(username), s.username) != 1 {
-		return false
-	}
-	if subtle.ConstantTimeCompare([]byte(password), s.password) != 1 {
-		return false
-	}
-	return true
+func (s Service) TTL() time.Duration {
+	return s.ttl
 }
 
 func (s Service) IssueToken(username string) (token string, expiresIn int, err error) {

@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"scainer/pkg/openai"
+	"scainer/pkg/llm/openai"
 )
 
 const (

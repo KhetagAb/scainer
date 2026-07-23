@@ -1,31 +1,23 @@
 package auth_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"scainer/pkg/auth"
 )
 
-func TestValidateCredentials(t *testing.T) {
-	svc := auth.New("admin", "secret", "jwt-secret", time.Hour)
-
-	if !svc.ValidateCredentials("admin", "secret") {
-		t.Fatal("ожидали успех для верных кредов")
-	}
-	if svc.ValidateCredentials("admin", "wrong") {
-		t.Fatal("неверный пароль должен отклоняться")
-	}
-	if svc.ValidateCredentials("other", "secret") {
-		t.Fatal("неверный username должен отклоняться")
-	}
-	if svc.ValidateCredentials("adminx", "secret") {
-		t.Fatal("частичное совпадение username недопустимо")
+func TestWithLoginRoundtrip(t *testing.T) {
+	ctx := auth.WithLogin(context.Background(), "alice")
+	login, ok := auth.LoginFrom(ctx)
+	if !ok || login != "alice" {
+		t.Fatalf("login=%q ok=%v", login, ok)
 	}
 }
 
 func TestIssueParseRoundtrip(t *testing.T) {
-	svc := auth.New("admin", "secret", "jwt-secret", time.Hour)
+	svc := auth.New("jwt-secret", time.Hour)
 	token, expiresIn, err := svc.IssueToken("admin")
 	if err != nil {
 		t.Fatal(err)
@@ -52,7 +44,7 @@ func TestIssueParseRoundtrip(t *testing.T) {
 }
 
 func TestParseExpiredToken(t *testing.T) {
-	svc := auth.New("admin", "secret", "jwt-secret", time.Millisecond)
+	svc := auth.New("jwt-secret", time.Millisecond)
 	token, _, err := svc.IssueToken("admin")
 	if err != nil {
 		t.Fatal(err)
@@ -65,7 +57,7 @@ func TestParseExpiredToken(t *testing.T) {
 }
 
 func TestParseInvalidToken(t *testing.T) {
-	svc := auth.New("admin", "secret", "jwt-secret", time.Hour)
+	svc := auth.New("jwt-secret", time.Hour)
 	if _, err := svc.ParseToken("not-a-jwt"); err == nil {
 		t.Fatal("ожидали ошибку")
 	}
@@ -73,7 +65,7 @@ func TestParseInvalidToken(t *testing.T) {
 		t.Fatal("ожидали ошибку для пустого токена")
 	}
 
-	other := auth.New("admin", "secret", "other-secret", time.Hour)
+	other := auth.New("other-secret", time.Hour)
 	token, _, err := other.IssueToken("admin")
 	if err != nil {
 		t.Fatal(err)

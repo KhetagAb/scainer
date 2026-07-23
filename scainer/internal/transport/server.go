@@ -10,11 +10,13 @@ import (
 	"github.com/labstack/echo/v4"
 	echomiddleware "github.com/labstack/echo/v4/middleware"
 
-	"scainer/internal/analyze"
-	"scainer/internal/contests"
+	"scainer/internal/services/analyze"
+	"scainer/internal/services/contests"
 	"scainer/internal/domain"
-	"scainer/internal/generated/server"
-	"scainer/internal/review"
+	"scainer/internal/services/ejudge/gateway"
+	"scainer/generated/server"
+	"scainer/internal/services/review"
+	"scainer/internal/services/teachers"
 	"scainer/pkg/auth"
 	"scainer/pkg/jobs"
 	scainermw "scainer/pkg/middleware"
@@ -25,11 +27,12 @@ type Server struct {
 	reader   *contests.ContestReader
 	analyze  *analyze.Service
 	review   *review.Service
+	teachers *teachers.Service
 	auth     auth.Service
 }
 
-func New(contestsSvc *contests.Service, reader *contests.ContestReader, analyzeSvc *analyze.Service, reviewSvc *review.Service, authSvc auth.Service) *Server {
-	return &Server{contests: contestsSvc, reader: reader, analyze: analyzeSvc, review: reviewSvc, auth: authSvc}
+func New(contestsSvc *contests.Service, reader *contests.ContestReader, analyzeSvc *analyze.Service, reviewSvc *review.Service, teachersSvc *teachers.Service, authSvc auth.Service) *Server {
+	return &Server{contests: contestsSvc, reader: reader, analyze: analyzeSvc, review: reviewSvc, teachers: teachersSvc, auth: authSvc}
 }
 
 func (s *Server) Echo() *echo.Echo {
@@ -58,8 +61,14 @@ func (s *Server) PostAuthLogin(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, server.Error{Error: "invalid request body"})
 	}
-	if !s.auth.ValidateCredentials(req.Username, req.Password) {
-		return c.JSON(http.StatusUnauthorized, server.Error{Error: "invalid credentials"})
+	if s.teachers == nil {
+		return c.JSON(http.StatusInternalServerError, server.Error{Error: "authentication is not configured"})
+	}
+	if err := s.teachers.Login(c.Request().Context(), req.Username, req.Password); err != nil {
+		if errors.Is(err, teachers.ErrNotFound) || errors.Is(err, teachers.ErrInvalidCredentials) {
+			return c.JSON(http.StatusUnauthorized, server.Error{Error: "invalid credentials"})
+		}
+		return c.JSON(http.StatusInternalServerError, server.Error{Error: "login failed"})
 	}
 	token, expiresIn, err := s.auth.IssueToken(req.Username)
 	if err != nil {
@@ -216,7 +225,7 @@ func (s *Server) GetSubmissionComments(c echo.Context, id server.ContestID, subm
 	if _, err := s.reader.Problems(c.Request().Context(), domain.ContestID(id)); err != nil {
 		return mapContestErr(c, err)
 	}
-	res, err := s.review.LoadComments(c.Request().Context(), domain.ContestID(id), domain.SubmissionID(submissionId))
+	res, err := s.review.LoadComments(c.Request().Context(), domain.SubmissionID(submissionId))
 	if err != nil {
 		return mapReviewErr(c, err)
 	}
@@ -261,7 +270,7 @@ func (s *Server) PostSubmissionComment(c echo.Context, id server.ContestID, subm
 	if _, err := s.reader.Problems(c.Request().Context(), domain.ContestID(id)); err != nil {
 		return mapContestErr(c, err)
 	}
-	err := s.review.Comment(c.Request().Context(), domain.ContestID(id), domain.SubmissionID(submissionId), req.Text)
+	err := s.review.Comment(c.Request().Context(), domain.SubmissionID(submissionId), req.Text)
 	if err != nil {
 		return mapReviewErr(c, err)
 	}
@@ -286,7 +295,7 @@ func (s *Server) PostSubmissionVerdict(c echo.Context, id server.ContestID, subm
 	if req.Comment != nil {
 		comment = *req.Comment
 	}
-	err := s.review.Decide(c.Request().Context(), domain.ContestID(id), domain.SubmissionID(submissionId), review.DecideRequest{
+	err := s.review.Decide(c.Request().Context(), domain.SubmissionID(submissionId), review.DecideRequest{
 		Verdict: domain.Verdict(req.Verdict),
 		Comment: comment,
 	})
@@ -417,6 +426,10 @@ func mapReviewErr(c echo.Context, err error) error {
 		return c.JSON(http.StatusNotFound, server.Error{Error: "submission not found"})
 	case errors.Is(err, review.ErrInvalidVerdict):
 		return c.JSON(http.StatusBadRequest, server.Error{Error: err.Error()})
+	case errors.Is(err, gateway.ErrBootstrap):
+		return c.JSON(http.StatusServiceUnavailable, server.Error{Error: "ejudge is temporarily unavailable"})
+	case errors.Is(err, gateway.ErrNoLogin):
+		return c.JSON(http.StatusUnauthorized, server.Error{Error: "unauthorized"})
 	default:
 		return c.JSON(http.StatusBadGateway, server.Error{Error: err.Error()})
 	}

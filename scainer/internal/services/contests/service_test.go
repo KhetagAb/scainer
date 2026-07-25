@@ -51,7 +51,7 @@ func waitForJob(t *testing.T, svc *analyze.Service, jobID string) error {
 
 func submitAndWait(t *testing.T, svc *analyze.Service, ctx context.Context, id domain.ContestID) error {
 	t.Helper()
-	jobID, err := svc.Submit(ctx, id)
+	jobID, err := svc.ImportThenAnalyze(ctx, id)
 	if err != nil {
 		return err
 	}

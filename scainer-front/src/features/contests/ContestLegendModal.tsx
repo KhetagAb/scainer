@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import ContestCard from "@/features/contests/ContestCard";
 import {
   ContestFindingsIcon,
   ContestReviewIcon,
@@ -30,8 +31,8 @@ type Props = {
 
 const COLOR_LEVELS: Array<{ level: string; label: string; hint: string }> = [
   { level: "level-0", label: "A", hint: "нет" },
-  { level: "level-low", label: "B", hint: ">15%" },
-  { level: "level-high", label: "C", hint: "≤15%" },
+  { level: "level-low", label: "B", hint: ">10%" },
+  { level: "level-high", label: "C", hint: "≤10%" },
 ];
 
 function HeaderIcon() {
@@ -116,40 +117,22 @@ export default function ContestLegendModal({ open, onClose }: Props) {
         <div className="modal-card__scroll contest-legend-modal__body">
           <div className="legend-diagram">
             <div className="legend-diagram__card-wrap">
-              <div className="contest-card legend-diagram__card" aria-hidden>
-                <div className="contest-card__top">
-                  <span className="contest-card__name">День 01</span>
-                  <div className="contest-card__nav">
-                    <div className="contest-card__nav-icons">
-                      <span className="contest-card__nav-link contest-card__nav-link--review contest-card__nav-link--review-pending">
-                        <ContestReviewIcon size={16} />
-                      </span>
-                      <span className="contest-card__nav-link contest-card__nav-link--findings contest-card__nav-link--findings-green">
-                        <ContestFindingsIcon size={16} />
-                      </span>
-                    </div>
-                    <span className="contest-card__nav-hint contest-card__nav-hint--review" aria-hidden>
-                      Ревью
-                      <span className="contest-card__nav-key contest-card__nav-key--violet">
-                        <span className="contest-card__nav-key__dot" />
-                        67 PR
-                      </span>
-                    </span>
-                  </div>
-                </div>
-                <div className="contest-stats contest-stats--meta-only">
-                  <div className="contest-stats__left">
-                    <span className="contest-stats__meta contest-stats__muted">69 посылок</span>
-                  </div>
-                  <span className="contest-stats__problems">
-                    {COLOR_LEVELS.map((c) => (
-                      <span key={c.level} className={`contest-problem-chip ${c.level}`}>
-                        {c.label}
-                      </span>
-                    ))}
-                  </span>
-                </div>
-              </div>
+              <ContestCard
+                className="legend-diagram__card"
+                aria-hidden
+                staticActions
+                id="legend"
+                name="День 01"
+                displayName="День 01"
+                pendingCount={67}
+                hasStrongSignals
+                stats={{ submissionCount: 69 }}
+                problemStats={[
+                  { id: "a", name: "A", suspiciousSharePercent: 0, pendingCount: 0 },
+                  { id: "b", name: "B", suspiciousSharePercent: 20, pendingCount: 0 },
+                  { id: "c", name: "C", suspiciousSharePercent: 10, pendingCount: 0 },
+                ]}
+              />
             </div>
 
             <div className="legend-diagram__notes">

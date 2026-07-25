@@ -1,10 +1,12 @@
 package transport
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -22,6 +24,11 @@ import (
 	scainermw "scainer/pkg/middleware"
 )
 
+type ejudgeGateway interface {
+	BrowserLogin(ctx context.Context, contestID int) (gateway.BrowserLogin, bool, error)
+	EnsureAPIKey(ctx context.Context) error
+}
+
 type Server struct {
 	contests *contests.Service
 	reader   *contests.ContestReader
@@ -29,10 +36,11 @@ type Server struct {
 	review   *review.Service
 	teachers *teachers.Service
 	auth     auth.Service
+	ejudge   ejudgeGateway
 }
 
-func New(contestsSvc *contests.Service, reader *contests.ContestReader, analyzeSvc *analyze.Service, reviewSvc *review.Service, teachersSvc *teachers.Service, authSvc auth.Service) *Server {
-	return &Server{contests: contestsSvc, reader: reader, analyze: analyzeSvc, review: reviewSvc, teachers: teachersSvc, auth: authSvc}
+func New(contestsSvc *contests.Service, reader *contests.ContestReader, analyzeSvc *analyze.Service, reviewSvc *review.Service, teachersSvc *teachers.Service, authSvc auth.Service, ejudgeGw ejudgeGateway) *Server {
+	return &Server{contests: contestsSvc, reader: reader, analyze: analyzeSvc, review: reviewSvc, teachers: teachersSvc, auth: authSvc, ejudge: ejudgeGw}
 }
 
 func (s *Server) Echo() *echo.Echo {
@@ -77,10 +85,22 @@ func (s *Server) PostAuthLogin(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, server.Error{Error: "failed to issue token"})
 	}
+	s.warmupAPIKeyAsync(req.Username)
 	return c.JSON(http.StatusOK, server.LoginResponse{
 		AccessToken: token,
 		ExpiresIn:   expiresIn,
 	})
+}
+
+func (s *Server) warmupAPIKeyAsync(login string) {
+	if s.ejudge == nil || login == "" {
+		return
+	}
+	go func() {
+		ctx, cancel := context.WithTimeout(auth.WithLogin(context.Background(), login), 30*time.Second)
+		defer cancel()
+		_ = s.ejudge.EnsureAPIKey(ctx)
+	}()
 }
 
 func (s *Server) GetAuthMe(c echo.Context) error {
@@ -89,6 +109,29 @@ func (s *Server) GetAuthMe(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, server.Error{Error: "unauthorized"})
 	}
 	return c.JSON(http.StatusOK, server.MeResponse{Username: username})
+}
+
+func (s *Server) GetContestEjudgeLogin(c echo.Context, id server.ContestID) error {
+	if s.ejudge == nil {
+		return c.JSON(http.StatusServiceUnavailable, server.Error{Error: "ejudge is not configured"})
+	}
+	contestID, err := strconv.Atoi(string(id))
+	if err != nil || contestID <= 0 {
+		return c.JSON(http.StatusNotFound, server.Error{Error: "contest not found"})
+	}
+	login, ok, err := s.ejudge.BrowserLogin(c.Request().Context(), contestID)
+	if err != nil {
+		return c.JSON(http.StatusServiceUnavailable, server.Error{Error: "ejudge login unavailable"})
+	}
+	if !ok {
+		return c.JSON(http.StatusServiceUnavailable, server.Error{Error: "ejudge login unavailable"})
+	}
+	return c.JSON(http.StatusOK, server.EjudgeBrowserLogin{
+		BaseUrl:   login.BaseURL,
+		Login:     login.Login,
+		Password:  login.Password,
+		ContestId: login.ContestID,
+	})
 }
 
 func (s *Server) GetContests(c echo.Context) error {
@@ -316,7 +359,7 @@ func (s *Server) requireReview(c echo.Context) error {
 }
 
 func (s *Server) PostContestImport(c echo.Context, id server.ContestID) error {
-	jobID, err := s.analyze.Submit(c.Request().Context(), domain.ContestID(id))
+	jobID, err := s.analyze.ImportThenAnalyze(c.Request().Context(), domain.ContestID(id))
 	if err != nil {
 		return mapContestErr(c, err)
 	}
@@ -420,6 +463,9 @@ func mapContestErr(c echo.Context, err error) error {
 	if errors.Is(err, contests.ErrContestNotFound) {
 		return c.JSON(http.StatusNotFound, server.Error{Error: "contest not found"})
 	}
+	if errors.Is(err, analyze.ErrJobRunning) {
+		return c.JSON(http.StatusConflict, server.Error{Error: err.Error()})
+	}
 	return c.JSON(http.StatusInternalServerError, server.Error{Error: err.Error()})
 }
 
@@ -429,7 +475,7 @@ func mapReviewErr(c echo.Context, err error) error {
 		return c.JSON(http.StatusNotFound, server.Error{Error: "submission not found"})
 	case errors.Is(err, review.ErrInvalidVerdict):
 		return c.JSON(http.StatusBadRequest, server.Error{Error: err.Error()})
-	case errors.Is(err, gateway.ErrBootstrap):
+	case errors.Is(err, gateway.ErrAPIKeyProvision):
 		return c.JSON(http.StatusServiceUnavailable, server.Error{Error: "ejudge is temporarily unavailable"})
 	case errors.Is(err, gateway.ErrNoLogin):
 		return c.JSON(http.StatusUnauthorized, server.Error{Error: "unauthorized"})

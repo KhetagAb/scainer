@@ -15,6 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"scainer/internal/configs"
+	"scainer/internal/cron"
 	"scainer/internal/domain"
 	"scainer/internal/repository"
 	"scainer/internal/services/analyze"
@@ -86,7 +87,23 @@ func run(cfg *configs.Config) error {
 	}
 
 	svcs := wireServices(cfg, store, mongo, ejGateway, teachersSvc, pipeline, pool)
-	e := transport.New(svcs.contests, svcs.reader, svcs.analyze, svcs.review, svcs.teachers, svcs.auth).Echo()
+
+	cronCtx, stopCron := context.WithCancel(context.Background())
+	defer stopCron()
+	if cfg.ImportCron.Enabled {
+		cancel, err := cron.StartImportCron(cronCtx, mongo.registry, svcs.analyze, cfg.ImportCron.Interval)
+		if err != nil {
+			return fmt.Errorf("import_cron: %w", err)
+		}
+		defer cancel()
+		fmt.Fprintf(os.Stderr, "scainer: import_cron every %s\n", cfg.ImportCron.Interval)
+	}
+
+	var ejudgeGw *ejgateway.Gateway
+	if cfg.Ejudge.Enabled() {
+		ejudgeGw = ejGateway
+	}
+	e := transport.New(svcs.contests, svcs.reader, svcs.analyze, svcs.review, svcs.teachers, svcs.auth, ejudgeGw).Echo()
 	return serveHTTP(cfg.HTTP, e)
 }
 

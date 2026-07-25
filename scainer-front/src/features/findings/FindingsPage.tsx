@@ -4,11 +4,19 @@ import type { FindingView, ReportData, SubmissionView } from "@/client/types.gen
 import { useSensitivity } from "@/features/contests/SensitivityContext";
 import { countSignalsForProblem } from "@/features/contests/problemSignalStats";
 import {
-  FindingCard,
+  FindingRow,
   GroupTitle,
   useFilteredVisibility,
 } from "@/features/findings/FindingCard";
 import { groupFindings } from "@/features/findings/reportModel";
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    out.push(items.slice(i, i + size));
+  }
+  return out;
+}
 
 type Props = {
   findingKey?: string | null;
@@ -49,7 +57,8 @@ export default function FindingsPage({
   }, [groups, groupBy, threshold, problemSubmissionCounts]);
 
   useEffect(() => {
-    if (findingKey) {
+    if (!findingKey) return;
+    const scrollToFinding = () => {
       const element = document.querySelector(
         `[data-finding-key="${CSS.escape(findingKey)}"]`,
       ) as HTMLElement | null;
@@ -57,7 +66,9 @@ export default function FindingsPage({
         element.scrollIntoView({ behavior: "smooth", block: "center" });
         element.focus();
       }
-    }
+    };
+    const frame = requestAnimationFrame(scrollToFinding);
+    return () => cancelAnimationFrame(frame);
   }, [findingKey, findings]);
 
   if (findingsQuery.isLoading) {
@@ -99,14 +110,17 @@ export default function FindingsPage({
                 />
               </div>
               <div className="group-cards">
-                {g.findings.map((f) => (
-                  <FindingCard
-                    key={f.key}
-                    finding={f}
+                {chunk(
+                  g.findings.filter((f) => visibleKeys.has(f.key)),
+                  2,
+                ).map((pair, rowIdx) => (
+                  <FindingRow
+                    key={pair.map((f) => f.key).join(":") || `row-${rowIdx}`}
+                    pair={pair}
                     groupBy={groupBy}
                     groupKey={g.key}
                     submissions={submissions}
-                    hidden={!visibleKeys.has(f.key)}
+                    deepLinkKey={findingKey}
                   />
                 ))}
               </div>

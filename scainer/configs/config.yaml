@@ -27,6 +27,10 @@ analyze:
   # Общий потолок JVM/JPlag/LLM на процесс (не на один job).
   analyze_concurrency: 4
 
+import_cron:
+  enabled: false
+  interval: 5m
+
 aiusage:
   enabled: false
 

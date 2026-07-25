@@ -42,7 +42,9 @@ func NewRunner(
 	}
 }
 
-func (r *Runner) Run(ctx context.Context, id domain.ContestID) (Result, error) {
+func (r *Runner) Import(ctx context.Context, id domain.ContestID) (Result, error) {
+	progress.Report(ctx, progress.Event{Phase: "importing"})
+
 	record, err := lookup(ctx, r.registry, id)
 	if err != nil {
 		return Result{}, err
@@ -69,12 +71,16 @@ func (r *Runner) Run(ctx context.Context, id domain.ContestID) (Result, error) {
 		return Result{}, fmt.Errorf("persist lastImportedAt: %w", err)
 	}
 
-	progress.Report(ctx, progress.Event{Phase: "analyzing"})
-
-	if err := r.recomputeFindings(ctx, id); err != nil {
-		return Result{}, fmt.Errorf("recompute findings: %w", err)
-	}
 	return Result{ImportedCount: len(imported.Submissions), LastImportedAt: now}, nil
+}
+
+func (r *Runner) Analyze(ctx context.Context, id domain.ContestID) error {
+	if _, err := lookup(ctx, r.registry, id); err != nil {
+		return err
+	}
+
+	progress.Report(ctx, progress.Event{Phase: "analyzing"})
+	return r.recomputeFindings(ctx, id)
 }
 
 func (r *Runner) recomputeFindings(ctx context.Context, id domain.ContestID) error {

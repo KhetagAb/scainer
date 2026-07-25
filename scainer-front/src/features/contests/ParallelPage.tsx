@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   getContestFindingsOptions,
   getContestFindingsQueryKey,
@@ -13,16 +13,11 @@ import helpIconUrl from "@/assets/help-icon.png";
 import importIconUrl from "@/assets/import-icon.png";
 import { authHeaders } from "@/features/auth/authStorage";
 import AddContestForm from "@/features/contests/AddContestForm";
+import ContestCard from "@/features/contests/ContestCard";
 import ContestLegendModal, {
   markContestLegendSeen,
   wasContestLegendSeen,
 } from "@/features/contests/ContestLegendModal";
-import ContestStats from "@/features/contests/ContestStats";
-import ContestIdCopy from "@/features/contests/ContestIdCopy";
-import {
-  ContestFindingsIcon,
-  ContestReviewIcon,
-} from "@/features/contests/ContestSectionNav";
 import ImportProgressBar from "@/features/contests/ImportProgressBar";
 import SensitivitySlider from "@/features/contests/SensitivitySlider";
 import { useSensitivity } from "@/features/contests/SensitivityContext";
@@ -223,78 +218,24 @@ export default function ParallelPage({ onUnauthorized }: Props) {
       </div>
 
       <ul className="contest-grid">
-        {rows.map((c) => {
-          const reviewTo = `/contests/${encodeURIComponent(c.id)}/review`;
-          const findingsTo = `/contests/${encodeURIComponent(c.id)}/findings`;
-          const title = c.name || c.id;
-          return (
-            <li key={c.id}>
-              <div className="contest-card">
-                <Link
-                  to={reviewTo}
-                  className="contest-card__hit"
-                  title={title}
-                  aria-label={c.displayName || c.id}
-                />
-                <div className="contest-card__top">
-                  <div className="contest-card__title">
-                    <span className="contest-card__name">{c.displayName || c.id}</span>
-                    {c.id !== c.name ? <ContestIdCopy id={c.id} /> : null}
-                  </div>
-                  <div className="contest-card__nav">
-                    <div className="contest-card__nav-icons">
-                      <Link
-                        to={reviewTo}
-                        className={
-                          "contest-card__nav-link contest-card__nav-link--review" +
-                          (c.pendingCount > 0 ? " contest-card__nav-link--review-pending" : "")
-                        }
-                        aria-label={
-                          c.pendingCount > 0
-                            ? `Ревью, ${c.pendingCount} PR`
-                            : "Ревью"
-                        }
-                      >
-                        <ContestReviewIcon size={16} />
-                      </Link>
-                      <Link
-                        to={findingsTo}
-                        className={
-                          "contest-card__nav-link contest-card__nav-link--findings" +
-                          (c.hasStrongSignals ? " contest-card__nav-link--findings-green" : "")
-                        }
-                        aria-label="Детект"
-                      >
-                        <ContestFindingsIcon size={16} />
-                      </Link>
-                    </div>
-                    <span className="contest-card__nav-hint contest-card__nav-hint--review" aria-hidden>
-                      Ревью
-                      {c.pendingCount > 0 ? (
-                        <span className="contest-card__nav-key contest-card__nav-key--violet">
-                          <span className="contest-card__nav-key__dot" />
-                          {c.pendingCount} PR
-                        </span>
-                      ) : null}
-                    </span>
-                    <span className="contest-card__nav-hint contest-card__nav-hint--findings" aria-hidden>
-                      Детект
-                    </span>
-                  </div>
-                </div>
-                <ContestStats
-                  stats={c.stats}
-                  problemStats={c.problemStats}
-                  importProgress={
-                    c.id in importJobs.progressById
-                      ? importJobs.progressById[c.id]
-                      : undefined
-                  }
-                />
-              </div>
-            </li>
-          );
-        })}
+        {rows.map((c) => (
+          <li key={c.id}>
+            <ContestCard
+              id={c.id}
+              name={c.name}
+              displayName={c.displayName || c.id}
+              pendingCount={c.pendingCount}
+              hasStrongSignals={c.hasStrongSignals}
+              stats={c.stats}
+              problemStats={c.problemStats}
+              importProgress={
+                c.id in importJobs.progressById
+                  ? importJobs.progressById[c.id]
+                  : undefined
+              }
+            />
+          </li>
+        ))}
         {canAdd && (
           <li className="contest-grid__add">
             <AddContestForm

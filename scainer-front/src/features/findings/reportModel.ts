@@ -21,6 +21,10 @@ export function scoreLevel(score: number): string {
   return "level-0";
 }
 
+export function scoreFillPercent(score: number): number {
+  return Math.max(0, Math.min(100, score * 100));
+}
+
 export function fmtScore(score: number): string {
   return (Math.round(score * 100) / 100).toFixed(2);
 }
@@ -72,12 +76,17 @@ export function subjectTitle(subject: SubjectView, groupBy: GroupBy, groupKey: s
 }
 
 const DETECTOR_LABELS: Record<string, string> = {
-  jplag: "JPlag",
+  jplag: "Списывание",
   "aiusage-task": "AI-использование",
   "night-submit": "Ночная посылка",
 };
 
 export const NIGHT_SUBMIT_DETECTOR = "night-submit";
+export const JPLAG_DETECTOR = "jplag";
+
+export function findingHasNightSubmit(signals: FindingView["signals"]): boolean {
+  return (signals ?? []).some((s) => s.detector === NIGHT_SUBMIT_DETECTOR);
+}
 
 export function detectorLabel(id: string): string {
   return DETECTOR_LABELS[id] ?? id;

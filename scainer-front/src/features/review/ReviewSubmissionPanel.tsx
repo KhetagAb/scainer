@@ -24,7 +24,10 @@ import {
   topFindingKey,
 } from "@/features/review/reviewFindings";
 import SourceCode from "@/features/code/SourceCode";
+import { CodePaneMoreBar } from "@/features/code/CodePaneMoreBar";
 import ReviewCelebrateOverlay from "@/features/review/ReviewCelebrateOverlay";
+import { EjudgeContestChip } from "@/features/ejudge/EjudgeContestChip";
+import { RadarAttentionIcon } from "@/features/review/RadarAttentionIcon";
 
 function citeLinesLabel(from: number, to: number): string {
   return from === to ? `Строка ${from}: ` : `Строки ${from}–${to}: `;
@@ -350,10 +353,34 @@ export default function ReviewSubmissionPanel({
       ) : null}
 
       <div className="review-workspace">
-        <h3 className="review-workspace__label">Код</h3>
+        <div className="review-workspace__label-row">
+          <h3 className="review-workspace__label">Код</h3>
+          <CodePaneMoreBar key={submissionId} className="review-workspace__more">
+            <EjudgeContestChip title={submissionId}>{submissionId}</EjudgeContestChip>
+            {submission.problem ? (
+              <span className="chip problem-chip" title={submission.problem}>
+                {submission.problem}
+              </span>
+            ) : null}
+            {submission.lang ? <span className="chip">{submission.lang}</span> : null}
+          </CodePaneMoreBar>
+        </div>
         <div className="review-workspace__label-spacer" aria-hidden />
 
         <div className="review-workspace__code" aria-label="Исходный код">
+          {findingKey ? (
+            <Link
+              to={`${base}/findings?finding=${encodeURIComponent(findingKey)}`}
+              className="review-findings-link review-findings-link--overlay"
+              aria-label="К подозрениям"
+            >
+              <RadarAttentionIcon />
+              <span className="review-findings-link__label">
+                <span className="review-findings-link__text">ATTENTION!</span>
+                <span className="review-findings-link__subtext">К подозрениям →</span>
+              </span>
+            </Link>
+          ) : null}
           {commentsQuery.isLoading ? (
             <p className="review-comments__empty">Загрузка…</p>
           ) : (
@@ -363,7 +390,9 @@ export default function ReviewSubmissionPanel({
                   ? " review-source__code--ok"
                   : verdictTone === "fail"
                     ? " review-source__code--rj"
-                    : ""
+                    : findingKey
+                      ? " review-source__code--attention"
+                      : ""
               }`}
               lang={submission.lang}
               lines={
@@ -383,14 +412,6 @@ export default function ReviewSubmissionPanel({
             <span className={`review-verdict-chip review-verdict-chip--${verdictTone}`}>
               {formatVerdictLabel(liveVerdict)}
             </span>
-            {findingKey ? (
-              <Link
-                to={`${base}/findings?finding=${encodeURIComponent(findingKey)}`}
-                className="review-detail__finding"
-              >
-                К подозрению
-              </Link>
-            ) : null}
           </div>
           <form
             className="review-verdict"

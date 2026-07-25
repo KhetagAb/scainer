@@ -19,8 +19,7 @@ func NewEjudgeCredentialsRepository(db *mongo.Database) *EjudgeCredentialsReposi
 }
 
 type ejudgeCredDoc struct {
-	LastSID string `bson:"last_sid"`
-	APIKey  string `bson:"api_key"`
+	APIKey string `bson:"api_key"`
 }
 
 func (r *EjudgeCredentialsRepository) Get(ctx context.Context, login string) (gateway.Credentials, bool, error) {
@@ -33,9 +32,8 @@ func (r *EjudgeCredentialsRepository) Get(ctx context.Context, login string) (ga
 		return gateway.Credentials{}, false, err
 	}
 	return gateway.Credentials{
-		Login:   login,
-		LastSID: doc.LastSID,
-		APIKey:  doc.APIKey,
+		Login:  login,
+		APIKey: doc.APIKey,
 	}, true, nil
 }
 
@@ -46,9 +44,6 @@ func (r *EjudgeCredentialsRepository) Upsert(ctx context.Context, cred gateway.C
 	}
 
 	set := bson.M{}
-	if cred.LastSID != "" {
-		set["last_sid"] = cred.LastSID
-	}
 	if cred.APIKey != "" {
 		set["api_key"] = cred.APIKey
 	} else if found && existing.APIKey != "" {

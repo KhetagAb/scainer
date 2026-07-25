@@ -128,6 +128,26 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorResponse'
 
+  /api/contests/{id}/ejudge-login:
+    get:
+      operationId: getContestEjudgeLogin
+      summary: Учётные данные для браузерного входа в контест ejudge
+      parameters:
+        - $ref: '#/components/parameters/ContestID'
+      responses:
+        '200':
+          description: base URL, login, password и contest_id для POST в ejudge master
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EjudgeBrowserLogin'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '503':
+          $ref: '#/components/responses/ErrorResponse'
+
   /api/contests/{id}/import:
     post:
       operationId: postContestImport
@@ -396,6 +416,19 @@ components:
       properties:
         username:
           type: string
+
+    EjudgeBrowserLogin:
+      type: object
+      required: [base_url, login, password, contest_id]
+      properties:
+        base_url:
+          type: string
+        login:
+          type: string
+        password:
+          type: string
+        contest_id:
+          type: integer
 
     ContestInfo:
       type: object

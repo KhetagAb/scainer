@@ -51,7 +51,7 @@ func waitForJob(t *testing.T, svc *analyze.Service, jobID string) error {
 
 func submitAndWait(t *testing.T, svc *analyze.Service, ctx context.Context, id domain.ContestID) error {
 	t.Helper()
-	jobID, err := svc.Submit(ctx, id)
+	jobID, err := svc.ImportThenAnalyze(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -252,14 +252,14 @@ func TestUsesPipelineDetectors(t *testing.T) {
 	}
 }
 
-func TestSubmit_AsyncJobFlow(t *testing.T) {
+func TestImportThenAnalyze_AsyncJobFlow(t *testing.T) {
 	ctx := context.Background()
 	reader, analyzeSvc, _ := registerWithSubs(t, []domain.Submission{
 		{ID: "1", Contest: "contest01", Problem: "A", Participant: "alice", Lang: domain.LangCPP, Source: []byte("a"), Verdict: domain.VerdictOK},
 		{ID: "2", Contest: "contest01", Problem: "A", Participant: "bob", Lang: domain.LangCPP, Source: []byte("b"), Verdict: domain.VerdictOK},
 	})
 
-	jobID, err := analyzeSvc.Submit(ctx, "contest01")
+	jobID, err := analyzeSvc.ImportThenAnalyze(ctx, "contest01")
 	if err != nil {
 		t.Fatalf("Submit: %v", err)
 	}
@@ -286,14 +286,14 @@ func TestSubmit_AsyncJobFlow(t *testing.T) {
 	}
 }
 
-func TestSubmit_UnknownContest(t *testing.T) {
+func TestImportThenAnalyze_UnknownContest(t *testing.T) {
 	ctx := context.Background()
 	analyzeSvc := analyze.New(
 		jobs.NewPool(4),
 		analyze.NewRunner(newFakeRegistry(), store.NewMem(), newFakeFindingsRepository(), scoring.NewWeighted(), testPipeline()),
 	)
 
-	if _, err := analyzeSvc.Submit(ctx, "missing"); !errors.Is(err, contests.ErrContestNotFound) {
+	if _, err := analyzeSvc.ImportThenAnalyze(ctx, "missing"); !errors.Is(err, contests.ErrContestNotFound) {
 		t.Fatalf("got %v want ErrContestNotFound", err)
 	}
 }

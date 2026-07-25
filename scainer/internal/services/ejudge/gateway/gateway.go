@@ -17,6 +17,14 @@ type teacherRepository interface {
 	Get(ctx context.Context, login string) (teachers.Record, bool, error)
 }
 
+// BrowserLogin — учётные данные для браузерного POST-логина в ejudge master.
+type BrowserLogin struct {
+	BaseURL   string
+	Login     string
+	Password  string
+	ContestID int
+}
+
 type CredentialsRepository interface {
 	Get(ctx context.Context, login string) (Credentials, bool, error)
 	Upsert(ctx context.Context, cred Credentials) error
@@ -25,11 +33,11 @@ type CredentialsRepository interface {
 type Gateway struct {
 	teachers    teacherRepository
 	credentials CredentialsRepository
-	
-	baseURL     string
-	timeout     time.Duration
 
-	bootstrapMu sync.Mutex
+	baseURL string
+	timeout time.Duration
+
+	mu sync.Mutex
 }
 
 func New(teachers teacherRepository, credentials CredentialsRepository, baseURL string, timeout time.Duration) *Gateway {
@@ -59,22 +67,43 @@ func (g *Gateway) ClientFor(ctx context.Context) (*ejudge.Client, error) {
 		return nil, err
 	}
 
-	g.bootstrapMu.Lock()
-	defer g.bootstrapMu.Unlock()
+	g.mu.Lock()
+	defer g.mu.Unlock()
 
-	client, err = g.clientWithAPIKey(ctx, login)
-	if err == nil {
-		return client, nil
-	}
-	if !errors.Is(err, errAPIKeyMissing) {
+	cred, found, err := g.credentials.Get(ctx, login)
+	if err != nil {
 		return nil, err
 	}
+	if !found || cred.APIKey == "" {
+		if err := g.ensureAPIKey(ctx, login); err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrAPIKeyProvision, err)
+		}
+	}
+	return g.clientWithAPIKey(ctx, login)
+}
 
-	if err := g.bootstrap(ctx, login); err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrBootstrap, err)
+// EnsureAPIKey создаёт ejudge API key, если его ещё нет.
+func (g *Gateway) EnsureAPIKey(ctx context.Context) error {
+	if g.baseURL == "" {
+		return fmt.Errorf("ejudge gateway: base URL not configured")
 	}
 
-	return g.clientWithAPIKey(ctx, login)
+	login, ok := auth.LoginFrom(ctx)
+	if !ok || login == "" {
+		return ErrNoLogin
+	}
+
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	cred, found, err := g.credentials.Get(ctx, login)
+	if err != nil {
+		return err
+	}
+	if !found || cred.APIKey == "" {
+		return g.ensureAPIKey(ctx, login)
+	}
+	return nil
 }
 
 var errAPIKeyMissing = errors.New("ejudge gateway: api key missing")
@@ -90,7 +119,32 @@ func (g *Gateway) clientWithAPIKey(ctx context.Context, login string) (*ejudge.C
 	return ejudge.New(g.baseURL, cred.APIKey, g.timeout)
 }
 
-func (g *Gateway) bootstrap(ctx context.Context, login string) error {
+func (g *Gateway) BrowserLogin(ctx context.Context, contestID int) (BrowserLogin, bool, error) {
+	if g.baseURL == "" || contestID <= 0 {
+		return BrowserLogin{}, false, nil
+	}
+	login, hasLogin := auth.LoginFrom(ctx)
+	if !hasLogin || login == "" {
+		return BrowserLogin{}, false, nil
+	}
+
+	rec, ok, err := g.teachers.Get(ctx, login)
+	if err != nil {
+		return BrowserLogin{}, false, err
+	}
+	if !ok {
+		return BrowserLogin{}, false, nil
+	}
+
+	return BrowserLogin{
+		BaseURL:   g.baseURL,
+		Login:     login,
+		Password:  rec.Password,
+		ContestID: contestID,
+	}, true, nil
+}
+
+func (g *Gateway) ensureAPIKey(ctx context.Context, login string) error {
 	rec, ok, err := g.teachers.Get(ctx, login)
 	if err != nil {
 		return err
@@ -99,19 +153,7 @@ func (g *Gateway) bootstrap(ctx context.Context, login string) error {
 		return ErrTeacherNotFound
 	}
 
-	session, err := ejauth.MasterSessionLogin(ctx, g.baseURL, login, rec.Password)
-	if err != nil {
-		return err
-	}
-
-	if err := g.credentials.Upsert(ctx, Credentials{
-		Login:   login,
-		LastSID: session.SID,
-	}); err != nil {
-		return err
-	}
-
-	apiKey, err := ejauth.CreateAPIKey(ctx, g.baseURL, session)
+	apiKey, err := ejauth.IssueAPIKey(ctx, g.baseURL, login, rec.Password)
 	if err != nil {
 		return err
 	}

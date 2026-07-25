@@ -22,6 +22,7 @@ type (
 		Ejudge            EjudgeConfig      `mapstructure:"ejudge"`
 		JPlag             JPlagConfig       `mapstructure:"jplag"`
 		Analyze           AnalyzeConfig     `mapstructure:"analyze"`
+		ImportCron          ImportCronConfig  `mapstructure:"import_cron"`
 		AIUsage           AIUsageConfig     `mapstructure:"aiusage"`
 		OpenAI            OpenAIConfig      `mapstructure:"openai"`
 
@@ -62,6 +63,11 @@ type (
 	AnalyzeConfig struct {
 		JobsMaxConcurrent  int `mapstructure:"jobs_max_concurrent"`
 		AnalyzeConcurrency int `mapstructure:"analyze_concurrency"`
+	}
+
+	ImportCronConfig struct {
+		Enabled  bool          `mapstructure:"enabled"`
+		Interval time.Duration `mapstructure:"interval"`
 	}
 
 	AIUsageConfig struct {
@@ -160,6 +166,9 @@ func (c *Config) validate() error {
 	if c.Analyze.AnalyzeConcurrency <= 0 {
 		return fmt.Errorf("analyze.analyze_concurrency должен быть > 0")
 	}
+	if c.ImportCron.Enabled && c.ImportCron.Interval <= 0 {
+		return fmt.Errorf("import_cron.interval должен быть > 0 при import_cron.enabled")
+	}
 	if strings.TrimSpace(c.JPlag.JarPath) == "" {
 		return fmt.Errorf("jplag.jar_path обязателен")
 	}
@@ -183,6 +192,8 @@ func bindEnv(v *viper.Viper) {
 	_ = v.BindEnv("jplag.jar_path", "JPLAG_JAR_PATH")
 	_ = v.BindEnv("analyze.jobs_max_concurrent", "JOBS_MAX_CONCURRENT")
 	_ = v.BindEnv("analyze.analyze_concurrency", "ANALYZE_CONCURRENCY")
+	_ = v.BindEnv("import_cron.enabled", "IMPORT_CRON_ENABLED")
+	_ = v.BindEnv("import_cron.interval", "IMPORT_CRON_INTERVAL")
 	_ = v.BindEnv("aiusage.enabled", "AIUSAGE_ENABLED")
 	_ = v.BindEnv("openai.base_url", "OPENAI_BASE_URL")
 	_ = v.BindEnv("openai.username", "OPENAI_USERNAME")

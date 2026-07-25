@@ -32,7 +32,7 @@ type Session struct {
 	base string
 }
 
-// MasterSessionLogin — логин в new-master для получения SID (contest_id=90000).
+// MasterSessionLogin — серверный логин в new-master (contest 90000) для создания API key.
 func MasterSessionLogin(ctx context.Context, baseURL, login, password string) (Session, error) {
 	baseURL = strings.TrimRight(baseURL, "/")
 	jar, err := cookiejar.New(nil)

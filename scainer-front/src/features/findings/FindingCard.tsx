@@ -1,80 +1,239 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { EvidenceView, FindingView, ReportData, SubmissionView } from "@/client/types.gen";
 import {
   PROBLEM_SUSPICION_TOOLTIP,
   problemSuspicionLevel,
 } from "@/features/contests/problemSignalStats";
 import {
-  fmtScore,
   formatSignalCount,
   formatSubmissionCount,
   problemDisplay,
-  scoreLevel,
   subjectTitle,
   uniqueDetectors,
-  detectorLabel,
   type GroupBy,
 } from "@/features/findings/reportModel";
 import { DetectorChip } from "@/features/findings/DetectorChip";
 import SourceCode from "@/features/code/SourceCode";
+import { CodePaneMoreBar } from "@/features/code/CodePaneMoreBar";
+import { EjudgeContestChip } from "@/features/ejudge/EjudgeContestChip";
 
-type Props = {
+type CardSharedProps = {
   finding: FindingView;
   groupBy: GroupBy;
   groupKey: string;
-  submissions: Record<string, SubmissionView>;
-  hidden: boolean;
 };
 
-export function FindingCard({ finding, groupBy, groupKey, submissions, hidden }: Props) {
-  const [open, setOpen] = useState(false);
-  const [rendered, setRendered] = useState(false);
+type HeadProps = CardSharedProps & {
+  open: boolean;
+  bodyId: string;
+  onToggle: (open: boolean) => void;
+  onMeasure?: (height: number) => void;
+};
+
+export function FindingCardHead({
+  finding,
+  groupBy,
+  groupKey,
+  open,
+  bodyId,
+  onToggle,
+  onMeasure,
+}: HeadProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!cardRef.current || !onMeasure) return;
+    onMeasure(cardRef.current.getBoundingClientRect().height);
+  });
+
+  return (
+    <div ref={cardRef} className="finding-card" data-score={String(finding.score)}>
+      <button
+        type="button"
+        className="finding-head"
+        aria-expanded={open}
+        aria-controls={bodyId}
+        data-key={finding.key}
+        data-finding-key={finding.key}
+        onClick={() => onToggle(!open)}
+      >
+        <span className="detectors">
+          {uniqueDetectors(finding.signals).map((d) => (
+            <DetectorChip key={d} detectorId={d} score={finding.score} />
+          ))}
+        </span>
+        <span className="finding-head__main">
+          <span className="finding-title">{subjectTitle(finding.subject, groupBy, groupKey)}</span>
+          <span className="ai-slot">{finding.ai ? <AiBadge /> : null}</span>
+          <span className="finding-meta">
+            {groupBy !== "problem" ? <ProblemChip subject={finding.subject} /> : null}
+          </span>
+        </span>
+      </button>
+    </div>
+  );
+}
+
+type GhostProps = CardSharedProps & {
+  onCollapse: () => void;
+  minHeight?: number;
+};
+
+export function FindingCardGhost({
+  finding,
+  groupBy,
+  groupKey,
+  onCollapse,
+  minHeight,
+}: GhostProps) {
+  return (
+    <div
+      className="finding-card finding-card--ghost-slot"
+      style={minHeight ? { minHeight: `${minHeight}px` } : undefined}
+    >
+      <button
+        type="button"
+        className="finding-card-ghost"
+        aria-label="Свернуть находку"
+        data-key={finding.key}
+        data-finding-key={finding.key}
+        onClick={onCollapse}
+      >
+        <span className="finding-card-ghost__title">
+          {subjectTitle(finding.subject, groupBy, groupKey)}
+        </span>
+        <span className="finding-card-ghost__action">свернуть</span>
+      </button>
+    </div>
+  );
+}
+
+type BodyProps = CardSharedProps & {
+  submissions: Record<string, SubmissionView>;
+  rendered: boolean;
+};
+
+export function FindingCardBody({ finding, submissions, rendered }: BodyProps) {
   const multiSignal = (finding.signals ?? []).length > 1;
 
-  const onToggle = (next: boolean) => {
-    setOpen(next);
-    if (next && !rendered) setRendered(true);
+  if (!rendered) return null;
+
+  return (
+    <div className="finding-body">
+      {(finding.signals ?? []).map((sig, i) => (
+        <SignalBlock
+          key={`${sig.detector}-${i}`}
+          signal={sig}
+          submissions={submissions}
+          showDetector={multiSignal}
+          subjectSubmission={finding.subject.submission ?? undefined}
+          findingScore={finding.score}
+        />
+      ))}
+    </div>
+  );
+}
+
+type RowProps = {
+  pair: FindingView[];
+  groupBy: GroupBy;
+  groupKey: string;
+  submissions: Record<string, SubmissionView>;
+  deepLinkKey?: string | null;
+};
+
+export function FindingRow({
+  pair,
+  groupBy,
+  groupKey,
+  submissions,
+  deepLinkKey,
+}: RowProps) {
+  const deepLinkInRow = deepLinkKey != null && pair.some((f) => f.key === deepLinkKey);
+  const [openKey, setOpenKey] = useState<string | null>(deepLinkInRow ? deepLinkKey : null);
+  const [renderedKeys, setRenderedKeys] = useState<Set<string>>(() =>
+    deepLinkInRow && deepLinkKey ? new Set([deepLinkKey]) : new Set(),
+  );
+  const [slotHeights, setSlotHeights] = useState<Record<string, number>>({});
+
+  const onMeasureHead = useCallback((key: string, height: number) => {
+    setSlotHeights((prev) => (prev[key] === height ? prev : { ...prev, [key]: height }));
+  }, []);
+
+  useEffect(() => {
+    if (deepLinkKey && pair.some((f) => f.key === deepLinkKey)) {
+      setOpenKey(deepLinkKey);
+      setRenderedKeys((prev) => new Set(prev).add(deepLinkKey));
+    }
+  }, [deepLinkKey, pair]);
+
+  const openFinding = openKey ? pair.find((f) => f.key === openKey) : undefined;
+  const openSlot = openFinding ? pair.indexOf(openFinding) : null;
+
+  const onToggle = (key: string, next: boolean) => {
+    setOpenKey(next ? key : null);
+    if (next) {
+      setRenderedKeys((prev) => new Set(prev).add(key));
+    }
+  };
+
+  const slot0 = pair[0];
+  const slot1 = pair[1];
+  const bodyId = openFinding ? `finding-body-${openFinding.key}` : undefined;
+
+  const renderSlot = (finding: FindingView) => {
+    const isOpen = openKey === finding.key;
+    const id = bodyId ?? `finding-body-${finding.key}`;
+    if (isOpen) {
+      return (
+        <FindingCardGhost
+          finding={finding}
+          groupBy={groupBy}
+          groupKey={groupKey}
+          minHeight={slotHeights[finding.key]}
+          onCollapse={() => onToggle(finding.key, false)}
+        />
+      );
+    }
+    return (
+      <FindingCardHead
+        finding={finding}
+        groupBy={groupBy}
+        groupKey={groupKey}
+        open={false}
+        bodyId={id}
+        onMeasure={(height) => onMeasureHead(finding.key, height)}
+        onToggle={(next) => onToggle(finding.key, next)}
+      />
+    );
   };
 
   return (
-    <details
-      className={`finding-card${hidden ? " hidden" : ""}`}
-      open={open}
-      onToggle={(e) => {
-        if (e.target !== e.currentTarget) return;
-        onToggle((e.currentTarget as HTMLDetailsElement).open);
-      }}
-      data-key={finding.key}
-      data-finding-key={finding.key}
-      data-score={String(finding.score)}
+    <div
+      className={
+        "finding-row" + (openSlot !== null ? ` finding-row--open-slot-${openSlot}` : "")
+      }
     >
-      <summary className="finding-head">
-        <span className={`score-badge ${scoreLevel(finding.score)}`}>{fmtScore(finding.score)}</span>
-        <span className="finding-title">{subjectTitle(finding.subject, groupBy, groupKey)}</span>
-        <span className="ai-slot">{finding.ai ? <AiBadge /> : null}</span>
-        <span className="finding-meta">
-          {groupBy !== "problem" ? <ProblemChip subject={finding.subject} /> : null}
-        </span>
-        <span className="detectors">
-          {uniqueDetectors(finding.signals).map((d) => (
-            <DetectorChip key={d} detectorId={d} />
-          ))}
-        </span>
-      </summary>
-      <div className="finding-body">
-        {rendered
-          ? (finding.signals ?? []).map((sig, i) => (
-              <SignalBlock
-                key={`${sig.detector}-${i}`}
-                signal={sig}
-                submissions={submissions}
-                showDetector={multiSignal}
-                subjectSubmission={finding.subject.submission ?? undefined}
-              />
-            ))
-          : null}
+      <div className="finding-row__heads">
+        {slot0 ? renderSlot(slot0) : null}
+        {slot1 ? (
+          renderSlot(slot1)
+        ) : (
+          <div className="finding-row__spacer" aria-hidden />
+        )}
       </div>
-    </details>
+      {openFinding && bodyId ? (
+        <div className="finding-row__expand" id={bodyId}>
+          <FindingCardBody
+            finding={openFinding}
+            groupBy={groupBy}
+            groupKey={groupKey}
+            submissions={submissions}
+            rendered={renderedKeys.has(openFinding.key)}
+          />
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -99,9 +258,9 @@ function AiBadge() {
 function ProblemChip({ subject }: { subject: FindingView["subject"] }) {
   if (!subject.problem) return null;
   return (
-    <Chip className="problem-chip" title={subject.problem}>
+    <EjudgeContestChip className="problem-chip" title={subject.problem}>
       {problemDisplay(subject.problem, subject.problem_name)}
-    </Chip>
+    </EjudgeContestChip>
   );
 }
 
@@ -126,17 +285,19 @@ function SignalBlock({
   submissions,
   showDetector,
   subjectSubmission,
+  findingScore,
 }: {
   signal: FindingView["signals"][number];
   submissions: Record<string, SubmissionView>;
   showDetector: boolean;
   subjectSubmission?: string;
+  findingScore?: number;
 }) {
   return (
     <div className="signal-block">
       {showDetector ? (
         <div className="signal-meta">
-          <Chip>{detectorLabel(signal.detector)}</Chip>
+          <DetectorChip detectorId={signal.detector} score={findingScore} />
           {signal.ai ? <AiBadge /> : null}
         </div>
       ) : null}
@@ -212,37 +373,25 @@ function CodePane({
   sub?: SubmissionView;
   ranges: Array<{ start: number; end: number }>;
 }) {
-  const [moreOpen, setMoreOpen] = useState(false);
   const lines = sub?.source ?? ["(нет исходника)"];
   const inRange = (lineNo: number) => ranges.some((r) => lineNo >= r.start && lineNo <= r.end);
 
   return (
     <div className="code-pane">
       <div className="code-pane-head">
-        <details
-          className="code-pane-more"
-          open={moreOpen}
-          onToggle={(e) => {
-            e.stopPropagation();
-            setMoreOpen((e.currentTarget as HTMLDetailsElement).open);
-          }}
+        <CodePaneMoreBar
+          key={subID}
+          participant={sub?.participant || "исходник недоступен"}
+          participantClassName={`code-pane-participant${!sub?.participant ? " code-pane-participant-missing" : ""}`}
         >
-          <summary className="code-pane-summary">
-            <span className={`code-pane-participant${!sub?.participant ? " code-pane-participant-missing" : ""}`}>
-              {sub?.participant || "исходник недоступен"}
-            </span>
-            <span className="code-pane-toggle">{moreOpen ? "свернуть" : "подробнее"}</span>
-          </summary>
-          <div className="code-pane-meta">
-            <Chip title={subID}>{subID}</Chip>
-            {sub?.problem ? (
-              <Chip className="problem-chip" title={sub.problem}>
-                {problemDisplay(sub.problem, sub.problem_name)}
-              </Chip>
-            ) : null}
-            {sub?.lang ? <Chip>{sub.lang}</Chip> : null}
-          </div>
-        </details>
+          <EjudgeContestChip title={subID}>{subID}</EjudgeContestChip>
+          {sub?.problem ? (
+            <Chip className="problem-chip" title={sub.problem}>
+              {problemDisplay(sub.problem, sub.problem_name)}
+            </Chip>
+          ) : null}
+          {sub?.lang ? <Chip>{sub.lang}</Chip> : null}
+        </CodePaneMoreBar>
       </div>
       <SourceCode
         lines={lines}
@@ -282,9 +431,12 @@ export function GroupTitle({
     <h2 className="group-title">
       {groupBy === "problem" ? (
         <>
-          <Chip className="problem-chip" title={group.problem || group.key}>
+          <EjudgeContestChip
+            className="problem-chip"
+            title={group.problem || group.key}
+          >
             {problemDisplay(group.problem || group.key, group.problemName)}
-          </Chip>
+          </EjudgeContestChip>
         </>
       ) : (
         <code>{group.key}</code>

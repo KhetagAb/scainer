@@ -9,6 +9,7 @@ const SSE_PROXY_TIMEOUT_MS = 60 * 60 * 1000;
 
 export default defineConfig({
   plugins: [react()],
+  assetsInclude: ["**/*.lottie"],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),

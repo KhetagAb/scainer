@@ -13,8 +13,8 @@ export type ProblemSignalStat = {
 export const PROBLEM_SUSPICION_TOOLTIP =
   "Доля сигналов задачи: 100 × сигналы / все посылки задачи";
 
-/** >15% сигналов — жёлтый; ≤15% (и >0) — зелёный. */
-export const PROBLEM_SUSPICION_LOW_MIN = 0.15;
+/** >10% сигналов — жёлтый; ≤10% (и >0) — зелёный. */
+export const PROBLEM_SUSPICION_LOW_MIN = 0.1;
 
 /** Полный список задач + доля сигналов. */
 export function buildProblemSignalStats(
@@ -52,9 +52,9 @@ export function buildProblemSignalStats(
 export function problemSuspicionLevelHint(level: string): string {
   switch (level) {
     case "level-high":
-      return "≤15% сигналов — высокий сигнал";
+      return "≤10% сигналов — высокий сигнал";
     case "level-low":
-      return ">15% сигналов — низкий сигнал";
+      return ">10% сигналов — низкий сигнал";
     default:
       return "нет сигналов";
   }
@@ -92,7 +92,7 @@ export function problemSuspiciousSharePercent(
 
 /**
  * Цвет чипа по абсолютной доле сигналов:
- * 0 / null → серый; ≤15% → зелёный; >15% → жёлтый.
+ * 0 / null → серый; ≤10% → зелёный; >10% → жёлтый.
  */
 export function problemSuspicionLevel(percent: number | null | undefined): string {
   if (percent == null || Number.isNaN(percent) || percent <= 0) return "level-0";

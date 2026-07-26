@@ -23,9 +23,11 @@ function FilesIcon({ size = 12 }: { size?: number }) {
 
 type Props = {
   id: string;
+  /** Hover/cursor only; click does not copy. */
+  preview?: boolean;
 };
 
-export default function ContestIdCopy({ id }: Props) {
+export default function ContestIdCopy({ id, preview }: Props) {
   const [copied, setCopied] = useState(false);
   const timerRef = useRef<number | null>(null);
 
@@ -38,6 +40,7 @@ export default function ContestIdCopy({ id }: Props) {
   const onClick = (e: MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
+    if (preview) return;
     void (async () => {
       try {
         await navigator.clipboard.writeText(id);
@@ -55,11 +58,12 @@ export default function ContestIdCopy({ id }: Props) {
       type="button"
       className="contest-card__id"
       onClick={onClick}
-      title="Скопировать ID"
-      aria-label={`Скопировать ID ${id}`}
+      tabIndex={preview ? -1 : undefined}
+      title={preview ? undefined : "Скопировать ID"}
+      aria-label={preview ? undefined : `Скопировать ID ${id}`}
     >
       <span className="contest-card__id-text">{id}</span>
-      {copied ? (
+      {!preview && copied ? (
         <span className="contest-card__id-icon" aria-hidden>
           <FilesIcon />
         </span>

@@ -14,14 +14,14 @@ import (
 
 type Service struct {
 	registry           ContestRegistry
-	findingsRepo       FindingsRepository
+	analysisRepo       AnalysisRepository
 	defaultJudgeSystem string
 }
 
-func NewService(registry ContestRegistry, findingsRepo FindingsRepository, defaultJudgeSystem string) *Service {
+func NewService(registry ContestRegistry, analysisRepo AnalysisRepository, defaultJudgeSystem string) *Service {
 	return &Service{
 		registry:           registry,
-		findingsRepo:       findingsRepo,
+		analysisRepo:       analysisRepo,
 		defaultJudgeSystem: defaultJudgeSystem,
 	}
 }
@@ -88,8 +88,8 @@ func (s *Service) RemoveContest(ctx context.Context, id domain.ContestID) error 
 	if err := s.registry.Delete(ctx, id); err != nil {
 		return fmt.Errorf("persist contest removal: %w", err)
 	}
-	if err := s.findingsRepo.Delete(ctx, id); err != nil {
-		return fmt.Errorf("persist findings removal: %w", err)
+	if err := s.analysisRepo.Delete(ctx, id); err != nil {
+		return fmt.Errorf("persist analysis removal: %w", err)
 	}
 	return nil
 }

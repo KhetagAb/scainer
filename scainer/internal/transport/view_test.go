@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"scainer/internal/domain"
-	"scainer/internal/services/detect/nightsubmit"
+	"scainer/internal/services/analyze/detect/nightsubmit"
 )
 
 func TestBuildReportData_ReferencedOnlyAndAIFlag(t *testing.T) {

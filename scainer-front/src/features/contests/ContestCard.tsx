@@ -26,32 +26,39 @@ type Props = StatsProps & {
   pendingCount: number;
   hasStrongSignals: boolean;
   className?: string;
-  staticActions?: boolean;
+  /** Looks like a live card (links, hover) but clicks do nothing. */
+  preview?: boolean;
   "aria-hidden"?: boolean;
 };
 
 function ActionSlot({
-  staticActions,
+  preview,
   to,
   className,
   ariaLabel,
   children,
 }: {
-  staticActions?: boolean;
+  preview?: boolean;
   to: string;
   className: string;
   ariaLabel: string;
   children: ReactNode;
 }) {
-  if (staticActions) {
-    return (
-      <span className={className} aria-hidden>
-        {children}
-      </span>
-    );
-  }
   return (
-    <Link to={to} className={className} aria-label={ariaLabel}>
+    <Link
+      to={to}
+      className={className}
+      aria-label={ariaLabel}
+      tabIndex={preview ? -1 : undefined}
+      onClick={preview ? (e) => e.preventDefault() : undefined}
+      onKeyDown={
+        preview
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") e.preventDefault();
+            }
+          : undefined
+      }
+    >
       {children}
     </Link>
   );
@@ -67,7 +74,7 @@ export default function ContestCard({
   problemStats,
   importProgress,
   className,
-  staticActions,
+  preview,
   "aria-hidden": ariaHidden,
 }: Props) {
   const reviewTo = `/contests/${encodeURIComponent(id)}/review`;
@@ -85,13 +92,13 @@ export default function ContestCard({
       <div className="contest-card__top">
         <div className="contest-card__title">
           <span className="contest-card__name">{displayName || id}</span>
-          {id !== name ? <ContestIdCopy id={id} /> : null}
+          {id !== name ? <ContestIdCopy id={id} preview={preview} /> : null}
         </div>
         <span className="contest-card__meta">{subs} посылок</span>
       </div>
       <div className="contest-card__actions">
         <ActionSlot
-          staticActions={staticActions}
+          preview={preview}
           to={reviewTo}
           className={
             "contest-card__action contest-card__action--review" +
@@ -111,7 +118,7 @@ export default function ContestCard({
           ) : null}
         </ActionSlot>
         <ActionSlot
-          staticActions={staticActions}
+          preview={preview}
           to={findingsTo}
           className={
             "contest-card__findings-side contest-card__action contest-card__action--findings" +

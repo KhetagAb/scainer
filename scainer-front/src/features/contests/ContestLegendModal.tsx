@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import ContestCard from "@/features/contests/ContestCard";
 import {
@@ -7,6 +7,7 @@ import {
 } from "@/features/contests/ContestSectionNav";
 
 const SEEN_KEY = "scainer.contestLegend.seen";
+const DEMO_CONTEST_ID = "50505";
 
 export function wasContestLegendSeen(): boolean {
   try {
@@ -35,17 +36,7 @@ const COLOR_LEVELS: Array<{ level: string; label: string; hint: string }> = [
   { level: "level-high", label: "C", hint: "≤10%" },
 ];
 
-function HeaderIcon() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <rect x="3" y="4" width="18" height="16" rx="2.5" stroke="currentColor" strokeWidth="2" />
-      <path d="M7 9h6M7 13h10M7 17h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 export default function ContestLegendModal({ open, onClose }: Props) {
-  const titleId = useId();
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const [mounted, setMounted] = useState(open);
   const [visible, setVisible] = useState(false);
@@ -83,45 +74,56 @@ export default function ContestLegendModal({ open, onClose }: Props) {
   return createPortal(
     <div
       className={
-        "modal-overlay modal-overlay--legend" +
-        (visible ? " modal-overlay--legend-visible" : "")
+        "contest-legend-overlay" +
+        (visible ? " contest-legend-overlay--visible" : "")
       }
       role="presentation"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
         className={
-          "form-card modal-card contest-legend-modal" +
-          (visible ? " contest-legend-modal--visible" : "")
+          "contest-legend-panel" + (visible ? " contest-legend-panel--visible" : "")
         }
         role="dialog"
         aria-modal="true"
-        aria-labelledby={titleId}
+        aria-label="Подсказка: карточка контеста"
       >
-        <header className="contest-legend-modal__header">
-          <div className="contest-legend-modal__header-main">
-            <span className="contest-legend-modal__icon" aria-hidden>
-              <HeaderIcon />
-            </span>
-            <div>
-              <h2 id={titleId} className="contest-legend-modal__title">
-                Карточка контеста
-              </h2>
-              <p className="contest-legend-modal__subtitle">
-                Разделы и цвета задач
-              </p>
-            </div>
-          </div>
-        </header>
-
-        <div className="modal-card__scroll contest-legend-modal__body">
+        <div className="contest-legend-panel__body">
           <div className="legend-diagram">
+            <div className="legend-diagram__notes legend-diagram__notes--left">
+              <aside className="legend-callout legend-callout--sections">
+                <ul className="legend-callout__sections">
+                  <li>
+                    <span
+                      className="legend-callout__section-icon legend-callout__section-icon--review"
+                      aria-hidden
+                    >
+                      <ContestReviewIcon size={16} />
+                    </span>
+                    <div className="legend-callout__section-body">
+                      <p lang="ru">
+                        <strong>Ревью</strong> — очередь посылок на ручную проверку.
+                      </p>
+                      <ul className="legend-callout__swatches">
+                        <li>
+                          <span className="contest-card__nav-key contest-card__nav-key--violet">
+                            <span className="contest-card__nav-key__dot" />
+                            67 PR
+                          </span>
+                          <span>число ожидающих к проверке посылок</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </li>
+                </ul>
+              </aside>
+            </div>
+
             <div className="legend-diagram__card-wrap">
               <ContestCard
                 className="legend-diagram__card"
-                aria-hidden
-                staticActions
-                id="legend"
+                preview
+                id={DEMO_CONTEST_ID}
                 name="День 01"
                 displayName="День 01"
                 pendingCount={67}
@@ -135,60 +137,58 @@ export default function ContestLegendModal({ open, onClose }: Props) {
               />
             </div>
 
-            <div className="legend-diagram__notes">
+            <div className="legend-diagram__notes legend-diagram__notes--right">
               <aside className="legend-callout legend-callout--sections">
                 <ul className="legend-callout__sections">
                   <li>
-                    <span className="legend-callout__section-icon legend-callout__section-icon--review" aria-hidden>
-                      <ContestReviewIcon size={16} />
-                    </span>
-                    <p lang="ru">
-                      <strong>Ревью</strong> — очередь посылок на ручную проверку.
-                      {" "}
-                      <span className="contest-card__nav-key contest-card__nav-key--violet">
-                        <span className="contest-card__nav-key__dot" />
-                        67 PR
-                      </span>
-                      {" "}— число ожидающих.
-                    </p>
-                  </li>
-                  <li>
-                    <span className="legend-callout__section-icon legend-callout__section-icon--findings" aria-hidden>
+                    <span
+                      className="legend-callout__section-icon legend-callout__section-icon--findings"
+                      aria-hidden
+                    >
                       <ContestFindingsIcon size={16} />
                     </span>
                     <p lang="ru">
-                      <strong>Детект</strong> — автоматические находки похожести и сигналов.
+                      <strong>Детект</strong> — список подозрительных посылок и обнаруженных нарушений.
                     </p>
                   </li>
-                </ul>
-              </aside>
-              <aside className="legend-callout legend-callout--colors">
-                <p lang="ru">
-                  <strong>Цвет</strong> — доля сигналов задачи: чем больше сигналов по задаче — тем вероятнее ложноположительные срабатывания.
-                </p>
-                <ul className="legend-callout__swatches">
-                  {COLOR_LEVELS.map((c) => (
-                    <li key={c.level}>
-                      <span className={`contest-problem-chip ${c.level}`}>{c.label}</span>
-                      <span>{c.hint}</span>
-                    </li>
-                  ))}
+                  <li>
+                    <span
+                      className="legend-callout__section-icon legend-callout__section-icon--spacer"
+                      aria-hidden
+                    />
+                    <div className="legend-callout__section-body">
+                      <p lang="ru">
+                        <strong>Цвет</strong> — чем больше сигналов по задаче — тем
+                        вероятнее ложноположительное срабатывание.
+                      </p>
+                      <ul className="legend-callout__swatches legend-callout__swatches--colors">
+                        {COLOR_LEVELS.map((c) => (
+                          <li key={c.level}>
+                            <span className="contest-stats__problems">
+                              <span className={`contest-problem-chip ${c.level}`}>
+                                {c.label}
+                              </span>
+                            </span>
+                            <span>{c.hint}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </li>
                 </ul>
               </aside>
             </div>
           </div>
         </div>
 
-        <footer className="contest-legend-modal__footer">
-          <button
-            ref={closeBtnRef}
-            type="button"
-            className="contest-legend-modal__confirm"
-            onClick={onClose}
-          >
-            Понятно
-          </button>
-        </footer>
+        <button
+          ref={closeBtnRef}
+          type="button"
+          className="contest-legend-panel__confirm"
+          onClick={onClose}
+        >
+          Понятно
+        </button>
       </div>
     </div>,
     document.body,

@@ -12,6 +12,8 @@ export type ContestOutletContext = {
   problemSubmissionCounts: Record<string, number>;
   onUnauthorized: () => void;
   findingKey: string | null;
+  reviewPrOnly: boolean;
+  setReviewPrOnly: (value: boolean) => void;
 };
 
 export function ContestFindingsRoute() {
@@ -27,14 +29,22 @@ export function ContestFindingsRoute() {
 }
 
 export function ContestReviewRoute() {
-  const { submissionsQuery, findingsQuery, problems, onUnauthorized } =
-    useOutletContext<ContestOutletContext>();
+  const {
+    submissionsQuery,
+    findingsQuery,
+    problems,
+    onUnauthorized,
+    reviewPrOnly,
+    setReviewPrOnly,
+  } = useOutletContext<ContestOutletContext>();
   return (
     <ReviewPage
       submissionsQuery={submissionsQuery}
       findingsQuery={findingsQuery}
       problems={problems}
       onUnauthorized={onUnauthorized}
+      prOnly={reviewPrOnly}
+      setReviewPrOnly={setReviewPrOnly}
     />
   );
 }

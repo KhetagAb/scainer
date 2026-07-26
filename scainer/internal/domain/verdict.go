@@ -9,6 +9,7 @@ const (
 	VerdictWA      Verdict = "WA"
 	VerdictPR      Verdict = "PR"
 	VerdictCF      Verdict = "CF"
+	VerdictCE      Verdict = "CE"
 	VerdictAC      Verdict = "AC"
 	VerdictDQ      Verdict = "DQ"
 	VerdictRJ      Verdict = "RJ"
@@ -17,7 +18,7 @@ const (
 
 func ParseVerdict(s string) Verdict {
 	switch Verdict(s) {
-	case VerdictOK, VerdictTL, VerdictML, VerdictWA, VerdictPR, VerdictCF, VerdictAC, VerdictDQ, VerdictRJ:
+	case VerdictOK, VerdictTL, VerdictML, VerdictWA, VerdictPR, VerdictCF, VerdictCE, VerdictAC, VerdictDQ, VerdictRJ:
 		return Verdict(s)
 	default:
 		return VerdictUnknown

@@ -16,14 +16,9 @@ import (
 
 	"scainer/internal/configs"
 	"scainer/internal/cron"
-	"scainer/internal/domain"
 	"scainer/internal/repository"
 	"scainer/internal/services/analyze"
 	"scainer/internal/services/contests"
-	"scainer/internal/services/detect"
-	"scainer/internal/services/detect/aiusage"
-	"scainer/internal/services/detect/jplag"
-	"scainer/internal/services/detect/nightsubmit"
 	"scainer/internal/services/ejudge"
 	ejgateway "scainer/internal/services/ejudge/gateway"
 	"scainer/internal/services/importer"
@@ -33,8 +28,6 @@ import (
 	"scainer/internal/transport"
 	"scainer/pkg/auth"
 	"scainer/pkg/jobs"
-	"scainer/pkg/llm"
-	"scainer/pkg/llm/openai"
 	"scainer/pkg/store"
 )
 
@@ -81,12 +74,12 @@ func run(cfg *configs.Config) error {
 		fmt.Fprintln(os.Stderr, "scainer: ejudge disabled (нет base_url)")
 	}
 
-	pipeline, pool, err := buildAnalyzeRuntime(cfg, store)
+	orchestrator, pool, err := analyze.NewRuntime(cfg, store)
 	if err != nil {
 		return err
 	}
 
-	svcs := wireServices(cfg, store, mongo, ejGateway, teachersSvc, pipeline, pool)
+	svcs := wireServices(cfg, store, mongo, ejGateway, teachersSvc, orchestrator, pool)
 
 	cronCtx, stopCron := context.WithCancel(context.Background())
 	defer stopCron()
@@ -112,7 +105,7 @@ type mongoDeps struct {
 	teachers     *repository.TeachersRepository
 	credentials  *repository.EjudgeCredentialsRepository
 	registry     contests.ContestRegistry
-	findingsRepo contests.FindingsRepository
+	analysisRepo contests.AnalysisRepository
 	loginAudit   *repository.LoginAuditRepository
 }
 
@@ -141,67 +134,9 @@ func openMongo(mc configs.MongoDBConfig) (mongoDeps, error) {
 		teachers:     repository.NewTeachersRepository(db),
 		credentials:  repository.NewEjudgeCredentialsRepository(db),
 		registry:     repository.NewContestRepository(db),
-		findingsRepo: repository.NewFindingsRepository(db),
+		analysisRepo: repository.NewAnalysisRepository(db),
 		loginAudit:   repository.NewLoginAuditRepository(db),
 	}, nil
-}
-
-func buildAnalyzeRuntime(cfg *configs.Config, st *store.FS) (detect.Pipeline, *jobs.Pool, error) {
-	det, err := jplag.New(cfg.JPlag.JarPath, st)
-	if err != nil {
-		return nil, nil, fmt.Errorf("jplag: %w", err)
-	}
-	if err := det.CheckRuntime(); err != nil {
-		return nil, nil, err
-	}
-
-	// Один Limiter на процесс: иначе jobs_max_concurrent job'ов перемножили бы параллелизм JPlag/LLM.
-	limiter := detect.NewLimiter(cfg.Analyze.AnalyzeConcurrency)
-	nightDet := nightsubmit.NewDetector()
-	factories := []detect.StageFactory{
-		func(id domain.ContestID) detect.Stage {
-			return detect.NewStage(detect.SubmissionsSelector{Contest: id}, limiter, nightDet)
-		},
-		func(id domain.ContestID) detect.Stage {
-			return detect.NewStage(detect.ProblemSelector{Contest: id}, limiter, det)
-		},
-	}
-	if cfg.AIUsage.Enabled {
-		model, err := openAIModel(cfg.OpenAI)
-		if err != nil {
-			return nil, nil, fmt.Errorf("aiusage: %w", err)
-		}
-		analyzer := &aiusage.Analyzer{Model: model}
-		taskDet := aiusage.NewTaskDetector(analyzer)
-		factories = append(factories, func(id domain.ContestID) detect.Stage {
-			return detect.NewStage(detect.OkWithLastSelector{Contest: id}, limiter, taskDet)
-		})
-		fmt.Fprintln(os.Stderr, "scainer: aiusage enabled")
-	}
-
-	return detect.Compose(factories...), jobs.NewPool(cfg.Analyze.JobsMaxConcurrent), nil
-}
-
-func openAIModel(oc configs.OpenAIConfig) (llm.IntelligenceModel, error) {
-	baseURL := oc.BaseURL
-	if baseURL == "" {
-		baseURL = llm.DefaultBaseURL
-	}
-	var (
-		client *openai.Client
-		err    error
-	)
-	if oc.Username != "" || oc.Password != "" {
-		client, err = openai.New(baseURL, oc.Username, oc.Password, oc.Timeout)
-	} else if oc.APIKey != "" {
-		client, err = openai.NewWithAPIKey(baseURL, oc.APIKey, oc.Timeout)
-	} else {
-		return nil, fmt.Errorf("задайте openai.username/password или openai.api_key")
-	}
-	if err != nil {
-		return nil, err
-	}
-	return llm.NewOpenAI(client, oc.Model)
 }
 
 type appServices struct {
@@ -219,7 +154,7 @@ func wireServices(
 	mongo mongoDeps,
 	ejGateway *ejgateway.Gateway,
 	teachersSvc *teachers.Service,
-	pipeline detect.Pipeline,
+	orchestrator *analyze.Orchestrator,
 	pool *jobs.Pool,
 ) appServices {
 	scorer := scoring.NewWeighted()
@@ -232,9 +167,9 @@ func wireServices(
 	}
 
 	return appServices{
-		contests: contests.NewService(mongo.registry, mongo.findingsRepo, defaultJudgeSystem),
-		reader:   contests.NewContestReader(mongo.registry, store, mongo.findingsRepo),
-		analyze:  analyze.New(pool, analyze.NewRunner(mongo.registry, store, mongo.findingsRepo, scorer, pipeline)),
+		contests: contests.NewService(mongo.registry, mongo.analysisRepo, defaultJudgeSystem),
+		reader:   contests.NewContestReader(mongo.registry, store, mongo.analysisRepo, scorer),
+		analyze:  analyze.New(pool, analyze.NewRunner(mongo.registry, store, mongo.analysisRepo, orchestrator)),
 		review:   review.New(store, comments, status),
 		teachers: teachersSvc,
 		auth:     auth.New(cfg.Admin.JWTSecret, cfg.Admin.JWTTTL),

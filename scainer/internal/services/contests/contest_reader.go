@@ -6,19 +6,27 @@ import (
 	"slices"
 
 	"scainer/internal/domain"
+	"scainer/internal/services/scoring"
 )
 
 type ContestReader struct {
-	registry      ContestRegistry
-	store         SubmissionStore
-	findingsRepo FindingsRepository
+	registry     ContestRegistry
+	store        SubmissionStore
+	analysisRepo AnalysisRepository
+	scorer       scoring.Scorer
 }
 
-func NewContestReader(registry ContestRegistry, store SubmissionStore, findingsRepo FindingsRepository) *ContestReader {
+func NewContestReader(
+	registry ContestRegistry,
+	store SubmissionStore,
+	analysisRepo AnalysisRepository,
+	scorer scoring.Scorer,
+) *ContestReader {
 	return &ContestReader{
 		registry:     registry,
 		store:        store,
-		findingsRepo: findingsRepo,
+		analysisRepo: analysisRepo,
+		scorer:       scorer,
 	}
 }
 
@@ -106,7 +114,7 @@ func (r *ContestReader) GetFindings(ctx context.Context, id domain.ContestID) ([
 		return nil, nil, err
 	}
 
-	snapshot, ok, err := r.findingsRepo.Get(ctx, id)
+	snapshot, ok, err := r.analysisRepo.Get(ctx, id)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -114,9 +122,10 @@ func (r *ContestReader) GetFindings(ctx context.Context, id domain.ContestID) ([
 		return nil, nil, nil
 	}
 
-	submissions, err := loadReferencedSubmissions(ctx, r.store, snapshot.Findings)
+	findings := snapshot.Findings(r.scorer)
+	submissions, err := loadReferencedSubmissions(ctx, r.store, findings)
 	if err != nil {
 		return nil, nil, err
 	}
-	return snapshot.Findings, submissions, nil
+	return findings, submissions, nil
 }

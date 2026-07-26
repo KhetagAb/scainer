@@ -1,5 +1,6 @@
 import type { FindingView, ReportData, SubmissionListItem } from "@/client/types.gen";
 import { problemDisplay } from "@/features/findings/reportModel";
+import { isPendingReview } from "@/features/review/reviewVerdicts";
 
 export function prCountByProblem(items: SubmissionListItem[]): Map<string, number> {
   const map = new Map<string, number>();
@@ -58,6 +59,26 @@ export function prQueueForProblem(
     .filter((s) => s.problem === problemId && s.verdict === "PR")
     .slice()
     .sort((a, b) => a.submitted_at.localeCompare(b.submitted_at));
+}
+
+/** Все посылки задачи для review: PR/PD первые, затем по времени. */
+export function submissionsForProblemReview(
+  items: SubmissionListItem[],
+  problemId: string,
+  prOnly = false,
+): SubmissionListItem[] {
+  return items
+    .filter(
+      (s) =>
+        s.problem === problemId && (!prOnly || isPendingReview(s.verdict)),
+    )
+    .slice()
+    .sort((a, b) => {
+      const ap = isPendingReview(a.verdict);
+      const bp = isPendingReview(b.verdict);
+      if (ap !== bp) return ap ? -1 : 1;
+      return a.submitted_at.localeCompare(b.submitted_at);
+    });
 }
 
 /** Следующая PR после currentId в очереди (current исключается). */

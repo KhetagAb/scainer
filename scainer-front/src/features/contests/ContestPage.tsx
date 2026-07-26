@@ -33,6 +33,7 @@ import { useSensitivity } from "@/features/contests/SensitivityContext";
 import { parallelLabel } from "@/features/contests/parallels";
 import FindingsGroupTabs from "@/features/findings/FindingsGroupTabs";
 import ReviewProblemPicker from "@/features/review/ReviewProblemPicker";
+import { useReviewPrOnlyFilter } from "@/features/review/useReviewPrOnlyFilter";
 import importIconUrl from "@/assets/import-icon.png";
 
 type Props = {
@@ -88,6 +89,7 @@ export default function ContestPage({ onUnauthorized }: Props) {
   });
 
   const onReviewPage = location.pathname.includes("/review");
+  const { prOnly: reviewPrOnly, setPrOnly: setReviewPrOnly } = useReviewPrOnlyFilter();
 
   useEffect(() => {
     if (!onReviewPage || !contestId || !submissionsQuery.data) return;
@@ -252,6 +254,8 @@ export default function ContestPage({ onUnauthorized }: Props) {
           problems={(problemsQuery.data ?? []) as ProblemInfo[]}
           submissions={(submissionsQuery.data ?? []) as SubmissionListItem[]}
           activeProblemId={activeProblemId}
+          prOnly={reviewPrOnly}
+          onPrOnlyChange={setReviewPrOnly}
         />
       ) : null}
 
@@ -263,6 +267,8 @@ export default function ContestPage({ onUnauthorized }: Props) {
           problemSubmissionCounts,
           onUnauthorized,
           findingKey: searchParams.get("finding"),
+          reviewPrOnly,
+          setReviewPrOnly,
         }}
       />
     </>

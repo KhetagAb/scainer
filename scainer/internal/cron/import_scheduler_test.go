@@ -11,9 +11,8 @@ import (
 	"scainer/internal/domain"
 	"scainer/internal/services/analyze"
 	"scainer/internal/services/contests"
-	"scainer/internal/services/detect"
+	"scainer/internal/services/analyze/detect"
 	"scainer/internal/services/importer"
-	"scainer/internal/services/scoring"
 	"scainer/pkg/jobs"
 	"scainer/pkg/store"
 )
@@ -47,13 +46,13 @@ func (f *fakeRegistry) List(context.Context) ([]contests.ContestRecord, error) {
 	return f.records, nil
 }
 
-type fakeFindings struct{}
+type fakeAnalysis struct{}
 
-func (fakeFindings) Put(context.Context, contests.FindingsSnapshot) error { return nil }
-func (fakeFindings) Get(context.Context, domain.ContestID) (contests.FindingsSnapshot, bool, error) {
-	return contests.FindingsSnapshot{}, false, nil
+func (fakeAnalysis) Put(context.Context, contests.AnalysisSnapshot) error { return nil }
+func (fakeAnalysis) Get(context.Context, domain.ContestID) (contests.AnalysisSnapshot, bool, error) {
+	return contests.AnalysisSnapshot{}, false, nil
 }
-func (fakeFindings) Delete(context.Context, domain.ContestID) error { return nil }
+func (fakeAnalysis) Delete(context.Context, domain.ContestID) error { return nil }
 
 func TestImportSchedulerQueuesContests(t *testing.T) {
 	var imports atomic.Int32
@@ -68,8 +67,8 @@ func TestImportSchedulerQueuesContests(t *testing.T) {
 		},
 	}
 	st := store.NewMem()
-	pipeline := detect.Compose()
-	svc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fakeFindings{}, scoring.NewWeighted(), pipeline))
+	orch := analyze.NewOrchestrator(analyze.NewRegistry(detect.NewLimiter(4)))
+	svc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fakeAnalysis{}, orch))
 
 	sched := NewImportScheduler(reg, svc, time.Hour)
 	sched.tick(context.Background())

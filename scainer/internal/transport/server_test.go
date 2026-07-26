@@ -13,7 +13,7 @@ import (
 	"scainer/internal/domain"
 	"scainer/internal/services/analyze"
 	"scainer/internal/services/contests"
-	"scainer/internal/services/detect"
+	"scainer/internal/services/analyze/detect"
 	"scainer/internal/services/ejudge/gateway"
 	"scainer/internal/services/importer"
 	"scainer/internal/services/review"
@@ -25,8 +25,8 @@ import (
 	"scainer/pkg/store"
 )
 
-func emptyPipeline() detect.Pipeline {
-	return detect.Compose()
+func emptyOrchestrator() *analyze.Orchestrator {
+	return analyze.NewOrchestrator(analyze.NewRegistry(detect.NewLimiter(4)))
 }
 
 type stubImporter struct{}
@@ -78,30 +78,30 @@ func (r *fakeRegistry) List(context.Context) ([]contests.ContestRecord, error) {
 
 var _ contests.ContestRegistry = (*fakeRegistry)(nil)
 
-type fakeFindingsRepository struct {
-	byID map[domain.ContestID]contests.FindingsSnapshot
+type fakeAnalysisRepository struct {
+	byID map[domain.ContestID]contests.AnalysisSnapshot
 }
 
-func newFakeFindingsRepository() *fakeFindingsRepository {
-	return &fakeFindingsRepository{byID: make(map[domain.ContestID]contests.FindingsSnapshot)}
+func newFakeAnalysisRepository() *fakeAnalysisRepository {
+	return &fakeAnalysisRepository{byID: make(map[domain.ContestID]contests.AnalysisSnapshot)}
 }
 
-func (f *fakeFindingsRepository) Put(_ context.Context, snap contests.FindingsSnapshot) error {
+func (f *fakeAnalysisRepository) Put(_ context.Context, snap contests.AnalysisSnapshot) error {
 	f.byID[snap.ContestID] = snap
 	return nil
 }
 
-func (f *fakeFindingsRepository) Get(_ context.Context, id domain.ContestID) (contests.FindingsSnapshot, bool, error) {
+func (f *fakeAnalysisRepository) Get(_ context.Context, id domain.ContestID) (contests.AnalysisSnapshot, bool, error) {
 	snap, ok := f.byID[id]
 	return snap, ok, nil
 }
 
-func (f *fakeFindingsRepository) Delete(_ context.Context, id domain.ContestID) error {
+func (f *fakeAnalysisRepository) Delete(_ context.Context, id domain.ContestID) error {
 	delete(f.byID, id)
 	return nil
 }
 
-var _ contests.FindingsRepository = (*fakeFindingsRepository)(nil)
+var _ contests.AnalysisRepository = (*fakeAnalysisRepository)(nil)
 
 type noopTeacherRepository struct{}
 
@@ -125,12 +125,12 @@ func TestPostContestImportNotFound(t *testing.T) {
 	}
 
 	reg := newFakeRegistry()
-	fs := newFakeFindingsRepository()
+	fs := newFakeAnalysisRepository()
 	st := store.NewMem()
-	pipeline := emptyPipeline()
+	orch := emptyOrchestrator()
 	svc := contests.NewService(reg, fs, "stub")
-	reader := contests.NewContestReader(reg, st, fs)
-	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, scoring.NewWeighted(), pipeline))
+	reader := contests.NewContestReader(reg, st, fs, scoring.NewWeighted())
+	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, orch))
 
 	if _, err := svc.Register(context.Background(), contests.Registration{
 		ID:     "contest01",
@@ -166,12 +166,12 @@ func TestPostContestImportSubmitsJob(t *testing.T) {
 	}
 
 	reg := newFakeRegistry()
-	fs := newFakeFindingsRepository()
+	fs := newFakeAnalysisRepository()
 	st := store.NewMem()
-	pipeline := emptyPipeline()
+	orch := emptyOrchestrator()
 	svc := contests.NewService(reg, fs, "stub")
-	reader := contests.NewContestReader(reg, st, fs)
-	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, scoring.NewWeighted(), pipeline))
+	reader := contests.NewContestReader(reg, st, fs, scoring.NewWeighted())
+	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, orch))
 
 	if _, err := svc.Register(context.Background(), contests.Registration{
 		ID:     "contest01",
@@ -217,13 +217,13 @@ func TestGetJobNotFound(t *testing.T) {
 	}
 
 	reg := newFakeRegistry()
-	fs := newFakeFindingsRepository()
+	fs := newFakeAnalysisRepository()
 	st := store.NewMem()
-	pipeline := emptyPipeline()
+	orch := emptyOrchestrator()
 	e := transport.New(
 		contests.NewService(reg, fs, "stub"),
-		contests.NewContestReader(reg, st, fs),
-		analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, scoring.NewWeighted(), pipeline)),
+		contests.NewContestReader(reg, st, fs, scoring.NewWeighted()),
+		analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, orch)),
 		nil,
 		testTeachers(),
 		authSvc,
@@ -270,7 +270,7 @@ func TestGetContestSubmissions(t *testing.T) {
 	}
 
 	reg := newFakeRegistry()
-	fs := newFakeFindingsRepository()
+	fs := newFakeAnalysisRepository()
 	st := store.NewMem()
 	_ = st.Put(context.Background(), []domain.Submission{{
 		ID: "ejudge:contest01:1", Contest: "contest01", Problem: "A", Participant: "alice",
@@ -278,9 +278,9 @@ func TestGetContestSubmissions(t *testing.T) {
 		Meta: map[string]any{"run_id": 1},
 	}})
 	svc := contests.NewService(reg, fs, "stub")
-	reader := contests.NewContestReader(reg, st, fs)
-	pipeline := emptyPipeline()
-	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, scoring.NewWeighted(), pipeline))
+	reader := contests.NewContestReader(reg, st, fs, scoring.NewWeighted())
+	orch := emptyOrchestrator()
+	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, orch))
 	reviewSvc := review.New(st, &fakeReviewComments{}, fakeReviewStatus{})
 
 	if _, err := svc.Register(context.Background(), contests.Registration{
@@ -314,16 +314,16 @@ func TestGetSubmissionComments(t *testing.T) {
 	}
 
 	reg := newFakeRegistry()
-	fs := newFakeFindingsRepository()
+	fs := newFakeAnalysisRepository()
 	st := store.NewMem()
 	_ = st.Put(context.Background(), []domain.Submission{{
 		ID: "ejudge:contest01:1", Contest: "contest01", Problem: "A", Participant: "alice",
 		Verdict: domain.VerdictPR, Meta: map[string]any{"run_id": 1},
 	}})
 	svc := contests.NewService(reg, fs, "stub")
-	reader := contests.NewContestReader(reg, st, fs)
-	pipeline := emptyPipeline()
-	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, scoring.NewWeighted(), pipeline))
+	reader := contests.NewContestReader(reg, st, fs, scoring.NewWeighted())
+	orch := emptyOrchestrator()
+	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, orch))
 	reviewSvc := review.New(st, &fakeReviewComments{list: []review.Comment{{ID: "9", Text: "hi", Time: time.Unix(1, 0)}}}, fakeReviewStatus{})
 
 	if _, err := svc.Register(context.Background(), contests.Registration{
@@ -380,12 +380,12 @@ func TestGetAuthMe_UsernameOnly(t *testing.T) {
 	}
 
 	reg := newFakeRegistry()
-	fs := newFakeFindingsRepository()
+	fs := newFakeAnalysisRepository()
 	st := store.NewMem()
-	pipeline := emptyPipeline()
+	orch := emptyOrchestrator()
 	svc := contests.NewService(reg, fs, "stub")
-	reader := contests.NewContestReader(reg, st, fs)
-	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, scoring.NewWeighted(), pipeline))
+	reader := contests.NewContestReader(reg, st, fs, scoring.NewWeighted())
+	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, orch))
 	e := transport.New(svc, reader, analyzeSvc, nil, testTeachers(), authSvc, nil).Echo()
 
 	req := httptest.NewRequest(http.MethodGet, "/api/auth/me", nil)
@@ -415,12 +415,12 @@ func TestGetContestEjudgeLogin_OK(t *testing.T) {
 	}
 
 	reg := newFakeRegistry()
-	fs := newFakeFindingsRepository()
+	fs := newFakeAnalysisRepository()
 	st := store.NewMem()
-	pipeline := emptyPipeline()
+	orch := emptyOrchestrator()
 	svc := contests.NewService(reg, fs, "stub")
-	reader := contests.NewContestReader(reg, st, fs)
-	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, scoring.NewWeighted(), pipeline))
+	reader := contests.NewContestReader(reg, st, fs, scoring.NewWeighted())
+	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, orch))
 	e := transport.New(svc, reader, analyzeSvc, nil, testTeachers(), authSvc, stubEjudgeGateway{
 		browserLogin: gateway.BrowserLogin{
 			BaseURL:   "https://ejudge.example",

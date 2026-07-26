@@ -8,25 +8,24 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"scainer/internal/domain"
+	"scainer/internal/services/analyze/selectors"
 	"scainer/internal/services/analyze"
 	"scainer/internal/services/contests"
-	"scainer/internal/services/detect"
-	"scainer/internal/services/detect/dummy"
-	"scainer/internal/domain"
+	"scainer/internal/services/analyze/detect"
+	"scainer/internal/services/analyze/detect/dummy"
 	"scainer/internal/services/importer"
-	"scainer/pkg/jobs"
 	"scainer/internal/services/scoring"
+	"scainer/pkg/jobs"
 	"scainer/pkg/store"
 )
 
-func testPipeline(dets ...detect.Detector[domain.ProblemUnit]) detect.Pipeline {
-	limiter := detect.NewLimiter(4)
-	if len(dets) == 0 {
-		return detect.Compose()
+func testOrchestrator(dets ...detect.Detector[domain.ProblemUnit]) *analyze.Orchestrator {
+	r := analyze.NewRegistry(detect.NewLimiter(4))
+	for _, det := range dets {
+		analyze.Register(r, det, analyze.EveryRun[domain.ProblemUnit]{Key: analyze.ScopeKeyProblem}, selectors.Problems)
 	}
-	return detect.Compose(func(id domain.ContestID) detect.Stage {
-		return detect.NewStage(detect.ProblemSelector{Contest: id}, limiter, dets...)
-	})
+	return analyze.NewOrchestrator(r)
 }
 
 func waitForJob(t *testing.T, svc *analyze.Service, jobID string) error {
@@ -103,25 +102,25 @@ func (r *fakeRegistry) List(context.Context) ([]contests.ContestRecord, error) {
 	return out, nil
 }
 
-type fakeFindingsRepository struct {
-	byID map[domain.ContestID]contests.FindingsSnapshot
+type fakeAnalysisRepository struct {
+	byID map[domain.ContestID]contests.AnalysisSnapshot
 }
 
-func newFakeFindingsRepository() *fakeFindingsRepository {
-	return &fakeFindingsRepository{byID: make(map[domain.ContestID]contests.FindingsSnapshot)}
+func newFakeAnalysisRepository() *fakeAnalysisRepository {
+	return &fakeAnalysisRepository{byID: make(map[domain.ContestID]contests.AnalysisSnapshot)}
 }
 
-func (f *fakeFindingsRepository) Put(_ context.Context, snap contests.FindingsSnapshot) error {
+func (f *fakeAnalysisRepository) Put(_ context.Context, snap contests.AnalysisSnapshot) error {
 	f.byID[snap.ContestID] = snap
 	return nil
 }
 
-func (f *fakeFindingsRepository) Get(_ context.Context, id domain.ContestID) (contests.FindingsSnapshot, bool, error) {
+func (f *fakeAnalysisRepository) Get(_ context.Context, id domain.ContestID) (contests.AnalysisSnapshot, bool, error) {
 	snap, ok := f.byID[id]
 	return snap, ok, nil
 }
 
-func (f *fakeFindingsRepository) Delete(_ context.Context, id domain.ContestID) error {
+func (f *fakeAnalysisRepository) Delete(_ context.Context, id domain.ContestID) error {
 	delete(f.byID, id)
 	return nil
 }
@@ -144,12 +143,13 @@ func registerWithSubs(t *testing.T, subs []domain.Submission) (*contests.Contest
 	calls := new(int)
 	st := store.NewMem()
 	reg := newFakeRegistry()
-	fs := newFakeFindingsRepository()
-	pipeline := testPipeline(countingDetector{calls: calls})
+	repo := newFakeAnalysisRepository()
+	orch := testOrchestrator(countingDetector{calls: calls})
+	scorer := scoring.NewWeighted()
 
-	svc := contests.NewService(reg, fs, "stub")
-	reader := contests.NewContestReader(reg, st, fs)
-	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, scoring.NewWeighted(), pipeline))
+	svc := contests.NewService(reg, repo, "stub")
+	reader := contests.NewContestReader(reg, st, repo, scorer)
+	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, repo, orch))
 
 	if _, err := svc.Register(ctx, contests.Registration{
 		ID:     "contest01",
@@ -216,16 +216,17 @@ func TestRecomputesOnResubmit(t *testing.T) {
 	}
 }
 
-func TestUsesPipelineDetectors(t *testing.T) {
+func TestUsesOrchestratorDetectors(t *testing.T) {
 	ctx := context.Background()
 	st := store.NewMem()
 	reg := newFakeRegistry()
-	fs := newFakeFindingsRepository()
-	pipeline := testPipeline(dummy.AlwaysProblem{})
+	repo := newFakeAnalysisRepository()
+	orch := testOrchestrator(dummy.AlwaysProblem{})
+	scorer := scoring.NewWeighted()
 
-	svc := contests.NewService(reg, fs, "stub")
-	reader := contests.NewContestReader(reg, st, fs)
-	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, scoring.NewWeighted(), pipeline))
+	svc := contests.NewService(reg, repo, "stub")
+	reader := contests.NewContestReader(reg, st, repo, scorer)
+	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, repo, orch))
 
 	if _, err := svc.Register(ctx, contests.Registration{
 		ID:     "contest01",
@@ -290,10 +291,96 @@ func TestImportThenAnalyze_UnknownContest(t *testing.T) {
 	ctx := context.Background()
 	analyzeSvc := analyze.New(
 		jobs.NewPool(4),
-		analyze.NewRunner(newFakeRegistry(), store.NewMem(), newFakeFindingsRepository(), scoring.NewWeighted(), testPipeline()),
+		analyze.NewRunner(newFakeRegistry(), store.NewMem(), newFakeAnalysisRepository(), testOrchestrator()),
 	)
 
 	if _, err := analyzeSvc.ImportThenAnalyze(ctx, "missing"); !errors.Is(err, contests.ErrContestNotFound) {
 		t.Fatalf("got %v want ErrContestNotFound", err)
+	}
+}
+
+func TestImport_SkipsAnalyze(t *testing.T) {
+	ctx := context.Background()
+	reader, analyzeSvc, calls := registerWithSubs(t, []domain.Submission{
+		{ID: "1", Contest: "contest01", Problem: "A", Participant: "alice", Lang: domain.LangCPP, Source: []byte("a"), Verdict: domain.VerdictOK},
+	})
+
+	jobID, err := analyzeSvc.Import(ctx, "contest01")
+	if err != nil {
+		t.Fatalf("Import: %v", err)
+	}
+	if err := waitForJob(t, analyzeSvc, jobID); err != nil {
+		t.Fatalf("job: %v", err)
+	}
+	if *calls != 0 {
+		t.Fatalf("Import не должен вызывать детекторы, got %d calls", *calls)
+	}
+
+	list, err := reader.List(ctx)
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if len(list) != 1 || list[0].LastImportedAt == nil {
+		t.Fatalf("ожидали LastImportedAt после Import, got %+v", list)
+	}
+}
+
+type blockingImporter struct {
+	release chan struct{}
+}
+
+func (blockingImporter) Name() string { return "blocking" }
+
+func (b blockingImporter) Import(ctx context.Context, _ importer.Store) (importer.Result, error) {
+	select {
+	case <-b.release:
+		return importer.Result{}, nil
+	case <-ctx.Done():
+		return importer.Result{}, ctx.Err()
+	}
+}
+
+func TestJobConflict(t *testing.T) {
+	release := make(chan struct{})
+	importer.Register("blocking", func(*yaml.Node) (importer.Importer, error) {
+		return blockingImporter{release: release}, nil
+	})
+
+	ctx := context.Background()
+	reg := newFakeRegistry()
+	fs := newFakeAnalysisRepository()
+	st := store.NewMem()
+	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, testOrchestrator()))
+
+	svc := contests.NewService(reg, fs, "blocking")
+	if _, err := svc.Register(ctx, contests.Registration{
+		ID:     "contest01",
+		Source: &contests.SourceSpec{Type: "blocking"},
+	}); err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+
+	jobID, err := analyzeSvc.Import(ctx, "contest01")
+	if err != nil {
+		t.Fatalf("first Import: %v", err)
+	}
+
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		st, ok := analyzeSvc.JobStatus(jobID)
+		if ok && st.Status == jobs.StatusRunning {
+			break
+		}
+		time.Sleep(time.Millisecond)
+	}
+
+	_, err = analyzeSvc.ImportThenAnalyze(ctx, "contest01")
+	if !errors.Is(err, analyze.ErrJobRunning) {
+		t.Fatalf("got %v want ErrJobRunning", err)
+	}
+
+	close(release)
+	if err := waitForJob(t, analyzeSvc, jobID); err != nil {
+		t.Fatalf("job: %v", err)
 	}
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
 import { Highlight, themes, type Language } from "prism-react-renderer";
 
 const PRISM_LANG: Record<string, Language> = {
@@ -12,6 +12,8 @@ const PRISM_LANG: Record<string, Language> = {
   typescript: "typescript",
   ts: "typescript",
 };
+
+const LINE_FLASH_MS = 1250;
 
 function toPrismLang(lang?: string): Language {
   if (!lang) return "clike";
@@ -75,6 +77,35 @@ function lineRangeFromSelection(
   };
 }
 
+function onLineContentMouseDown(
+  e: MouseEvent,
+  onLineNumberClick?: (lineNo: number) => void,
+  skipNextCiteMouseUpRef?: { current: boolean },
+): void {
+  if (!onLineNumberClick) return;
+  if ((e.target as HTMLElement).closest(".line-no")) return;
+  if (e.detail === 2) {
+    e.preventDefault();
+    if (skipNextCiteMouseUpRef) skipNextCiteMouseUpRef.current = true;
+  }
+}
+
+function onLineContentDoubleClick(
+  e: MouseEvent,
+  lineNo: number,
+  lineIndex: number,
+  onLineNumberClick: (lineNo: number) => void,
+  clearCite: () => void,
+  triggerFlash: (lineIndex: number) => void,
+): void {
+  if ((e.target as HTMLElement).closest(".line-no")) return;
+  e.preventDefault();
+  onLineNumberClick(lineNo);
+  triggerFlash(lineIndex);
+  clearCite();
+  window.getSelection()?.removeAllRanges();
+}
+
 type Props = {
   lines: string[];
   lang?: string;
@@ -97,10 +128,80 @@ export default function SourceCode({
   const language = toPrismLang(lang);
   const rootClass = ["code-lines", className].filter(Boolean).join(" ");
   const wrapRef = useRef<HTMLDivElement>(null);
+  const citeModifierSelectRef = useRef(false);
+  const modifierHeldRef = useRef(false);
+  const skipNextCiteMouseUpRef = useRef(false);
   const [cite, setCite] = useState<{ from: number; to: number; top: number } | null>(null);
+  const [lineFlashes, setLineFlashes] = useState<Record<number, number>>({});
+
+  const triggerLineFlashMany = useCallback((lineIndices: number[]) => {
+    if (lineIndices.length === 0) return;
+    const token = Date.now();
+    setLineFlashes((prev) => {
+      const next = { ...prev };
+      for (const idx of lineIndices) delete next[idx];
+      return next;
+    });
+    requestAnimationFrame(() => {
+      setLineFlashes((prev) => {
+        const next = { ...prev };
+        for (const idx of lineIndices) next[idx] = token;
+        return next;
+      });
+      window.setTimeout(() => {
+        setLineFlashes((prev) => {
+          const next = { ...prev };
+          for (const idx of lineIndices) {
+            if (prev[idx] === token) delete next[idx];
+          }
+          return next;
+        });
+      }, LINE_FLASH_MS);
+    });
+  }, []);
+
+  const triggerLineFlash = useCallback(
+    (lineIndex: number) => triggerLineFlashMany([lineIndex]),
+    [triggerLineFlashMany],
+  );
+
+  const triggerLineFlashRange = useCallback(
+    (fromLine: number, toLine: number) => {
+      const from = Math.min(fromLine, toLine);
+      const to = Math.max(fromLine, toLine);
+      const indices: number[] = [];
+      for (let n = from; n <= to; n++) indices.push(n - 1);
+      triggerLineFlashMany(indices);
+    },
+    [triggerLineFlashMany],
+  );
+
+  const handleLineNumberClick = useCallback(
+    (lineNo: number, lineIndex: number) => {
+      if (!onLineNumberClick) return;
+      onLineNumberClick(lineNo);
+      triggerLineFlash(lineIndex);
+    },
+    [onLineNumberClick, triggerLineFlash],
+  );
+
+  const applyCiteRange = useCallback(
+    (from: number, to: number) => {
+      if (!onCiteLines) return;
+      onCiteLines(from, to);
+      triggerLineFlashRange(from, to);
+      setCite(null);
+      window.getSelection()?.removeAllRanges();
+    },
+    [onCiteLines, triggerLineFlashRange],
+  );
 
   const refreshCite = useCallback(() => {
     if (!onCiteLines) return;
+    if (modifierHeldRef.current || citeModifierSelectRef.current) {
+      setCite(null);
+      return;
+    }
     const wrap = wrapRef.current;
     const root = wrap?.querySelector<HTMLElement>(".code-lines");
     if (!wrap || !root) {
@@ -110,37 +211,109 @@ export default function SourceCode({
     setCite(lineRangeFromSelection(root, wrap));
   }, [onCiteLines]);
 
+  const onPreMouseDown = useCallback(
+    (e: MouseEvent) => {
+      if (!onCiteLines) return;
+      citeModifierSelectRef.current = e.metaKey || e.ctrlKey;
+    },
+    [onCiteLines],
+  );
+
+  const onPreMouseUp = useCallback(
+    (e: MouseEvent) => {
+      if (!onCiteLines) return;
+
+      if (skipNextCiteMouseUpRef.current) {
+        skipNextCiteMouseUpRef.current = false;
+        refreshCite();
+        return;
+      }
+
+      const modifier = e.metaKey || e.ctrlKey || citeModifierSelectRef.current;
+      citeModifierSelectRef.current = false;
+
+      const wrap = wrapRef.current;
+      const root = wrap?.querySelector<HTMLElement>(".code-lines");
+      if (!wrap || !root) return;
+
+      const range = lineRangeFromSelection(root, wrap);
+      if (modifier && range) {
+        applyCiteRange(range.from, range.to);
+        return;
+      }
+
+      refreshCite();
+    },
+    [onCiteLines, applyCiteRange, refreshCite],
+  );
+
   useEffect(() => {
     if (!onCiteLines) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Meta" || e.key === "Control") modifierHeldRef.current = true;
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "Meta" || e.key === "Control") modifierHeldRef.current = false;
+    };
     const onSel = () => refreshCite();
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("keyup", onKeyUp);
     document.addEventListener("selectionchange", onSel);
-    return () => document.removeEventListener("selectionchange", onSel);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("keyup", onKeyUp);
+      document.removeEventListener("selectionchange", onSel);
+    };
   }, [onCiteLines, refreshCite]);
 
   useEffect(() => {
     setCite(null);
+    setLineFlashes({});
   }, [code]);
 
   return (
     <div ref={wrapRef} className="code-lines-wrap">
       <Highlight theme={themes.github} code={code} language={language}>
         {({ tokens, getLineProps, getTokenProps }) => (
-          <pre className={rootClass} onMouseUp={onCiteLines ? refreshCite : undefined}>
+          <pre
+            className={rootClass}
+            onMouseDown={onCiteLines ? onPreMouseDown : undefined}
+            onMouseUp={onCiteLines ? onPreMouseUp : undefined}
+          >
             {tokens.map((line, i) => {
               const lineNo = i + 1;
               const lineProps = getLineProps({ line });
               const match = matchLine?.(lineNo) ? " line-match" : "";
+              const flash = lineFlashes[i] ? " line-cite-flash" : "";
               return (
                 <code
                   key={i}
                   {...lineProps}
-                  className={`line${match}${lineProps.className ? ` ${lineProps.className}` : ""}`}
+                  className={`line${match}${flash}${lineProps.className ? ` ${lineProps.className}` : ""}`}
+                  onMouseDown={
+                    onLineNumberClick
+                      ? (e) => onLineContentMouseDown(e, onLineNumberClick, skipNextCiteMouseUpRef)
+                      : undefined
+                  }
+                  onDoubleClick={
+                    onLineNumberClick
+                      ? (e) =>
+                          onLineContentDoubleClick(
+                            e,
+                            lineNo,
+                            i,
+                            onLineNumberClick,
+                            () => setCite(null),
+                            triggerLineFlash,
+                          )
+                      : undefined
+                  }
                 >
                   {onLineNumberClick ? (
                     <button
                       type="button"
                       className="line-no line-no--clickable"
-                      onClick={() => onLineNumberClick(lineNo)}
+                      onClick={() => handleLineNumberClick(lineNo, i)}
                       aria-label={`Строка ${lineNo}`}
                     >
                       {lineNo}
@@ -150,10 +323,12 @@ export default function SourceCode({
                       {lineNo}
                     </span>
                   )}
-                  {line.map((token, j) => (
-                    <span key={j} {...getTokenProps({ token })} />
-                  ))}
-                  {line.length === 0 ? "\n" : null}
+                  <span className="line-body">
+                    {line.map((token, j) => (
+                      <span key={j} {...getTokenProps({ token })} />
+                    ))}
+                    {line.length === 0 ? "\n" : null}
+                  </span>
                 </code>
               );
             })}
@@ -168,11 +343,7 @@ export default function SourceCode({
           title="Вставить номера строк в комментарий"
           aria-label={`Вставить строки ${cite.from}${cite.from === cite.to ? "" : `–${cite.to}`} в комментарий`}
           onMouseDown={(e) => e.preventDefault()}
-          onClick={() => {
-            onCiteLines(cite.from, cite.to);
-            setCite(null);
-            window.getSelection()?.removeAllRanges();
-          }}
+          onClick={() => applyCiteRange(cite.from, cite.to)}
         >
           <CiteIcon />
         </button>

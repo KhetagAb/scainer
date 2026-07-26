@@ -4,17 +4,22 @@ import (
 	"context"
 	"testing"
 
-	"scainer/internal/services/contests"
 	"scainer/internal/domain"
+	"scainer/internal/services/contests"
+	"scainer/internal/services/scoring"
 	"scainer/pkg/store"
 )
+
+func newReader(reg *fakeRegistry, st *store.Mem, repo *fakeAnalysisRepository) *contests.ContestReader {
+	return contests.NewContestReader(reg, st, repo, scoring.NewWeighted())
+}
 
 func TestListSortsByContestID(t *testing.T) {
 	ctx := context.Background()
 	reg := newFakeRegistry()
-	fs := newFakeFindingsRepository()
+	fs := newFakeAnalysisRepository()
 	svc := contests.NewService(reg, fs, "stub")
-	reader := contests.NewContestReader(reg, store.NewMem(), fs)
+	reader := newReader(reg, store.NewMem(), fs)
 
 	for _, id := range []domain.ContestID{"10", "2", "9"} {
 		if _, err := svc.Register(ctx, contests.Registration{
@@ -43,9 +48,9 @@ func TestListSortsByContestID(t *testing.T) {
 func TestListStatsZeroBeforeImport(t *testing.T) {
 	ctx := context.Background()
 	reg := newFakeRegistry()
-	fs := newFakeFindingsRepository()
+	fs := newFakeAnalysisRepository()
 	svc := contests.NewService(reg, fs, "stub")
-	reader := contests.NewContestReader(reg, store.NewMem(), fs)
+	reader := newReader(reg, store.NewMem(), fs)
 
 	if _, err := svc.Register(ctx, contests.Registration{
 		ID:     "contest01",
@@ -71,9 +76,9 @@ func TestProblemsPendingCount(t *testing.T) {
 	ctx := context.Background()
 	st := store.NewMem()
 	reg := newFakeRegistry()
-	findingsRepo := newFakeFindingsRepository()
-	svc := contests.NewService(reg, findingsRepo, "stub")
-	reader := contests.NewContestReader(reg, st, findingsRepo)
+	repo := newFakeAnalysisRepository()
+	svc := contests.NewService(reg, repo, "stub")
+	reader := newReader(reg, st, repo)
 
 	if _, err := svc.Register(ctx, contests.Registration{
 		ID:     "contest01",
@@ -112,9 +117,9 @@ func TestListEnrichStats(t *testing.T) {
 	ctx := context.Background()
 	st := store.NewMem()
 	reg := newFakeRegistry()
-	findingsRepo := newFakeFindingsRepository()
-	svc := contests.NewService(reg, findingsRepo, "stub")
-	reader := contests.NewContestReader(reg, st, findingsRepo)
+	repo := newFakeAnalysisRepository()
+	svc := contests.NewService(reg, repo, "stub")
+	reader := newReader(reg, st, repo)
 
 	if _, err := svc.Register(ctx, contests.Registration{
 		ID:     "contest01",
@@ -176,9 +181,9 @@ func TestGetFindingsDoesNotRecompute(t *testing.T) {
 func TestGetFindingsBeforeImport_EmptyNotError(t *testing.T) {
 	ctx := context.Background()
 	reg := newFakeRegistry()
-	fs := newFakeFindingsRepository()
+	fs := newFakeAnalysisRepository()
 	svc := contests.NewService(reg, fs, "stub")
-	reader := contests.NewContestReader(reg, store.NewMem(), fs)
+	reader := newReader(reg, store.NewMem(), fs)
 
 	if _, err := svc.Register(ctx, contests.Registration{
 		ID:     "contest01",
@@ -199,9 +204,9 @@ func TestGetFindingsBeforeImport_EmptyNotError(t *testing.T) {
 func TestGetFindings_LoadsSubmissionSubjectSubmissions(t *testing.T) {
 	ctx := context.Background()
 	reg := newFakeRegistry()
-	fs := newFakeFindingsRepository()
+	fs := newFakeAnalysisRepository()
 	st := store.NewMem()
-	reader := contests.NewContestReader(reg, st, fs)
+	reader := newReader(reg, st, fs)
 
 	subID := domain.SubmissionID("ejudge:50506:143")
 	if err := st.Put(ctx, []domain.Submission{{
@@ -218,17 +223,17 @@ func TestGetFindings_LoadsSubmissionSubjectSubmissions(t *testing.T) {
 	}
 
 	subj := domain.NewSubmissionSubject("50506", subID)
-	if err := fs.Put(ctx, contests.FindingsSnapshot{
+	if err := fs.Put(ctx, contests.AnalysisSnapshot{
 		ContestID: "50506",
-		Findings: []domain.Finding{{
-			Subject: subj,
-			Score:   1,
-			Signals: []domain.Signal{{
-				Detector: "night-submit",
-				Subject:  subj,
-				Score:    1,
-			}},
-		}},
+		Signals: contests.Signals{
+			"night-submit": {
+				"submission:" + string(subID): {{
+					Detector: "night-submit",
+					Subject:  subj,
+					Score:    1,
+				}},
+			},
+		},
 	}); err != nil {
 		t.Fatal(err)
 	}

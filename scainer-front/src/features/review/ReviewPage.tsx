@@ -1,20 +1,50 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import type { UseQueryResult } from "@tanstack/react-query";
 import type { ProblemInfo, ReportData, SubmissionListItem } from "@/client/types.gen";
 import {
   firstProblemWithPr,
   nextProblemWithPr,
-  prQueueForProblem,
+  submissionsForProblemReview,
 } from "@/features/review/reviewFindings";
 import { problemDisplay } from "@/features/findings/reportModel";
+import { isPendingReview } from "@/features/review/reviewVerdicts";
 import ReviewSubmissionPanel from "@/features/review/ReviewSubmissionPanel";
+
+function ReviewShowAllSubmissions({
+  onClick,
+}: {
+  onClick: () => void;
+}) {
+  return (
+    <div className="review-show-all">
+      <button type="button" className="review-show-all__btn" onClick={onClick}>
+        <span className="review-show-all__label">Показать все посылки</span>
+        <svg
+          width="28"
+          height="28"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+    </div>
+  );
+}
 
 type Props = {
   submissionsQuery: UseQueryResult<SubmissionListItem[]>;
   findingsQuery: UseQueryResult<unknown>;
   problems: ProblemInfo[];
   onUnauthorized: () => void;
+  prOnly: boolean;
+  setReviewPrOnly: (value: boolean) => void;
 };
 
 export default function ReviewPage({
@@ -22,6 +52,8 @@ export default function ReviewPage({
   findingsQuery,
   problems,
   onUnauthorized,
+  prOnly,
+  setReviewPrOnly,
 }: Props) {
   const { id: contestId } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
@@ -34,6 +66,7 @@ export default function ReviewPage({
   /** Очередь задачи на сессию: OK/RJ не убирают посылку до перезагрузки / смены задачи. */
   const [sessionProblemId, setSessionProblemId] = useState<string | null>(null);
   const [sessionQueue, setSessionQueue] = useState<SubmissionListItem[]>([]);
+  const prevPrOnlyRef = useRef(prOnly);
 
   useEffect(() => {
     if (!problemId) {
@@ -41,11 +74,17 @@ export default function ReviewPage({
       setSessionQueue([]);
       return;
     }
-    if (sessionProblemId === problemId) return;
     if (submissionsQuery.isLoading) return;
-    setSessionQueue(prQueueForProblem(items, problemId));
+
+    const problemChanged = sessionProblemId !== problemId;
+    const prOnlyChanged = prevPrOnlyRef.current !== prOnly;
+    prevPrOnlyRef.current = prOnly;
+
+    if (!problemChanged && !prOnlyChanged && sessionProblemId === problemId) return;
+
+    setSessionQueue(submissionsForProblemReview(items, problemId, prOnly));
     setSessionProblemId(problemId);
-  }, [problemId, sessionProblemId, items, submissionsQuery.isLoading]);
+  }, [problemId, sessionProblemId, items, submissionsQuery.isLoading, prOnly]);
 
   const queue = sessionProblemId === problemId ? sessionQueue : [];
 
@@ -59,6 +98,15 @@ export default function ReviewPage({
     () => (problemId ? nextProblemWithPr(problems, items, problemId) : null),
     [problemId, problems, items],
   );
+
+  const hasHiddenSubmissions = useMemo(() => {
+    if (!problemId || !prOnly) return false;
+    return items.some(
+      (s) => s.problem === problemId && !isPendingReview(s.verdict),
+    );
+  }, [problemId, prOnly, items]);
+
+  const showAllSubmissions = () => setReviewPrOnly(false);
 
   useEffect(() => {
     if (problemId) return;
@@ -105,26 +153,42 @@ export default function ReviewPage({
     return (
       <div className="review-empty">
         <p>
-          По задаче <strong>{problemId}</strong> нет посылок со статусом PR.
+          {prOnly ? (
+            <>
+              По задаче <strong>{problemId}</strong> нет посылок со статусом PR.
+            </>
+          ) : (
+            <>
+              По задаче <strong>{problemId}</strong> нет посылок.
+            </>
+          )}
         </p>
+        {hasHiddenSubmissions ? (
+          <ReviewShowAllSubmissions onClick={showAllSubmissions} />
+        ) : null}
       </div>
     );
   }
 
   return (
     <div className="review-stack">
-      {queue.map((s, i) => (
-        <ReviewSubmissionPanel
-          key={s.id}
-          contestId={contestId}
-          submission={s}
-          findingsReport={report}
-          problemLabel={problemLabel}
-          nextSubmissionId={queue[i + 1]?.id ?? null}
-          nextProblemId={i === queue.length - 1 ? nextProblemId : null}
-          onUnauthorized={onUnauthorized}
-        />
-      ))}
+      {queue.map((s, i) => {
+        const isLast = i === queue.length - 1;
+        return (
+          <ReviewSubmissionPanel
+            key={s.id}
+            contestId={contestId}
+            submission={s}
+            findingsReport={report}
+            problemLabel={problemLabel}
+            nextSubmissionId={queue[i + 1]?.id ?? null}
+            nextProblemId={isLast ? nextProblemId : null}
+            onUnauthorized={onUnauthorized}
+            showAllSubmissions={isLast && hasHiddenSubmissions && Boolean(nextProblemId)}
+            onShowAllSubmissions={showAllSubmissions}
+          />
+        );
+      })}
     </div>
   );
 }

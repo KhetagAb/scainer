@@ -7,38 +7,21 @@ import (
 
 	"scainer/internal/domain"
 	"scainer/internal/services/contests"
-	"scainer/internal/services/detect"
 	"scainer/internal/services/importer"
-	"scainer/internal/services/scoring"
 	"scainer/pkg/progress"
 )
-
-type Result struct {
-	ImportedCount  int
-	LastImportedAt time.Time
-}
-
-type Runner struct {
-	registry        contests.ContestRegistry
-	submissionStore contests.SubmissionStore
-	findingsRepo    contests.FindingsRepository
-	scorer          scoring.Scorer
-	pipeline        Pipeline
-}
 
 func NewRunner(
 	registry contests.ContestRegistry,
 	submissionStore contests.SubmissionStore,
-	findingsRepo contests.FindingsRepository,
-	scorer scoring.Scorer,
-	pipeline Pipeline,
+	analysisRepo contests.AnalysisRepository,
+	orchestrator *Orchestrator,
 ) *Runner {
 	return &Runner{
 		registry:        registry,
 		submissionStore: submissionStore,
-		findingsRepo:    findingsRepo,
-		scorer:          scorer,
-		pipeline:        pipeline,
+		analysisRepo:    analysisRepo,
+		orchestrator:    orchestrator,
 	}
 }
 
@@ -80,18 +63,26 @@ func (r *Runner) Analyze(ctx context.Context, id domain.ContestID) error {
 	}
 
 	progress.Report(ctx, progress.Event{Phase: "analyzing"})
-	return r.recomputeFindings(ctx, id)
+	return r.recomputeAnalysis(ctx, id)
 }
 
-func (r *Runner) recomputeFindings(ctx context.Context, id domain.ContestID) error {
-	signals, err := detect.MultiStage(r.pipeline.ForContest(id)...).Run(ctx, r.submissionStore)
+func (r *Runner) recomputeAnalysis(ctx context.Context, id domain.ContestID) error {
+	prev, ok, err := r.analysisRepo.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		prev = contests.AnalysisSnapshot{ContestID: id}
+	}
+
+	next, err := r.orchestrator.Run(ctx, id, r.submissionStore, prev)
+	if putErr := r.analysisRepo.Put(ctx, next); putErr != nil {
+		return putErr
+	}
 	if err != nil {
 		return fmt.Errorf("analyze: %w", err)
 	}
-	findings := r.scorer.Score(signals)
-	return r.findingsRepo.Put(ctx, contests.FindingsSnapshot{
-		ContestID: id, Findings: findings, ComputedAt: time.Now().UTC(),
-	})
+	return nil
 }
 
 func lookup(ctx context.Context, registry contests.ContestRegistry, id domain.ContestID) (contests.ContestRecord, error) {

@@ -49,9 +49,23 @@ type ProblemInfo struct {
 	PendingCount    int
 }
 
-type FindingsSnapshot struct {
+type DetectorName = string
+type ScopeKey = string
+
+type ScopeProgress = []domain.SubmissionID
+
+type DetectorProgress map[ScopeKey]ScopeProgress
+
+type Progress map[DetectorName]DetectorProgress
+
+type DetectorSignals map[ScopeKey][]domain.Signal
+
+type Signals map[DetectorName]DetectorSignals
+
+type AnalysisSnapshot struct {
 	ContestID  domain.ContestID `bson:"contest_id"`
-	Findings   []domain.Finding `bson:"findings"`
+	Progress   Progress         `bson:"progress,omitempty"`
+	Signals    Signals          `bson:"signals,omitempty"`
 	ComputedAt time.Time        `bson:"computed_at"`
 }
 
@@ -64,9 +78,9 @@ type SubmissionStore interface {
 	SetCursor(ctx context.Context, key string, value string) error
 }
 
-type FindingsRepository interface {
-	Put(ctx context.Context, snapshot FindingsSnapshot) error
-	Get(ctx context.Context, id domain.ContestID) (FindingsSnapshot, bool, error)
+type AnalysisRepository interface {
+	Put(ctx context.Context, snapshot AnalysisSnapshot) error
+	Get(ctx context.Context, id domain.ContestID) (AnalysisSnapshot, bool, error)
 	Delete(ctx context.Context, id domain.ContestID) error
 }
 

@@ -8,25 +8,24 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"scainer/internal/domain"
+	"scainer/internal/services/analyze/selectors"
 	"scainer/internal/services/analyze"
 	"scainer/internal/services/contests"
-	"scainer/internal/services/detect"
-	"scainer/internal/services/detect/dummy"
-	"scainer/internal/domain"
+	"scainer/internal/services/analyze/detect"
+	"scainer/internal/services/analyze/detect/dummy"
 	"scainer/internal/services/importer"
-	"scainer/pkg/jobs"
 	"scainer/internal/services/scoring"
+	"scainer/pkg/jobs"
 	"scainer/pkg/store"
 )
 
-func testPipeline(dets ...detect.Detector[domain.ProblemUnit]) detect.Pipeline {
-	limiter := detect.NewLimiter(4)
-	if len(dets) == 0 {
-		return detect.Compose()
+func testOrchestrator(dets ...detect.Detector[domain.ProblemUnit]) *analyze.Orchestrator {
+	r := analyze.NewRegistry(detect.NewLimiter(4))
+	for _, det := range dets {
+		analyze.Register(r, det, analyze.EveryRun[domain.ProblemUnit]{Key: analyze.ScopeKeyProblem}, selectors.Problems)
 	}
-	return detect.Compose(func(id domain.ContestID) detect.Stage {
-		return detect.NewStage(detect.ProblemSelector{Contest: id}, limiter, dets...)
-	})
+	return analyze.NewOrchestrator(r)
 }
 
 func waitForJob(t *testing.T, svc *analyze.Service, jobID string) error {
@@ -109,30 +108,30 @@ func (r *fakeRegistry) List(context.Context) ([]contests.ContestRecord, error) {
 
 var _ contests.ContestRegistry = (*fakeRegistry)(nil)
 
-type fakeFindingsRepository struct {
-	byID map[domain.ContestID]contests.FindingsSnapshot
+type fakeAnalysisRepository struct {
+	byID map[domain.ContestID]contests.AnalysisSnapshot
 }
 
-func newFakeFindingsRepository() *fakeFindingsRepository {
-	return &fakeFindingsRepository{byID: make(map[domain.ContestID]contests.FindingsSnapshot)}
+func newFakeAnalysisRepository() *fakeAnalysisRepository {
+	return &fakeAnalysisRepository{byID: make(map[domain.ContestID]contests.AnalysisSnapshot)}
 }
 
-func (f *fakeFindingsRepository) Put(_ context.Context, snap contests.FindingsSnapshot) error {
+func (f *fakeAnalysisRepository) Put(_ context.Context, snap contests.AnalysisSnapshot) error {
 	f.byID[snap.ContestID] = snap
 	return nil
 }
 
-func (f *fakeFindingsRepository) Get(_ context.Context, id domain.ContestID) (contests.FindingsSnapshot, bool, error) {
+func (f *fakeAnalysisRepository) Get(_ context.Context, id domain.ContestID) (contests.AnalysisSnapshot, bool, error) {
 	snap, ok := f.byID[id]
 	return snap, ok, nil
 }
 
-func (f *fakeFindingsRepository) Delete(_ context.Context, id domain.ContestID) error {
+func (f *fakeAnalysisRepository) Delete(_ context.Context, id domain.ContestID) error {
 	delete(f.byID, id)
 	return nil
 }
 
-var _ contests.FindingsRepository = (*fakeFindingsRepository)(nil)
+var _ contests.AnalysisRepository = (*fakeAnalysisRepository)(nil)
 
 type countingDetector struct {
 	calls *int
@@ -156,13 +155,13 @@ func registerWithSubs(t *testing.T, subs []domain.Submission) (*contests.Service
 	calls := new(int)
 	st := store.NewMem()
 	reg := newFakeRegistry()
-	fs := newFakeFindingsRepository()
+	fs := newFakeAnalysisRepository()
 	det := countingDetector{calls: calls}
-	pipeline := testPipeline(det)
+	orch := testOrchestrator(det)
 
 	svc := contests.NewService(reg, fs, "stub")
-	reader := contests.NewContestReader(reg, st, fs)
-	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, scoring.NewWeighted(), pipeline))
+	reader := contests.NewContestReader(reg, st, fs, scoring.NewWeighted())
+	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, orch))
 
 	if _, err := svc.Register(ctx, contests.Registration{
 		ID:     "contest01",
@@ -180,7 +179,7 @@ func registerWithSubs(t *testing.T, subs []domain.Submission) (*contests.Service
 
 func TestRegisterSuccess(t *testing.T) {
 	ctx := context.Background()
-	svc := contests.NewService(newFakeRegistry(), newFakeFindingsRepository(), "stub")
+	svc := contests.NewService(newFakeRegistry(), newFakeAnalysisRepository(), "stub")
 
 	decl := contests.Registration{
 		ID:               "contest01",
@@ -209,7 +208,7 @@ func TestRegisterSuccess(t *testing.T) {
 
 func TestRegisterDuplicate(t *testing.T) {
 	ctx := context.Background()
-	svc := contests.NewService(newFakeRegistry(), newFakeFindingsRepository(), "stub")
+	svc := contests.NewService(newFakeRegistry(), newFakeAnalysisRepository(), "stub")
 
 	decl := contests.Registration{
 		ID: "contest01",
@@ -230,7 +229,7 @@ func TestRegisterDuplicate(t *testing.T) {
 func TestRegistryIsSourceOfTruthAcrossServiceRestart(t *testing.T) {
 	ctx := context.Background()
 	registry := newFakeRegistry()
-	fs := newFakeFindingsRepository()
+	fs := newFakeAnalysisRepository()
 
 	svc1 := contests.NewService(registry, fs, "stub")
 
@@ -247,8 +246,8 @@ func TestRegistryIsSourceOfTruthAcrossServiceRestart(t *testing.T) {
 		t.Fatalf("SetParallel: %v", err)
 	}
 
-	svc2 := contests.NewService(registry, newFakeFindingsRepository(), "stub")
-	reader2 := contests.NewContestReader(registry, store.NewMem(), newFakeFindingsRepository())
+	svc2 := contests.NewService(registry, newFakeAnalysisRepository(), "stub")
+	reader2 := contests.NewContestReader(registry, store.NewMem(), newFakeAnalysisRepository(), scoring.NewWeighted())
 
 	list, err := reader2.List(ctx)
 	if err != nil {
@@ -273,9 +272,9 @@ func TestRegistryIsSourceOfTruthAcrossServiceRestart(t *testing.T) {
 func TestSetParallel(t *testing.T) {
 	ctx := context.Background()
 	reg := newFakeRegistry()
-	fs := newFakeFindingsRepository()
+	fs := newFakeAnalysisRepository()
 	svc := contests.NewService(reg, fs, "stub")
-	reader := contests.NewContestReader(reg, store.NewMem(), fs)
+	reader := contests.NewContestReader(reg, store.NewMem(), fs, scoring.NewWeighted())
 
 	decl := contests.Registration{
 		ID: "contest01",
@@ -305,9 +304,9 @@ func TestSetParallel(t *testing.T) {
 func TestRemoveContest(t *testing.T) {
 	ctx := context.Background()
 	reg := newFakeRegistry()
-	fs := newFakeFindingsRepository()
+	fs := newFakeAnalysisRepository()
 	svc := contests.NewService(reg, fs, "stub")
-	reader := contests.NewContestReader(reg, store.NewMem(), fs)
+	reader := contests.NewContestReader(reg, store.NewMem(), fs, scoring.NewWeighted())
 
 	decl := contests.Registration{
 		ID: "contest01",
@@ -337,9 +336,9 @@ func TestRemoveContest(t *testing.T) {
 func TestSetExcludedProblems(t *testing.T) {
 	ctx := context.Background()
 	reg := newFakeRegistry()
-	fs := newFakeFindingsRepository()
+	fs := newFakeAnalysisRepository()
 	svc := contests.NewService(reg, fs, "stub")
-	reader := contests.NewContestReader(reg, store.NewMem(), fs)
+	reader := contests.NewContestReader(reg, store.NewMem(), fs, scoring.NewWeighted())
 
 	decl := contests.Registration{
 		ID: "contest01",

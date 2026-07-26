@@ -8,6 +8,8 @@ type Props = {
   problems: ProblemInfo[];
   submissions: SubmissionListItem[];
   activeProblemId: string | null;
+  prOnly: boolean;
+  onPrOnlyChange: (value: boolean) => void;
 };
 
 export default function ReviewProblemPicker({
@@ -15,6 +17,8 @@ export default function ReviewProblemPicker({
   problems,
   submissions,
   activeProblemId,
+  prOnly,
+  onPrOnlyChange,
 }: Props) {
   const prCounts = prCountByProblem(submissions);
   const sorted = problems.slice().sort((a, b) => {
@@ -30,27 +34,38 @@ export default function ReviewProblemPicker({
   const base = `/contests/${encodeURIComponent(contestId)}`;
 
   return (
-    <ul className="review-picker" aria-label="Задачи для ревью">
-      {sorted.map((p) => {
-        // submissions актуальнее после смены verdict; pendingCount — fallback с /problems
-        const pr = prCounts.get(p.id) ?? p.pendingCount ?? 0;
-        const active = activeProblemId === p.id;
-        const label = problemDisplay(p.id, p.name);
-        return (
-          <li key={p.id} className="review-picker__item">
-            <NavLink
-              to={`${base}/review?problem=${encodeURIComponent(p.id)}`}
-              className={`chip problem-chip review-picker__chip${active ? " is-active" : ""}${pr === 0 ? " is-empty" : ""}`}
-              title={label}
-            >
-              {label}
-              <span className="review-picker__pr" aria-label={`${pr} pending review`}>
-                {pr}
-              </span>
-            </NavLink>
-          </li>
-        );
-      })}
-    </ul>
+    <div className="review-picker-row">
+      <ul className="review-picker" aria-label="Задачи для ревью">
+        {sorted.map((p) => {
+          const pr = prCounts.get(p.id) ?? p.pendingCount ?? 0;
+          const active = activeProblemId === p.id;
+          const label = problemDisplay(p.id, p.name);
+          return (
+            <li key={p.id} className="review-picker__item">
+              <NavLink
+                to={`${base}/review?problem=${encodeURIComponent(p.id)}`}
+                className={`chip problem-chip review-picker__chip${active ? " is-active" : ""}${pr === 0 ? " is-empty" : ""}`}
+                title={label}
+              >
+                {label}
+                <span className="review-picker__pr" aria-label={`${pr} pending review`}>
+                  {pr}
+                </span>
+              </NavLink>
+            </li>
+          );
+        })}
+      </ul>
+
+      <label className="review-picker__filter">
+        <input
+          type="checkbox"
+          className="review-picker__filter-input"
+          checked={prOnly}
+          onChange={(e) => onPrOnlyChange(e.target.checked)}
+        />
+        <span className="review-picker__filter-label">PR only</span>
+      </label>
+    </div>
   );
 }

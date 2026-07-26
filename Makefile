@@ -16,10 +16,10 @@ up-prod:
 down-prod:
 	$(COMPOSE) $(COMPOSE_PROD) down
 
-import-logins:
+logins:
 	bash $(IMPORT_LOGINS_SCRIPT)
 
-import-logins-dry:
+logins-dry:
 	bash $(IMPORT_LOGINS_SCRIPT) --dry-run
 
 rebuild: down

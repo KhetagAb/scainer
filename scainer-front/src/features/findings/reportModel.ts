@@ -49,9 +49,10 @@ export function formatSubmissionCount(n: number): string {
   return `${n} ${word}`;
 }
 
-export function problemDisplay(id: string, shortName?: string | null): string {
-  if (shortName && id && shortName !== id) return `${id} - ${shortName}`;
-  return shortName || id || "";
+/** Формат «A - find-cycle»: shortLabel (буква из ejudge) — id (внутренний ключ задачи). */
+export function problemDisplay(id: string, shortLabel?: string | null): string {
+  if (shortLabel && id && shortLabel !== id) return `${shortLabel} - ${id}`;
+  return shortLabel || id || "";
 }
 
 export function problemGroupKey(subject: SubjectView): string {

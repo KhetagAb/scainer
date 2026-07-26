@@ -6,7 +6,6 @@
 #   ./scripts/import-admin-login.sh --yes        # импортировать всех
 #   ./scripts/import-admin-login.sh --only=a,b   # только указанные
 #   ./scripts/import-admin-login.sh --skip=a,b   # всех, кроме указанных
-#   ./scripts/import-admin-login.sh --dry-run    # показать план без изменений
 
 set -euo pipefail
 
@@ -14,7 +13,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 COMPOSE_ROOT="$(cd "$ROOT/.." && pwd)"
 ENV_FILE="${ENV_FILE:-$ROOT/.env}"
-DRY_RUN=0
 IMPORT_ALL=0
 ONLY_RAW=""
 SKIP_RAW=""
@@ -23,21 +21,19 @@ usage() {
   cat >&2 <<'EOF'
 usage: import-admin-login.sh [options]
 
-  --dry-run          показать план, не менять БД
   -y, --yes          импортировать всех без вопросов
   --only=LOGIN,...   импортировать только указанные логины
   --skip=LOGIN,...   импортировать всех, кроме указанных
   -h, --help         эта справка
 
 Без флагов скрипт спрашивает по каждому логину (нужен TTY).
-Пропущенные логины остаются в login_audit.
+Пропущенные логины не попадают в teachers, но удаляются из login_audit.
 EOF
   exit 1
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --dry-run) DRY_RUN=1; shift ;;
     -y|--yes) IMPORT_ALL=1; shift ;;
     --only=*) ONLY_RAW="${1#*=}"; shift ;;
     --only)
@@ -201,27 +197,20 @@ else
   exit 1
 fi
 
-if [[ ${#SELECTED[@]} -eq 0 ]]; then
-  echo "ничего не выбрано для импорта"
-  exit 0
-fi
-
 echo
-echo "импорт (${#SELECTED[@]}):"
-for login in "${SELECTED[@]}"; do
-  echo "  + $login"
-done
+if [[ ${#SELECTED[@]} -gt 0 ]]; then
+  echo "импорт (${#SELECTED[@]}):"
+  for login in "${SELECTED[@]}"; do
+    echo "  + $login"
+  done
+else
+  echo "импорт: никого"
+fi
 if [[ ${#SKIPPED[@]} -gt 0 ]]; then
-  echo "пропуск (${#SKIPPED[@]}), останутся в login_audit:"
+  echo "пропуск (${#SKIPPED[@]}), только удаление из login_audit:"
   for login in "${SKIPPED[@]}"; do
     echo "  - $login"
   done
-fi
-
-if [[ $DRY_RUN -eq 1 ]]; then
-  echo
-  echo "dry-run: teachers и login_audit не изменены"
-  exit 0
 fi
 
 SELECTED_JSON="$(
@@ -246,10 +235,6 @@ for (const entry of entries) {
   users[login] = entry.password;
 }
 const logins = Object.keys(users).sort();
-if (logins.length === 0) {
-  print("нечего импортировать");
-  quit(0);
-}
 for (const login of logins) {
   db.teachers.replaceOne(
     { _id: login },
@@ -257,7 +242,7 @@ for (const login of logins) {
     { upsert: true }
   );
 }
-const res = db.login_audit.deleteMany({ login: { $in: logins } });
+const res = db.login_audit.deleteMany({});
 print(
   "добавлено/обновлено " +
     logins.length +

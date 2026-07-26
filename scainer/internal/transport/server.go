@@ -22,6 +22,7 @@ import (
 	"scainer/pkg/auth"
 	"scainer/pkg/jobs"
 	scainermw "scainer/pkg/middleware"
+	"scainer/pkg/metrics"
 )
 
 type ejudgeGateway interface {
@@ -56,6 +57,8 @@ func (s *Server) Echo() *echo.Echo {
 	}))
 	e.Use(scainermw.LoginRateLimit(5, time.Minute))
 	e.Use(scainermw.RequireJWT(s.auth))
+	e.Use(metrics.HTTPMiddleware())
+	e.GET("/metrics", echo.WrapHandler(metrics.Handler()))
 	server.RegisterHandlers(e, s)
 	// SSE вне OpenAPI/codegen (text/event-stream не в ServerInterface).
 	e.GET("/api/jobs/:jobId/events", s.getJobEvents)
@@ -73,6 +76,7 @@ func (s *Server) PostAuthLogin(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, server.Error{Error: "authentication is not configured"})
 	}
 	if err := s.teachers.Login(c.Request().Context(), req.Username, req.Password); err != nil {
+		metrics.ObserveAuthLogin(false)
 		if errors.Is(err, teachers.ErrNotFound) {
 			return c.JSON(http.StatusUnauthorized, server.Error{Error: "teacher not found"})
 		}
@@ -83,8 +87,10 @@ func (s *Server) PostAuthLogin(c echo.Context) error {
 	}
 	token, expiresIn, err := s.auth.IssueToken(req.Username)
 	if err != nil {
+		metrics.ObserveAuthLogin(false)
 		return c.JSON(http.StatusInternalServerError, server.Error{Error: "failed to issue token"})
 	}
+	metrics.ObserveAuthLogin(true)
 	s.warmupAPIKeyAsync(req.Username)
 	return c.JSON(http.StatusOK, server.LoginResponse{
 		AccessToken: token,

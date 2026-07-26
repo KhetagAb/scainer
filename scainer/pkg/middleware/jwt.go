@@ -12,6 +12,9 @@ import (
 func RequireJWT(svc auth.Service) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
+			if c.Request().Method == http.MethodGet && c.Request().URL.Path == "/metrics" {
+				return next(c)
+			}
 			if c.Request().Method == http.MethodPost && c.Path() == "/api/auth/login" {
 				return next(c)
 			}

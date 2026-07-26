@@ -1,4 +1,4 @@
-COMPOSE ?= podman-compose
+COMPOSE ?= docker-compose
 COMPOSE_PROD = -f docker-compose.yml -f docker-compose.prod.yml
 IMPORT_LOGINS_SCRIPT = scainer/scripts/import-admin-login.sh
 

@@ -166,21 +166,28 @@ export function useParallelImportJobs({
         const res = await postContestImport({
           path: { id },
           headers: authHeaders(),
-          throwOnError: true,
         });
+
+        if (res.error) {
+          if (res.response.status === 401) onUnauthorizedRef.current?.();
+          if (res.response.status === 404) clearStoredJobId(id);
+          setErrorById((prev) => ({ ...prev, [id]: res.error!.error }));
+          settledOk = false;
+          return;
+        }
+
         const jobId = extractJobId(res.data);
         if (!jobId) {
-          throw new Error("сервер не вернул jobId");
+          setErrorById((prev) => ({ ...prev, [id]: "сервер не вернул jobId" }));
+          settledOk = false;
+          return;
         }
         writeStoredJobId(id, jobId);
         jobIdWritten = true;
         settledOk = await watchJob(id, jobId, controller.signal);
       } catch (e) {
         if (isAbortError(e)) return;
-        if ((e as { status?: number })?.status === 401) onUnauthorizedRef.current?.();
-        if ((e as { status?: number })?.status === 404 || !jobIdWritten) {
-          clearStoredJobId(id);
-        }
+        if (!jobIdWritten) clearStoredJobId(id);
         setErrorById((prev) => ({
           ...prev,
           [id]: e instanceof Error ? e.message : String(e),
@@ -220,6 +227,16 @@ export function useParallelImportJobs({
 
         if (controller.signal.aborted) return;
 
+        if (snap.error) {
+          if (snap.response.status === 401) onUnauthorizedRef.current?.();
+          if (snap.response.status === 404) clearStoredJobId(id);
+          else {
+            setErrorById((prev) => ({ ...prev, [id]: snap.error!.error }));
+            settledOk = false;
+          }
+          return;
+        }
+
         if (snap.response.status === 404 || !snap.data) {
           clearStoredJobId(id);
           return;
@@ -238,11 +255,6 @@ export function useParallelImportJobs({
         settledOk = await watchJob(id, jobId, controller.signal);
       } catch (e) {
         if (isAbortError(e)) return;
-        if ((e as { status?: number })?.status === 401) onUnauthorizedRef.current?.();
-        if ((e as { status?: number })?.status === 404) {
-          clearStoredJobId(id);
-          return;
-        }
         // Сеть/прокси: jobId оставляем — после F5 resume подхватит снова.
         setErrorById((prev) => ({
           ...prev,

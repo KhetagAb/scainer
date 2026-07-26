@@ -16,6 +16,7 @@ import {
 } from "@/client/@tanstack/react-query.gen";
 import type { ReportData, SubmissionListItem } from "@/client/types.gen";
 import { authHeaders } from "@/features/auth/authStorage";
+import { ApiError } from "@/lib/apiError";
 import {
   findingsForSubmission,
   formatSubmittedAt,
@@ -233,7 +234,7 @@ export default function ReviewSubmissionPanel({
   );
 
   if (commentsQuery.isError) {
-    if ((commentsQuery.error as { status?: number })?.status === 401) onUnauthorized();
+    if (commentsQuery.error instanceof ApiError && commentsQuery.error.status === 401) onUnauthorized();
   }
 
   const liveVerdict = commentsQuery.data?.verdict ?? submission.verdict ?? "—";
@@ -299,12 +300,8 @@ export default function ReviewSubmissionPanel({
       setComment("");
       await refreshComments();
     } catch (err) {
-      if ((err as { status?: number })?.status === 401) onUnauthorized();
-      const detail =
-        (err as { error?: string })?.error ||
-        (err as { message?: string })?.message ||
-        "Не удалось отправить комментарий";
-      setActionError(detail);
+      if (err instanceof ApiError && err.status === 401) onUnauthorized();
+      setActionError(err instanceof ApiError ? err.error : "Не удалось отправить комментарий");
     }
   };
 
@@ -324,12 +321,8 @@ export default function ReviewSubmissionPanel({
       if (nextSubmissionId) scrollToNext();
       else setCelebrate(true);
     } catch (err) {
-      if ((err as { status?: number })?.status === 401) onUnauthorized();
-      const detail =
-        (err as { error?: string })?.error ||
-        (err as { message?: string })?.message ||
-        "Не удалось выставить вердикт";
-      setActionError(detail);
+      if (err instanceof ApiError && err.status === 401) onUnauthorized();
+      setActionError(err instanceof ApiError ? err.error : "Не удалось выставить вердикт");
     }
   };
 

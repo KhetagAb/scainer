@@ -2,7 +2,6 @@ package cron
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -51,21 +50,17 @@ func (s *ImportScheduler) tick(ctx context.Context) {
 		return
 	}
 
-	var queued, skipped int
+	var queued int
 	for _, rec := range records {
 		_, err := s.analyze.Import(ctx, rec.Contest.ID)
-		if errors.Is(err, analyze.ErrJobRunning) {
-			skipped++
-			continue
-		}
 		if err != nil {
 			log.Printf("import_cron: contest %s: %v", rec.Contest.ID, err)
 			continue
 		}
 		queued++
 	}
-	if queued > 0 || skipped > 0 {
-		log.Printf("import_cron: queued %d, skipped %d (running)", queued, skipped)
+	if queued > 0 {
+		log.Printf("import_cron: queued %d", queued)
 	}
 }
 

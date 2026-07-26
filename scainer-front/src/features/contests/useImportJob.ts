@@ -88,11 +88,21 @@ export function useImportJob(
         const res = await postContestImport({
           path: { id },
           headers: authHeaders(),
-          throwOnError: true,
         });
+
+        if (res.error) {
+          if (res.response.status === 401) onUnauthorized?.();
+          if (res.response.status === 404) clearStoredJobId(id);
+          setError(res.error.error);
+          onSettledRef.current?.(false);
+          return false;
+        }
+
         const jobId = extractJobId(res.data);
         if (!jobId) {
-          throw new Error("сервер не вернул jobId");
+          setError("сервер не вернул jobId");
+          onSettledRef.current?.(false);
+          return false;
         }
 
         writeStoredJobId(id, jobId);
@@ -102,10 +112,7 @@ export function useImportJob(
         return ok;
       } catch (e) {
         if (isAbortError(e)) return false;
-        if ((e as { status?: number })?.status === 401) onUnauthorized?.();
-        if ((e as { status?: number })?.status === 404 || !jobIdWritten) {
-          clearStoredJobId(id);
-        }
+        if (!jobIdWritten) clearStoredJobId(id);
         setError(e instanceof Error ? e.message : String(e));
         onSettledRef.current?.(false);
         return false;
@@ -142,6 +149,14 @@ export function useImportJob(
 
         if (cancelled) return;
 
+        if (snap.error) {
+          if (snap.response.status === 401) onUnauthorized?.();
+          if (snap.response.status === 404) clearStoredJobId(contestId);
+          else setError(snap.error.error);
+          onSettledRef.current?.(false);
+          return;
+        }
+
         if (snap.response.status === 404 || !snap.data) {
           clearStoredJobId(contestId);
           return;
@@ -164,11 +179,6 @@ export function useImportJob(
         if (!cancelled) onSettledRef.current?.(ok);
       } catch (e) {
         if (cancelled || isAbortError(e)) return;
-        if ((e as { status?: number })?.status === 401) onUnauthorized?.();
-        if ((e as { status?: number })?.status === 404) {
-          clearStoredJobId(contestId);
-          return;
-        }
         setError(e instanceof Error ? e.message : String(e));
         onSettledRef.current?.(false);
       } finally {

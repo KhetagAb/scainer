@@ -2,25 +2,29 @@ package analyze
 
 import (
 	"context"
+	"errors"
 	"sync"
+	"time"
 
 	"scainer/internal/domain"
 	"scainer/pkg/auth"
 	"scainer/pkg/jobs"
 )
 
+const pendingJobID = "__pending__"
+
 type Service struct {
 	pool    *jobs.Pool
 	runner  *Runner
 	mu      sync.Mutex
-	running map[domain.ContestID]struct{}
+	running map[domain.ContestID]string
 }
 
 func New(pool *jobs.Pool, runner *Runner) *Service {
 	return &Service{
 		pool:    pool,
 		runner:  runner,
-		running: make(map[domain.ContestID]struct{}),
+		running: make(map[domain.ContestID]string),
 	}
 }
 
@@ -48,8 +52,11 @@ func (s *Service) enqueue(
 	if _, err := lookup(ctx, s.runner.registry, id); err != nil {
 		return "", err
 	}
-	if err := s.acquire(id); err != nil {
+
+	if existing, ok, err := s.existingJobID(id); err != nil {
 		return "", err
+	} else if ok {
+		return existing, nil
 	}
 
 	login, _ := auth.LoginFrom(ctx)
@@ -60,17 +67,46 @@ func (s *Service) enqueue(
 		}
 		return run(jobCtx)
 	})
+	s.setJobID(id, jobID)
 	return jobID, nil
 }
 
-func (s *Service) acquire(id domain.ContestID) error {
+// existingJobID возвращает jobId уже идущего import/analyze для контеста.
+// Если другой goroutine только резервирует слот — ждём до 2 с.
+func (s *Service) existingJobID(id domain.ContestID) (string, bool, error) {
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		s.mu.Lock()
+		jobID, ok := s.running[id]
+		s.mu.Unlock()
+		if !ok {
+			if reserved := s.reserve(id); !reserved {
+				continue
+			}
+			return "", false, nil
+		}
+		if jobID != pendingJobID {
+			return jobID, true, nil
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	return "", false, errors.New("timeout waiting for contest job reservation")
+}
+
+func (s *Service) reserve(id domain.ContestID) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if _, ok := s.running[id]; ok {
-		return ErrJobRunning
+		return false
 	}
-	s.running[id] = struct{}{}
-	return nil
+	s.running[id] = pendingJobID
+	return true
+}
+
+func (s *Service) setJobID(id domain.ContestID, jobID string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.running[id] = jobID
 }
 
 func (s *Service) release(id domain.ContestID) {

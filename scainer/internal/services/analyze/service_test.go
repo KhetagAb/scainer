@@ -374,9 +374,12 @@ func TestJobConflict(t *testing.T) {
 		time.Sleep(time.Millisecond)
 	}
 
-	_, err = analyzeSvc.ImportThenAnalyze(ctx, "contest01")
-	if !errors.Is(err, analyze.ErrJobRunning) {
-		t.Fatalf("got %v want ErrJobRunning", err)
+	secondJobID, err := analyzeSvc.ImportThenAnalyze(ctx, "contest01")
+	if err != nil {
+		t.Fatalf("second ImportThenAnalyze: %v", err)
+	}
+	if secondJobID != jobID {
+		t.Fatalf("got job %q want same job %q", secondJobID, jobID)
 	}
 
 	close(release)

@@ -469,9 +469,6 @@ func mapContestErr(c echo.Context, err error) error {
 	if errors.Is(err, contests.ErrContestNotFound) {
 		return c.JSON(http.StatusNotFound, server.Error{Error: "contest not found"})
 	}
-	if errors.Is(err, analyze.ErrJobRunning) {
-		return c.JSON(http.StatusConflict, server.Error{Error: err.Error()})
-	}
 	return c.JSON(http.StatusInternalServerError, server.Error{Error: err.Error()})
 }
 

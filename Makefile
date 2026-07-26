@@ -1,8 +1,7 @@
 COMPOSE ?= docker-compose
 COMPOSE_PROD = -f docker-compose.yml -f docker-compose.prod.yml
-IMPORT_LOGINS_SCRIPT = scainer/scripts/import-admin-login.sh
 
-.PHONY: up down rebuild logs ps up-prod down-prod logins
+.PHONY: up down rebuild logs ps up-prod down-prod
 
 up:
 	$(COMPOSE) up -d --build --force-recreate
@@ -15,9 +14,6 @@ up-prod:
 
 down-prod:
 	$(COMPOSE) $(COMPOSE_PROD) down
-
-logins:
-	bash $(IMPORT_LOGINS_SCRIPT)
 
 rebuild: down
 	$(COMPOSE) up -d --build

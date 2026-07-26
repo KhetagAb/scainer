@@ -61,11 +61,18 @@ func run(cfg *configs.Config) error {
 	}
 	defer mongo.client.Disconnect(context.Background())
 
-	if err := seedTeachers(context.Background(), cfg.TeachersPasswords, mongo.teachers); err != nil {
+	if err := seedTeacherLogins(context.Background(), cfg.TeachersLogins, mongo.teachers); err != nil {
 		return fmt.Errorf("teachers: %w", err)
 	}
 
-	teachersSvc := teachers.NewService(mongo.teachers, mongo.loginAudit)
+	var ejAuth teachers.EjudgeAuth
+	if cfg.Ejudge.Enabled() {
+		ejAuth = teachers.EjudgeAuth{
+			BaseURL: cfg.Ejudge.BaseURL,
+			Timeout: cfg.Ejudge.Timeout,
+		}
+	}
+	teachersSvc := teachers.NewService(mongo.teachers, ejAuth)
 	ejGateway := ejgateway.New(mongo.teachers, mongo.credentials, cfg.Ejudge.BaseURL, cfg.Ejudge.Timeout)
 	if cfg.Ejudge.Enabled() {
 		importer.Register("ejudge", ejudge.ImporterFactory(ejGateway))
@@ -106,17 +113,18 @@ type mongoDeps struct {
 	credentials  *repository.EjudgeCredentialsRepository
 	registry     contests.ContestRegistry
 	analysisRepo contests.AnalysisRepository
-	loginAudit   *repository.LoginAuditRepository
 }
 
-func seedTeachers(ctx context.Context, passwords map[string]string, repo *repository.TeachersRepository) error {
-	if len(passwords) == 0 {
+func seedTeacherLogins(ctx context.Context, logins []string, repo *repository.TeachersRepository) error {
+	if len(logins) == 0 {
 		return nil
 	}
-	if err := repo.UpsertPasswords(ctx, passwords); err != nil {
-		return err
+	for _, login := range logins {
+		if err := repo.EnsureLogin(ctx, login); err != nil {
+			return fmt.Errorf("%s: %w", login, err)
+		}
 	}
-	fmt.Fprintf(os.Stderr, "scainer: seeded %d teacher(s) from TEACHERS_PASSWORDS\n", len(passwords))
+	fmt.Fprintf(os.Stderr, "scainer: ensured %d teacher login(s) from TEACHERS_LOGINS\n", len(logins))
 	return nil
 }
 
@@ -135,7 +143,6 @@ func openMongo(mc configs.MongoDBConfig) (mongoDeps, error) {
 		credentials:  repository.NewEjudgeCredentialsRepository(db),
 		registry:     repository.NewContestRepository(db),
 		analysisRepo: repository.NewAnalysisRepository(db),
-		loginAudit:   repository.NewLoginAuditRepository(db),
 	}, nil
 }
 

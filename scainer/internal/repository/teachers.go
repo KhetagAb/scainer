@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -38,17 +37,17 @@ func (r *TeachersRepository) Get(ctx context.Context, login string) (teachers.Re
 func (r *TeachersRepository) Upsert(ctx context.Context, login, password string) error {
 	_, err := r.col.ReplaceOne(ctx,
 		bson.M{"_id": login},
-		teacherDoc{Password: password},
+		bson.M{"_id": login, "password": password},
 		options.Replace().SetUpsert(true),
 	)
 	return err
 }
 
-func (r *TeachersRepository) UpsertPasswords(ctx context.Context, passwords map[string]string) error {
-	for login, password := range passwords {
-		if err := r.Upsert(ctx, login, password); err != nil {
-			return fmt.Errorf("%s: %w", login, err)
-		}
-	}
-	return nil
+func (r *TeachersRepository) EnsureLogin(ctx context.Context, login string) error {
+	_, err := r.col.UpdateOne(ctx,
+		bson.M{"_id": login},
+		bson.M{"$setOnInsert": bson.M{"password": ""}},
+		options.Update().SetUpsert(true),
+	)
+	return err
 }

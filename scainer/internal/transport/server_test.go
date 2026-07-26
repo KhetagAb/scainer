@@ -109,6 +109,10 @@ func (noopTeacherRepository) Get(context.Context, string) (teachers.Record, bool
 	return teachers.Record{}, false, nil
 }
 
+func (noopTeacherRepository) Upsert(context.Context, string, string) error {
+	return nil
+}
+
 func testTeachers() *teachers.Service {
 	return teachers.NewService(noopTeacherRepository{}, nil)
 }

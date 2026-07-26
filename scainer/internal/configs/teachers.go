@@ -5,39 +5,28 @@ import (
 	"strings"
 )
 
-// ParseTeachersPasswords разбирает TEACHERS_PASSWORDS: "login:password;login2:password2".
-// Пароль может содержать ":" — разделитель только первый в паре.
-func ParseTeachersPasswords(raw string) (map[string]string, error) {
+// ParseTeachersLogins разбирает TEACHERS_LOGINS: "alice;bob".
+func ParseTeachersLogins(raw string) ([]string, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
 		return nil, nil
 	}
 
-	out := make(map[string]string)
-	for _, pair := range strings.Split(raw, ";") {
-		pair = strings.TrimSpace(pair)
-		if pair == "" {
+	var out []string
+	seen := make(map[string]bool)
+	for _, part := range strings.Split(raw, ";") {
+		login := strings.TrimSpace(part)
+		if login == "" {
 			continue
 		}
-		login, password, ok := strings.Cut(pair, ":")
-		if !ok {
-			return nil, fmt.Errorf("teachers passwords: ожидается login:password, получено %q", pair)
+		if seen[login] {
+			return nil, fmt.Errorf("teachers logins: дублирующийся login %q", login)
 		}
-		login = strings.TrimSpace(login)
-		password = strings.TrimSpace(password)
-		if login == "" {
-			return nil, fmt.Errorf("teachers passwords: пустой login в %q", pair)
-		}
-		if password == "" {
-			return nil, fmt.Errorf("teachers passwords: пустой пароль для %q", login)
-		}
-		if _, exists := out[login]; exists {
-			return nil, fmt.Errorf("teachers passwords: дублирующийся login %q", login)
-		}
-		out[login] = password
+		seen[login] = true
+		out = append(out, login)
 	}
 	if len(out) == 0 {
-		return nil, fmt.Errorf("teachers passwords: пустой список")
+		return nil, fmt.Errorf("teachers logins: пустой список")
 	}
 	return out, nil
 }

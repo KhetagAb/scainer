@@ -26,8 +26,7 @@ type (
 		AIUsage           AIUsageConfig     `mapstructure:"aiusage"`
 		OpenAI            OpenAIConfig      `mapstructure:"openai"`
 
-		// shit happens
-		TeachersPasswords map[string]string `mapstructure:"-"`
+		TeachersLogins []string `mapstructure:"-"`
 	}
 
 	HTTPConfig struct {
@@ -133,11 +132,11 @@ func LoadConfig(path string) (*Config, error) {
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("config: unmarshal: %w", err)
 	}
-	passwords, err := ParseTeachersPasswords(os.Getenv("TEACHERS_PASSWORDS"))
+	logins, err := ParseTeachersLogins(os.Getenv("TEACHERS_LOGINS"))
 	if err != nil {
 		return nil, fmt.Errorf("config: %w", err)
 	}
-	cfg.TeachersPasswords = passwords
+	cfg.TeachersLogins = logins
 	if err := cfg.validate(); err != nil {
 		return nil, err
 	}
@@ -174,6 +173,14 @@ func (c *Config) validate() error {
 	}
 	if strings.TrimSpace(c.HTTP.Addr) == "" {
 		return fmt.Errorf("http.addr обязателен")
+	}
+
+	// TODO для авторизации преподавателей
+	if !c.Ejudge.Enabled() {
+		return fmt.Errorf("нужен ejudge.base_url (или EJUDGE_BASE_URL)")
+	}
+	if len(c.TeachersLogins) == 0 {
+		return fmt.Errorf("нужен TEACHERS_LOGINS (хотя бы один логин)")
 	}
 	return nil
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Link,
@@ -33,7 +33,12 @@ import { useSensitivity } from "@/features/contests/SensitivityContext";
 import { parallelLabel } from "@/features/contests/parallels";
 import FindingsGroupTabs from "@/features/findings/FindingsGroupTabs";
 import ReviewProblemPicker from "@/features/review/ReviewProblemPicker";
+import ReviewLegendModal, {
+  markReviewLegendSeen,
+  wasReviewLegendSeen,
+} from "@/features/review/ReviewLegendModal";
 import { useReviewPrOnlyFilter } from "@/features/review/useReviewPrOnlyFilter";
+import helpIconUrl from "@/assets/help-icon.png";
 import importIconUrl from "@/assets/import-icon.png";
 
 type Props = {
@@ -90,6 +95,18 @@ export default function ContestPage({ onUnauthorized }: Props) {
 
   const onReviewPage = location.pathname.includes("/review");
   const { prOnly: reviewPrOnly, setPrOnly: setReviewPrOnly } = useReviewPrOnlyFilter();
+  const [reviewLegendOpen, setReviewLegendOpen] = useState(false);
+
+  useEffect(() => {
+    if (onReviewPage && !wasReviewLegendSeen()) {
+      setReviewLegendOpen(true);
+    }
+  }, [onReviewPage]);
+
+  const closeReviewLegend = useCallback(() => {
+    markReviewLegendSeen();
+    setReviewLegendOpen(false);
+  }, []);
 
   useEffect(() => {
     if (!onReviewPage || !contestId || !submissionsQuery.data) return;
@@ -271,6 +288,30 @@ export default function ContestPage({ onUnauthorized }: Props) {
           setReviewPrOnly,
         }}
       />
+
+      {onReviewPage ? (
+        <>
+          <div className="page-corner-actions">
+            <button
+              type="button"
+              className="page-help-btn"
+              aria-label="Справка по ревью посылок"
+              title="Справка по ревью посылок"
+              onClick={() => setReviewLegendOpen(true)}
+            >
+              <span
+                className="page-help-btn__glyph"
+                style={{
+                  maskImage: `url(${helpIconUrl})`,
+                  WebkitMaskImage: `url(${helpIconUrl})`,
+                }}
+                aria-hidden
+              />
+            </button>
+          </div>
+          <ReviewLegendModal open={reviewLegendOpen} onClose={closeReviewLegend} />
+        </>
+      ) : null}
     </>
   );
 }

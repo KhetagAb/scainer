@@ -82,13 +82,17 @@ export default function ContestLegendModal({ open, onClose }: Props) {
     >
       <div
         className={
-          "contest-legend-panel" + (visible ? " contest-legend-panel--visible" : "")
+          "contest-legend-panel contest-legend-panel--contest" +
+          (visible ? " contest-legend-panel--visible" : "")
         }
         role="dialog"
         aria-modal="true"
-        aria-label="Подсказка: карточка контеста"
+        aria-labelledby="contest-legend-title"
       >
         <div className="contest-legend-panel__body">
+          <h2 id="contest-legend-title" className="contest-legend-panel__title" lang="ru">
+            Как читать карточку контеста?
+          </h2>
           <div className="legend-diagram">
             <div className="legend-diagram__notes legend-diagram__notes--left">
               <aside className="legend-callout legend-callout--sections">

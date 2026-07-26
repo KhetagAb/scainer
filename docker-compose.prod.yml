@@ -4,3 +4,11 @@ services:
   nginx:
     ports:
       - "127.0.0.1:8088:80"
+    networks:
+      - default
+      - proxy
+    environment:
+      - VIRTUAL_HOST=scainer.d.lksh.ru
+networks:
+  proxy:
+    external: true

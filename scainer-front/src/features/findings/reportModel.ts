@@ -50,7 +50,7 @@ export function formatSubmissionCount(n: number): string {
 }
 
 export function problemDisplay(id: string, shortName?: string | null): string {
-  if (shortName && id && shortName !== id) return `${shortName} - ${id}`;
+  if (shortName && id && shortName !== id) return `${id} - ${shortName}`;
   return shortName || id || "";
 }
 

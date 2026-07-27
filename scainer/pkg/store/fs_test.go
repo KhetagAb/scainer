@@ -267,3 +267,54 @@ func TestFS_ConcurrentPutAndRead(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+func TestFSDeleteByContestAndCursor(t *testing.T) {
+	ctx := context.Background()
+	root := t.TempDir()
+
+	f1, err := NewFS(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	subs := []domain.Submission{
+		{ID: "ejudge:50501:12", Participant: "alice", Problem: "A", Contest: "50501", Lang: domain.LangCPP, Source: []byte("src-a")},
+		{ID: "ejudge:50502:1", Participant: "bob", Problem: "A", Contest: "50502", Lang: domain.LangCPP, Source: []byte("src-b")},
+	}
+	if err := f1.Put(ctx, subs); err != nil {
+		t.Fatal(err)
+	}
+	if err := f1.SetCursor(ctx, "ejudge:cursor:50501", "14"); err != nil {
+		t.Fatal(err)
+	}
+	if err := f1.SetCursor(ctx, "ejudge:cursor:50502", "1"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := f1.DeleteByContest(ctx, "50501"); err != nil {
+		t.Fatal(err)
+	}
+	if err := f1.DeleteCursor(ctx, "ejudge:cursor:50501"); err != nil {
+		t.Fatal(err)
+	}
+
+	f2, err := NewFS(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := f2.GetByIDs(ctx, []domain.SubmissionID{"ejudge:50501:12", "ejudge:50502:1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0].ID != "ejudge:50502:1" {
+		t.Fatalf("after delete: %+v", got)
+	}
+	if _, err := os.Stat(filepath.Join(root, "50501")); !os.IsNotExist(err) {
+		t.Fatalf("contest dir 50501 should be removed: %v", err)
+	}
+	if _, ok, _ := f2.GetCursor(ctx, "ejudge:cursor:50501"); ok {
+		t.Fatal("cursor 50501 should be deleted")
+	}
+	if v, ok, _ := f2.GetCursor(ctx, "ejudge:cursor:50502"); !ok || v != "1" {
+		t.Fatalf("cursor 50502 should remain: ok=%v v=%q", ok, v)
+	}
+}

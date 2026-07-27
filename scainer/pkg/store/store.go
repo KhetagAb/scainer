@@ -97,3 +97,26 @@ func (m *Mem) SetCursor(ctx context.Context, key string, value string) error {
 	m.cursors[key] = value
 	return nil
 }
+
+func (m *Mem) DeleteByContest(ctx context.Context, contest domain.ContestID) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var nextOrder []domain.SubmissionID
+	for _, id := range m.order {
+		s, ok := m.byID[id]
+		if !ok || s.Contest != contest {
+			nextOrder = append(nextOrder, id)
+			continue
+		}
+		delete(m.byID, id)
+	}
+	m.order = nextOrder
+	return nil
+}
+
+func (m *Mem) DeleteCursor(ctx context.Context, key string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	delete(m.cursors, key)
+	return nil
+}

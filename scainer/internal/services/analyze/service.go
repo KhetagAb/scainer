@@ -62,6 +62,18 @@ func (s *Service) SyncManual(ctx context.Context, id domain.ContestID) (string, 
 	})
 }
 
+func (s *Service) ResyncManual(ctx context.Context, id domain.ContestID) (string, error) {
+	return s.enqueue(ctx, id, func(jobCtx context.Context) error {
+		if err := s.runner.ResetContestData(jobCtx, id); err != nil {
+			return err
+		}
+		if _, err := s.runner.Import(jobCtx, id); err != nil {
+			return err
+		}
+		return s.runner.Analyze(WithManual(jobCtx), id)
+	})
+}
+
 func (s *Service) enqueue(
 	ctx context.Context,
 	id domain.ContestID,

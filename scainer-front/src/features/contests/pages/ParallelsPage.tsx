@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { getContestsOptions } from "@/client/@tanstack/react-query.gen";
 import { authHeaders } from "@/features/auth/authStorage";
-import { parallelCardImportBadge } from "@/features/contests/sync/contestDataStatus";
 import {
   UNGROUPED_PARALLEL,
   collator,
@@ -24,7 +23,6 @@ type ParallelCard = {
   id: string;
   contests: ContestChip[];
   submissionCount: number;
-  importStale: boolean;
 };
 
 export default function ParallelsPage({ onUnauthorized }: Props) {
@@ -43,10 +41,6 @@ export default function ParallelsPage({ onUnauthorized }: Props) {
   const contests = contestsQuery.data ?? [];
   const byParallel = new Map<string, ContestChip[]>();
   const submissionsByParallel = new Map<string, number>();
-  const freshnessByParallel = new Map<
-    string,
-    Array<{ lastImportedAt?: string | null; computedAt?: string | null }>
-  >();
 
   for (const c of contests) {
     const pid = c.parallelId || UNGROUPED_PARALLEL;
@@ -60,9 +54,6 @@ export default function ParallelsPage({ onUnauthorized }: Props) {
       pid,
       (submissionsByParallel.get(pid) ?? 0) + (c.submissionCount ?? 0),
     );
-    const fresh = freshnessByParallel.get(pid) ?? [];
-    fresh.push({ lastImportedAt: c.lastImportedAt, computedAt: c.computedAt });
-    freshnessByParallel.set(pid, fresh);
   }
 
   for (const list of byParallel.values()) {
@@ -79,7 +70,6 @@ export default function ParallelsPage({ onUnauthorized }: Props) {
       id,
       contests: byParallel.get(id) ?? [],
       submissionCount: submissionsByParallel.get(id) ?? 0,
-      importStale: parallelCardImportBadge(freshnessByParallel.get(id) ?? []),
     }))
     .sort((a, b) => collator.compare(a.id, b.id));
 
@@ -88,7 +78,6 @@ export default function ParallelsPage({ onUnauthorized }: Props) {
       id,
       contests: byParallel.get(id) ?? [],
       submissionCount: submissionsByParallel.get(id) ?? 0,
-      importStale: parallelCardImportBadge(freshnessByParallel.get(id) ?? []),
     })),
     ...extras,
   ];
@@ -99,7 +88,6 @@ export default function ParallelsPage({ onUnauthorized }: Props) {
       id: UNGROUPED_PARALLEL,
       contests: ungrouped,
       submissionCount: submissionsByParallel.get(UNGROUPED_PARALLEL) ?? 0,
-      importStale: parallelCardImportBadge(freshnessByParallel.get(UNGROUPED_PARALLEL) ?? []),
     });
   }
 
@@ -111,38 +99,41 @@ export default function ParallelsPage({ onUnauthorized }: Props) {
       className="parallels-grid"
       style={{ ["--parallels-min-rows" as string]: String(minRows) }}
     >
-      {cards.map((p) => (
-        <li key={p.id}>
-          <Link
-            to={`/parallels/${encodeURIComponent(p.id)}`}
-            className="parallel-card"
-          >
-            <div className="parallel-card__head">
-              <span className="parallel-card__title">
-                {parallelLabel(p.id, UNGROUPED_PARALLEL)}
-              </span>
-              <span className="parallel-card__head-meta">
-                {p.importStale ? (
-                  <span className="parallel-card__stale-badge">Посылки устарели</span>
-                ) : null}
+      {cards.map((p) => {
+        const title = parallelLabel(p.id, UNGROUPED_PARALLEL);
+        return (
+          <li key={p.id}>
+            <div className="parallel-card">
+              <Link
+                to={`/parallels/${encodeURIComponent(p.id)}`}
+                className="parallel-card__nav"
+                aria-label={title}
+              />
+              <div className="parallel-card__head">
+                <span className="parallel-card__title">{title}</span>
                 <span className="parallel-card__count">
                   {contestsCountLabel(p.contests.length)}
                 </span>
-              </span>
+              </div>
+              <div className="parallel-card__contests">
+                {p.contests.map((c) => (
+                  <Link
+                    key={c.id}
+                    to={`/contests/${encodeURIComponent(c.id)}/review`}
+                    className="chip parallel-card__chip"
+                    title={c.id}
+                  >
+                    {c.label}
+                  </Link>
+                ))}
+              </div>
+              {p.submissionCount > 0 ? (
+                <div className="parallel-card__subs">{p.submissionCount} посылок</div>
+              ) : null}
             </div>
-            <div className="parallel-card__contests">
-              {p.contests.map((c) => (
-                <span key={c.id} className="chip parallel-card__chip" title={c.id}>
-                  {c.label}
-                </span>
-              ))}
-            </div>
-            {p.submissionCount > 0 ? (
-              <div className="parallel-card__subs">{p.submissionCount} посылок</div>
-            ) : null}
-          </Link>
-        </li>
-      ))}
+          </li>
+        );
+      })}
     </ul>
   );
 }

@@ -80,6 +80,8 @@ type SubmissionStore interface {
 	ByProblem(ctx context.Context, contest domain.ContestID) (map[domain.ProblemID][]domain.Submission, error)
 	GetCursor(ctx context.Context, key string) (value string, ok bool, err error)
 	SetCursor(ctx context.Context, key string, value string) error
+	DeleteByContest(ctx context.Context, contest domain.ContestID) error
+	DeleteCursor(ctx context.Context, key string) error
 }
 
 type AnalysisRepository interface {

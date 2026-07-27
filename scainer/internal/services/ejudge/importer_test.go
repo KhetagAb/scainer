@@ -123,7 +123,7 @@ func TestImport_FullThenIncremental(t *testing.T) {
 	if res.Submissions[0].Meta["problem_name"] != "A" {
 		t.Fatalf("problem_name = %#v", res.Submissions[0].Meta["problem_name"])
 	}
-	cur, ok, err := st.GetCursor(ctx, cursorKey(50501))
+	cur, ok, err := st.GetCursor(ctx, ImportCursorKey(50501))
 	if err != nil || !ok || cur != "2" {
 		t.Fatalf("cursor = %q ok=%v err=%v", cur, ok, err)
 	}
@@ -142,7 +142,7 @@ func TestImport_FullThenIncremental(t *testing.T) {
 	if lastFirstRun != "3" {
 		t.Fatalf("incremental first_run = %q", lastFirstRun)
 	}
-	cur, ok, err = st.GetCursor(ctx, cursorKey(50501))
+	cur, ok, err = st.GetCursor(ctx, ImportCursorKey(50501))
 	if err != nil || !ok || cur != "2" {
 		t.Fatalf("cursor unchanged = %q ok=%v err=%v", cur, ok, err)
 	}
@@ -278,7 +278,7 @@ func TestImport_DownloadErrorAborts(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	if _, ok, _ := st.GetCursor(context.Background(), cursorKey(1)); ok {
+	if _, ok, _ := st.GetCursor(context.Background(), ImportCursorKey(1)); ok {
 		t.Fatal("cursor must not be set on failure")
 	}
 }
@@ -338,8 +338,66 @@ func TestImport_FallsBackToUserName(t *testing.T) {
 		t.Fatalf("downloadCalls = %d, want 2 (run_id=12 без login/name пропущен)", downloadCalls)
 	}
 	// Курсор — только по успешно импортированным (не по пропущенному run_id=12).
-	cur, ok, err := st.GetCursor(ctx, cursorKey(1))
+	cur, ok, err := st.GetCursor(ctx, ImportCursorKey(1))
 	if err != nil || !ok || cur != "11" {
+		t.Fatalf("cursor = %q ok=%v err=%v", cur, ok, err)
+	}
+}
+
+func TestImport_SkipsRunWithoutProblemKey(t *testing.T) {
+	var downloadCalls int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Query().Get("action") {
+		case "list-runs-json":
+			writeJSON(w, map[string]any{
+				"ok": true,
+				"result": map[string]any{
+					"runs": []map[string]any{
+						{"run_id": 10, "user_login": "alice", "prob_internal_name": "A", "lang_name": "g++"},
+						{"run_id": 11, "user_login": "bob", "lang_name": "g++"},
+					},
+				},
+			})
+		case "contest-status-json":
+			writeJSON(w, map[string]any{
+				"ok":     true,
+				"result": map[string]any{"contest": map[string]any{"id": 1, "name": "c"}},
+			})
+		case "download-run":
+			downloadCalls++
+			_, _ = w.Write([]byte("src"))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(srv.Close)
+
+	client, err := ejudgeapi.New(srv.URL, "tok", time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	imp := &Importer{
+		cfg:            ImportConfig{ContestID: 1},
+		clientResolver: staticClientResolver{client: client},
+	}
+	st := store.NewMem()
+	ctx := context.Background()
+
+	res, err := imp.Import(ctx, st)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.Submissions) != 1 {
+		t.Fatalf("subs = %+v", res.Submissions)
+	}
+	if res.Submissions[0].ID != "ejudge:1:10" {
+		t.Fatalf("sub = %+v", res.Submissions[0])
+	}
+	if downloadCalls != 1 {
+		t.Fatalf("downloadCalls = %d, want 1 (run_id=11 без задачи пропущен)", downloadCalls)
+	}
+	cur, ok, err := st.GetCursor(ctx, ImportCursorKey(1))
+	if err != nil || !ok || cur != "10" {
 		t.Fatalf("cursor = %q ok=%v err=%v", cur, ok, err)
 	}
 }

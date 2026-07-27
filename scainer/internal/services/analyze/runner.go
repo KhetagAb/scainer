@@ -8,6 +8,7 @@ import (
 
 	"scainer/internal/domain"
 	"scainer/internal/services/contests"
+	"scainer/internal/services/ejudge"
 	"scainer/internal/services/importer"
 	"scainer/pkg/progress"
 )
@@ -58,6 +59,40 @@ func (r *Runner) Import(ctx context.Context, id domain.ContestID) (Result, error
 	}
 
 	return Result{ImportedCount: len(imported.Submissions), LastImportedAt: now}, nil
+}
+
+func (r *Runner) ResetContestData(ctx context.Context, id domain.ContestID) error {
+	record, err := lookup(ctx, r.registry, id)
+	if err != nil {
+		return err
+	}
+
+	if err := r.submissionStore.DeleteByContest(ctx, id); err != nil {
+		return fmt.Errorf("delete submissions: %w", err)
+	}
+	if err := r.analysisRepo.Delete(ctx, id); err != nil {
+		return fmt.Errorf("delete analysis: %w", err)
+	}
+	if record.Source.Type == "ejudge" {
+		var cfg ejudge.ImportConfig
+		if record.Source.Config.Kind != 0 {
+			if err := record.Source.Config.Decode(&cfg); err != nil {
+				return fmt.Errorf("decode ejudge config: %w", err)
+			}
+		}
+		if cfg.ContestID > 0 {
+			if err := r.submissionStore.DeleteCursor(ctx, ejudge.ImportCursorKey(cfg.ContestID)); err != nil {
+				return fmt.Errorf("delete ejudge cursor: %w", err)
+			}
+		}
+	}
+
+	contest := record.Contest
+	contest.LastImportedAt = nil
+	if err := r.registry.Put(ctx, contests.ContestRecord{Contest: contest, Source: record.Source}); err != nil {
+		return fmt.Errorf("clear lastImportedAt: %w", err)
+	}
+	return nil
 }
 
 func (r *Runner) Analyze(ctx context.Context, id domain.ContestID) error {

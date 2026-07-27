@@ -1,25 +1,37 @@
-COMPOSE ?= docker-compose
 COMPOSE_PROD = -f docker-compose.yml -f docker-compose.prod.yml
 
-.PHONY: up down rebuild logs ps up-prod down-prod
+.PHONY: up down rebuild destroy logs ps up-prod down-prod
 
 up:
-	$(COMPOSE) up -d --build --force-recreate
+	podman-compose up -d --build --force-recreate
 
 down:
-	$(COMPOSE) down
+	podman-compose down --remove-orphans
 
-up-prod:
-	$(COMPOSE) $(COMPOSE_PROD) up -d --build
-
-down-prod:
-	$(COMPOSE) $(COMPOSE_PROD) down
+destroy:
+	-podman-compose down -v --remove-orphans 2>/dev/null
+	@for rt in podman docker; do \
+		if command -v $$rt >/dev/null 2>&1; then \
+			$$rt ps -a --format '{{.Names}}' 2>/dev/null | grep -E '^scainer[-_]' | while read -r n; do \
+				$$rt rm -f "$$n" 2>/dev/null || true; \
+			done; \
+			$$rt pod rm -f pod_scainer 2>/dev/null || true; \
+			$$rt network rm scainer_default 2>/dev/null || true; \
+		fi; \
+	done
 
 rebuild: down
-	$(COMPOSE) up -d --build
+	podman-compose build --no-cache scainer nginx
+	podman-compose up -d --force-recreate
+
+up-prod:
+	docker-compose $(COMPOSE_PROD) up -d --build
+
+down-prod:
+	docker-compose $(COMPOSE_PROD) down --remove-orphans
 
 logs:
-	$(COMPOSE) logs -f scainer
+	podman-compose logs -f scainer
 
 ps:
-	$(COMPOSE) ps
+	podman-compose ps

@@ -386,6 +386,14 @@ func (s *Server) PostContestSync(c echo.Context, id server.ContestID) error {
 	return c.JSON(http.StatusAccepted, server.JobResponse{JobId: jobID})
 }
 
+func (s *Server) PostContestResync(c echo.Context, id server.ContestID) error {
+	jobID, err := s.analyze.ResyncManual(c.Request().Context(), domain.ContestID(id))
+	if err != nil {
+		return mapContestErr(c, err)
+	}
+	return c.JSON(http.StatusAccepted, server.JobResponse{JobId: jobID})
+}
+
 func (s *Server) GetContestFindings(c echo.Context, id server.ContestID) error {
 	findings, subs, err := s.reader.GetFindings(c.Request().Context(), domain.ContestID(id))
 	return respondFindings(c, findings, subs, err)

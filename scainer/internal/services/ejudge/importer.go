@@ -50,7 +50,7 @@ var _ importer.Importer = (*Importer)(nil)
 
 func (i *Importer) Name() string { return "ejudge" }
 
-func cursorKey(contestID int) string {
+func ImportCursorKey(contestID int) string {
 	return cursorKeyPrefix + strconv.Itoa(contestID)
 }
 
@@ -72,7 +72,7 @@ func (i *Importer) Import(ctx context.Context, store importer.Store) (importer.R
 	contestName := info.Name
 
 	firstRun := 0
-	cur, ok, err := store.GetCursor(ctx, cursorKey(contestID))
+	cur, ok, err := store.GetCursor(ctx, ImportCursorKey(contestID))
 	if err != nil {
 		return importer.Result{}, err
 	}
@@ -110,6 +110,10 @@ func (i *Importer) Import(ctx context.Context, store importer.Store) (importer.R
 			progress.Report(ctx, progress.Event{Phase: "importing", Done: base + idx + 1, Total: total})
 			continue
 		}
+		if !hasProblemKey(run) {
+			progress.Report(ctx, progress.Event{Phase: "importing", Done: base + idx + 1, Total: total})
+			continue
+		}
 
 		dl, err := client.DownloadRunWithResponse(ctx, ejudgeapi.DownloadRunParams(contestID, runID))
 		if err != nil {
@@ -131,7 +135,7 @@ func (i *Importer) Import(ctx context.Context, store importer.Store) (importer.R
 	}
 
 	if maxRunID >= 0 {
-		if err := store.SetCursor(ctx, cursorKey(contestID), strconv.Itoa(maxRunID)); err != nil {
+		if err := store.SetCursor(ctx, ImportCursorKey(contestID), strconv.Itoa(maxRunID)); err != nil {
 			return importer.Result{}, err
 		}
 	}

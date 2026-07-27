@@ -1,15 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, Outlet, useNavigate, useParams } from "react-router-dom";
+import { Outlet, useNavigate, useParams } from "react-router-dom";
 import type { ProblemInfo, SubmissionListItem } from "@/client/types.gen";
 import ContestStats from "@/features/contests/cards/ContestStats";
 import { useContestPageData } from "@/features/contests/pages/useContestPageData";
 import ContestSyncAction from "@/features/contests/sync/ContestSyncAction";
 import { useContestSync } from "@/features/contests/sync/useContestSync";
-import {
-  UNGROUPED_PARALLEL,
-  compactContestName,
-} from "@/features/contests/shared/contestHelpers";
-import { parallelLabel } from "@/features/contests/shared/parallels";
 import { useSensitivity } from "@/features/contests/shared/SensitivityContext";
 import FindingsGroupTabs from "@/features/findings/FindingsGroupTabs";
 import ReviewProblemPicker from "@/features/review/ReviewProblemPicker";
@@ -44,7 +39,14 @@ export default function ContestPage({ onUnauthorized }: Props) {
     handleQueryError,
   } = pageData;
 
-  const { syncAction, progress, isBusy, error, startSync } = useContestSync({
+  const {
+    syncAction,
+    progress,
+    isBusy: jobBusy,
+    error: jobError,
+    startSync,
+    startResync,
+  } = useContestSync({
     contestId,
     onUnauthorized,
   });
@@ -81,55 +83,54 @@ export default function ContestPage({ onUnauthorized }: Props) {
     );
   }
 
-  const parallelId = contest.parallelId || UNGROUPED_PARALLEL;
-  const parallelTo = `/parallels/${encodeURIComponent(parallelId)}`;
-  const shortName = compactContestName(contest.name || "") || contest.id;
-
   return (
     <>
-      <div className="contest-head">
-        <h1>
-          <Link to={parallelTo} className="contest-head__parallel">
-            {parallelLabel(parallelId, UNGROUPED_PARALLEL)}
-          </Link>
-          <span className="contest-head__sep-title" aria-hidden>
-            /
-          </span>
-          <span className="contest-head__name">{shortName}</span>
-          {onFindingsPage ? (
+      <div
+        className={
+          "contest-head" + (onReviewPage ? " contest-head--review" : "")
+        }
+      >
+        {onFindingsPage ? (
+          <div className="contest-head__findings-tabs">
             <FindingsGroupTabs groupBy={groupBy} onChange={setGroupBy} />
-          ) : null}
-        </h1>
+          </div>
+        ) : null}
+
+        {onReviewPage ? (
+          <div className="contest-head__review-nav">
+            <ReviewProblemPicker
+              contestId={contestId}
+              problems={(problemsQuery.data ?? []) as ProblemInfo[]}
+              submissions={(submissionsQuery.data ?? []) as SubmissionListItem[]}
+              activeProblemId={activeProblemId}
+              prOnly={reviewPrOnly}
+              onPrOnlyChange={setReviewPrOnly}
+            />
+          </div>
+        ) : null}
+
         <div className="contest-head__actions">
           {headerStats && <ContestStats stats={headerStats} />}
           <span className="contest-head__sep" aria-hidden>
             |
           </span>
-          <ContestSyncAction
-            model={syncAction}
-            progress={progress}
-            disabled={isBusy}
-            onClick={startSync}
-          />
+          <div className="contest-head__job-actions">
+            <ContestSyncAction
+              model={syncAction}
+              progress={progress ?? undefined}
+              disabled={jobBusy}
+              onClick={startSync}
+              onResync={startResync}
+            />
+          </div>
         </div>
 
-        {error && (
+        {jobError && (
           <p className="contest-head__error">
-            Не удалось обновить: {error}
+            Не удалось обновить: {jobError}
           </p>
         )}
       </div>
-
-      {onReviewPage ? (
-        <ReviewProblemPicker
-          contestId={contestId}
-          problems={(problemsQuery.data ?? []) as ProblemInfo[]}
-          submissions={(submissionsQuery.data ?? []) as SubmissionListItem[]}
-          activeProblemId={activeProblemId}
-          prOnly={reviewPrOnly}
-          onPrOnlyChange={setReviewPrOnly}
-        />
-      ) : null}
 
       <Outlet
         context={{

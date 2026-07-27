@@ -200,6 +200,25 @@ export default function ReviewLegendModal({ open, onClose }: Props) {
                     </p>
                   </li>
                   <li>
+                    <span className="legend-callout__section-icon" aria-hidden />
+                    <div className="legend-callout__section-body">
+                      <p lang="ru">
+                        <strong>AC / RJ</strong> — вердикт по посылке.
+                      </p>
+                      <ul className="legend-callout__swatches legend-callout__swatches--inline">
+                        <li>
+                          <span className="btn btn--icon btn--ok" aria-hidden>
+                            AC
+                          </span>
+                          <span className="btn btn--icon btn--rj" aria-hidden>
+                            RJ
+                          </span>
+                          <span>принять / отклонить</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </li>
+                  <li>
                     <span className="legend-callout__section-icon" aria-hidden>
                       <NavDownIcon />
                     </span>

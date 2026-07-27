@@ -35,9 +35,10 @@ export default function ReviewProblemPicker({
 
   return (
     <div className="review-picker-row">
-      <ul className="review-picker" aria-label="Задачи для ревью">
-        {sorted.map((p) => {
-          const pr = prCounts.get(p.id) ?? p.pendingCount ?? 0;
+      <div className="review-picker-scroll">
+        <ul className="review-picker" aria-label="Задачи для ревью">
+          {sorted.map((p) => {
+          const pr = prCounts.get(p.id) ?? 0;
           const active = activeProblemId === p.id;
           const label = problemDisplay(p.id, p.name);
           return (
@@ -55,7 +56,8 @@ export default function ReviewProblemPicker({
             </li>
           );
         })}
-      </ul>
+        </ul>
+      </div>
 
       <label className="review-picker__filter">
         <input

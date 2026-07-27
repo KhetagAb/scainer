@@ -1,15 +1,22 @@
 import type { JobState } from "@/client/types.gen";
 import { getJob } from "@/client/sdk.gen";
 import { authHeaders } from "@/features/auth/authStorage";
+import { formatApiError } from "@/lib/apiError";
 import { subscribeJobEvents } from "@/features/contests/jobs/jobProgress";
 import {
   clearStoredJobId,
   isAbortError,
+  jobFailureMessage,
   progressFromState,
   type JobProgress,
 } from "@/features/contests/jobs/jobShared";
 
 export type JobProgressCallback = (progress: JobProgress) => void;
+
+export type ContestJobOutcome = {
+  ok: boolean;
+  error?: string;
+};
 
 export type WatchContestJobOptions = {
   contestId: string;
@@ -20,7 +27,7 @@ export type WatchContestJobOptions = {
   onImportDone?: () => void;
 };
 
-/** SSE-подписка на job; возвращает true при успехе. */
+/** SSE-подписка на job; возвращает успех и текст ошибки job при failed. */
 export async function watchContestJob({
   contestId,
   jobId,
@@ -28,7 +35,7 @@ export async function watchContestJob({
   signal,
   onProgress,
   onImportDone,
-}: WatchContestJobOptions): Promise<boolean> {
+}: WatchContestJobOptions): Promise<ContestJobOutcome> {
   let notifiedImportDone = false;
   const final = await subscribeJobEvents(
     jobId,
@@ -47,9 +54,9 @@ export async function watchContestJob({
   }
 
   if (final.status === "failed") {
-    return false;
+    return { ok: false, error: jobFailureMessage(final) };
   }
-  return true;
+  return { ok: true };
 }
 
 export type ResumeContestJobOptions = {
@@ -63,8 +70,8 @@ export type ResumeContestJobOptions = {
 };
 
 export type ResumeContestJobResult =
-  | { kind: "done"; ok: boolean }
-  | { kind: "still_running"; ok: boolean }
+  | { kind: "done"; ok: boolean; error?: string }
+  | { kind: "still_running"; ok: boolean; error?: string }
   | { kind: "aborted" }
   | { kind: "cleared" };
 
@@ -89,7 +96,11 @@ export async function resumeContestJob({
     if (snap.error) {
       if (snap.response.status === 401) onUnauthorized?.();
       if (snap.response.status === 404) clearStoredJobId(contestId, storageKey);
-      return { kind: "done", ok: false };
+      return {
+        kind: "done",
+        ok: false,
+        error: formatApiError(snap.error, snap.response.status),
+      };
     }
 
     if (snap.response.status === 404 || !snap.data) {
@@ -101,13 +112,13 @@ export async function resumeContestJob({
     if (status === "succeeded" || status === "failed") {
       clearStoredJobId(contestId, storageKey);
       if (status === "failed") {
-        return { kind: "done", ok: false };
+        return { kind: "done", ok: false, error: jobFailureMessage(snap.data) };
       }
       return { kind: "done", ok: true };
     }
 
     onProgress(progressFromState(snap.data));
-    const ok = await watchContestJob({
+    const outcome = await watchContestJob({
       contestId,
       jobId,
       storageKey,
@@ -116,7 +127,11 @@ export async function resumeContestJob({
       onImportDone,
     });
     if (signal.aborted) return { kind: "aborted" };
-    return { kind: "still_running", ok };
+    return {
+      kind: "still_running",
+      ok: outcome.ok,
+      error: outcome.error,
+    };
   } catch (e) {
     if (isAbortError(e)) return { kind: "aborted" };
     throw e;

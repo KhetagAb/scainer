@@ -4,7 +4,6 @@ import { getContestsQueryKey } from "@/client/@tanstack/react-query.gen";
 import { authHeaders } from "@/features/auth/authStorage";
 import ImportContestsPanel from "@/features/contests/ui/ImportContestsPanel";
 import { SensitivityProvider } from "@/features/contests/shared/SensitivityContext";
-import ContestSectionNav from "@/features/contests/ui/ContestSectionNav";
 import AppHeader from "@/app/AppHeader";
 
 function HeaderActions() {
@@ -28,7 +27,7 @@ function HeaderActions() {
 export default function RootLayout() {
   return (
     <SensitivityProvider>
-      <AppHeader actions={<HeaderActions />} sidebarNav={<ContestSectionNav />}>
+      <AppHeader actions={<HeaderActions />}>
         <Outlet />
       </AppHeader>
     </SensitivityProvider>

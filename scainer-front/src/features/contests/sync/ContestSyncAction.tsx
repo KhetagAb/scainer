@@ -1,4 +1,4 @@
-import type { SyncActionModel } from "@/features/contests/sync/contestDataStatus";
+import { RESYNC_CONFIRM, type SyncActionModel } from "@/features/contests/sync/contestDataStatus";
 import { ContestSyncIcon } from "@/features/contests/sync/ContestSyncIcon";
 import {
   formatJobProgress,
@@ -12,7 +12,12 @@ type Props = {
   batchProgress?: { done: number; total: number } | null;
   disabled?: boolean;
   onClick: () => void;
+  onResync?: () => void;
 };
+
+function isResyncClick(e: React.MouseEvent): boolean {
+  return e.metaKey || e.ctrlKey;
+}
 
 export default function ContestSyncAction({
   model,
@@ -20,12 +25,27 @@ export default function ContestSyncAction({
   batchProgress,
   disabled,
   onClick,
+  onResync,
 }: Props) {
   const isRunning = model.state === "running";
   const isWarn = model.state === "warn";
   const isDisabled = disabled || model.state === "disabled";
 
-  const ariaLabel = `${model.label}. ${model.hint}`;
+  const resyncShortcutHint = onResync ? " ⌘+клик — полный пересбор." : "";
+  const title = `${model.hint}${resyncShortcutHint}`;
+  const ariaLabel = `${model.label}. ${title}`;
+
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (onResync && isResyncClick(e)) {
+      if (window.confirm(RESYNC_CONFIRM)) onResync();
+      return;
+    }
+    onClick();
+  };
+
+  const actionIcon = (size: number, className: string) => (
+    <ContestSyncIcon size={size} className={className} />
+  );
 
   if (isRunning) {
     const barProgress =
@@ -55,29 +75,29 @@ export default function ContestSyncAction({
     );
   }
 
-  const showLabel = isWarn || model.label !== "Обновить";
+  const isIconOnly =
+    model.label === "Обновить" &&
+    (model.state === "idle" || model.state === "disabled");
 
   return (
     <button
       type="button"
       className={
-        "contest-sync-action" +
-        (isWarn ? " contest-sync-action--warn" : " contest-sync-action--idle") +
+        "btn btn--primary contest-sync-action" +
+        (isIconOnly ? " contest-sync-action--icon-only" : " contest-sync-action--labeled") +
+        (isWarn ? " contest-sync-action--warn" : "") +
         (isDisabled ? " contest-sync-action--disabled" : "")
       }
-      onClick={onClick}
+      onClick={handleClick}
       disabled={isDisabled}
-      title={model.hint}
+      title={title}
       aria-label={ariaLabel}
     >
-      <span
-        className={
-          "contest-sync-action__icon" + (isWarn ? " contest-sync-action__icon--warn" : "")
-        }
-      >
-        <ContestSyncIcon size={18} />
-      </span>
-      {showLabel ? (
+      {actionIcon(
+        isIconOnly ? 16 : 14,
+        "btn--icon__glyph contest-sync-action__glyph",
+      )}
+      {!isIconOnly ? (
         <span className="contest-sync-action__label">{model.label}</span>
       ) : null}
     </button>

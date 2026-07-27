@@ -11,15 +11,18 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getSubmissionCommentsOptions,
   getSubmissionCommentsQueryKey,
+  getContestProblemsQueryKey,
+  getContestSubmissionsQueryKey,
   postSubmissionCommentMutation,
   postSubmissionVerdictMutation,
 } from "@/client/@tanstack/react-query.gen";
-import type { ReportData, SubmissionListItem } from "@/client/types.gen";
+import type { ProblemInfo, ReportData, SubmissionListItem } from "@/client/types.gen";
 import { authHeaders } from "@/features/auth/authStorage";
 import { ApiError } from "@/lib/apiError";
 import {
   findingsForSubmission,
   formatSubmittedAt,
+  prCountByProblem,
   submissionPanelId,
   topFindingKey,
 } from "@/features/review/reviewFindings";
@@ -74,50 +77,12 @@ function ChevronRightIcon({ size = 16 }: { size?: number }) {
   );
 }
 
-function CheckIcon({ size = 18 }: { size?: number }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
-  );
-}
-
-function XIcon({ size = 18 }: { size?: number }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M18 6 6 18" />
-      <path d="m6 6 12 12" />
-    </svg>
-  );
-}
-
 const NEXT_SUBMISSION_SCROLL_MS = 700;
 
 function smoothScrollToBlockStart(el: HTMLElement, duration = NEXT_SUBMISSION_SCROLL_MS) {
   const startY = window.scrollY;
-  const targetY = el.getBoundingClientRect().top + window.scrollY;
+  const scrollMarginTop = parseFloat(getComputedStyle(el).scrollMarginTop) || 0;
+  const targetY = el.getBoundingClientRect().top + window.scrollY - scrollMarginTop;
   const distance = targetY - startY;
   if (Math.abs(distance) < 1) return;
 
@@ -270,6 +235,44 @@ export default function ReviewSubmissionPanel({
       }),
     });
 
+  const patchSubmissionVerdict = (verdict: "OK" | "RJ") => {
+    const wasPr = isPrVerdict(submission.verdict);
+
+    queryClient.setQueryData<SubmissionListItem[]>(
+      getContestSubmissionsQueryKey({
+        path: { id: contestId },
+        headers: authHeaders(),
+      }),
+      (items) =>
+        items?.map((s) => (s.id === submissionId ? { ...s, verdict } : s)),
+    );
+
+    if (wasPr) {
+      queryClient.setQueryData<ProblemInfo[]>(
+        getContestProblemsQueryKey({
+          path: { id: contestId },
+          headers: authHeaders(),
+        }),
+        (problems) =>
+          problems?.map((p) =>
+            p.id === submission.problem
+              ? { ...p, pendingCount: Math.max(0, (p.pendingCount ?? 0) - 1) }
+              : p,
+          ),
+      );
+    }
+  };
+
+  const prLeftForProblem = (problemId: string) => {
+    const items = queryClient.getQueryData<SubmissionListItem[]>(
+      getContestSubmissionsQueryKey({
+        path: { id: contestId },
+        headers: authHeaders(),
+      }),
+    );
+    return prCountByProblem(items ?? []).get(problemId) ?? 0;
+  };
+
   const scrollToNext = () => {
     if (!nextSubmissionId) return;
     const el = document.getElementById(submissionPanelId(nextSubmissionId));
@@ -317,9 +320,13 @@ export default function ReviewSubmissionPanel({
         headers: authHeaders(),
       });
       setComment("");
+      patchSubmissionVerdict(verdict);
       await refreshComments();
-      if (nextSubmissionId) scrollToNext();
-      else setCelebrate(true);
+      if (prLeftForProblem(submission.problem) === 0) {
+        setCelebrate(true);
+      } else if (nextSubmissionId) {
+        scrollToNext();
+      }
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) onUnauthorized();
       setActionError(err instanceof ApiError ? err.error : "Не удалось выставить вердикт");
@@ -530,10 +537,10 @@ export default function ReviewSubmissionPanel({
                         pendingVerdictActions ? " btn--ok" : ""
                       }`}
                       disabled={actionPending}
-                      aria-label="OK"
+                      aria-label="AC"
                       onClick={() => void submitVerdict("OK")}
                     >
-                      <CheckIcon />
+                      AC
                     </button>
                     <button
                       type="button"
@@ -544,7 +551,7 @@ export default function ReviewSubmissionPanel({
                       aria-label="RJ"
                       onClick={() => void submitVerdict("RJ")}
                     >
-                      <XIcon />
+                      RJ
                     </button>
                   </div>
                   <button

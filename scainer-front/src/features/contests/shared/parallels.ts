@@ -6,7 +6,6 @@ export const DEFAULT_PARALLEL_IDS = [
   "7",
   "8",
   "9",
-  "10",
   "R",
   "F",
   "X",

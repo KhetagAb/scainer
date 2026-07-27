@@ -1,7 +1,11 @@
 openapi: 3.0.3
 info:
   title: Scainer API
-  description: HTTP API веб-сервиса детекции нечестных решений.
+  description: |
+    HTTP API веб-сервиса детекции нечестных решений.
+
+    Операции import, analyze, sync и resync выполняются асинхронно: ответ `202` с `jobId`,
+    статус и прогресс — `GET /api/jobs/{jobId}`.
   version: 1.0.0
 
 servers:
@@ -49,7 +53,7 @@ paths:
   /api/contests:
     get:
       operationId: getContests
-      summary: Список контестов из run.yaml
+      summary: Список контестов
       responses:
         '200':
           description: Контесты с отметкой последнего импорта
@@ -136,7 +140,7 @@ paths:
         - $ref: '#/components/parameters/ContestID'
       responses:
         '200':
-          description: base URL, login, password и contest_id для POST в ejudge master
+          description: Данные для входа в ejudge в браузере
           content:
             application/json:
               schema:
@@ -151,9 +155,7 @@ paths:
   /api/contests/{id}/import:
     post:
       operationId: postContestImport
-      summary: Поставить дозагрузку посылок в очередь
-      description: >
-        Только import — детекторы не запускаются. Возвращает jobId сразу; прогресс/статус — GET /api/jobs/{jobId}
+      summary: Догрузить посылки из judge
       parameters:
         - $ref: '#/components/parameters/ContestID'
       responses:
@@ -173,10 +175,7 @@ paths:
   /api/contests/{id}/analyze:
     post:
       operationId: postContestAnalyze
-      summary: Поставить пересчёт findings в очередь (асинхронно)
-      description: >
-        Только analyze по уже импортированным посылкам; включает AI-детектор (ManualOnly).
-        Прогресс — GET /api/jobs/{jobId}.
+      summary: Пересчитать находки по загруженным посылкам
       parameters:
         - $ref: '#/components/parameters/ContestID'
       responses:
@@ -198,9 +197,27 @@ paths:
   /api/contests/{id}/sync:
     post:
       operationId: postContestSync
-      summary: Дозагрузить посылки и пересчитать детекторы (Sync)
-      description: >
-        Import + analyze в одном job; analyze с WithManual (AI). Прогресс — GET /api/jobs/{jobId}.
+      summary: Догрузить посылки и пересчитать находки
+      parameters:
+        - $ref: '#/components/parameters/ContestID'
+      responses:
+        '202':
+          description: Job поставлен в очередь
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/contests/{id}/resync:
+    post:
+      operationId: postContestResync
+      summary: Сбросить данные контеста и загрузить заново
       parameters:
         - $ref: '#/components/parameters/ContestID'
       responses:
@@ -220,7 +237,7 @@ paths:
   /api/jobs/{jobId}:
     get:
       operationId: getJob
-      summary: Статус/прогресс job'а, поставленного через .../import, .../analyze или .../sync
+      summary: Статус и прогресс фоновой операции
       parameters:
         - name: jobId
           in: path
@@ -242,12 +259,12 @@ paths:
   /api/contests/{id}/findings:
     get:
       operationId: getContestFindings
-      summary: Находки контеста (идемпотентный GET; фактически Analyze)
+      summary: Находки контеста
       parameters:
         - $ref: '#/components/parameters/ContestID'
       responses:
         '200':
-          description: Находки (view-модель отчёта)
+          description: Отчёт с находками
           content:
             application/json:
               schema:
@@ -308,7 +325,7 @@ paths:
   /api/contests/{id}/submissions:
     get:
       operationId: getContestSubmissions
-      summary: Список посылок контеста из кэша
+      summary: Список посылок контеста
       parameters:
         - $ref: '#/components/parameters/ContestID'
       responses:
@@ -330,13 +347,13 @@ paths:
   /api/contests/{id}/submissions/{submissionId}/comments:
     get:
       operationId: getSubmissionComments
-      summary: Live-комментарии посылки (+ sync статуса из ejudge)
+      summary: Комментарии и вердикт посылки
       parameters:
         - $ref: '#/components/parameters/ContestID'
         - $ref: '#/components/parameters/SubmissionID'
       responses:
         '200':
-          description: Комментарии и актуальный/кэшированный вердикт
+          description: Комментарии и текущий вердикт
           content:
             application/json:
               schema:
@@ -376,7 +393,7 @@ paths:
   /api/contests/{id}/submissions/{submissionId}/verdict:
     post:
       operationId: postSubmissionVerdict
-      summary: Принять/отклонить посылку (comment затем status в ejudge)
+      summary: Принять или отклонить посылку
       parameters:
         - $ref: '#/components/parameters/ContestID'
         - $ref: '#/components/parameters/SubmissionID'

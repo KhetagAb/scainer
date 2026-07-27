@@ -68,6 +68,16 @@ export function isAbortError(e: unknown): boolean {
   return e instanceof Error && e.name === "AbortError";
 }
 
+export const SYNC_JOB_FAIL_MESSAGE = "обновление завершилось с ошибкой";
+
+export function jobFailureMessage(
+  state: JobState,
+  fallback = SYNC_JOB_FAIL_MESSAGE,
+): string {
+  const trimmed = state.error?.trim();
+  return trimmed || fallback;
+}
+
 export function progressFromState(state: JobState): NonNullable<JobProgress> {
   return {
     phase: state.progress.phase,
@@ -84,3 +94,8 @@ export function extractJobId(data: unknown): string | null {
 
 export const syncJobStorageKey = (contestId: string): string =>
   `scainer.syncJob.${contestId}`;
+
+export const resyncJobStorageKey = (contestId: string): string =>
+  `scainer.resyncJob.${contestId}`;
+
+export type ContestJobKind = "sync" | "resync";

@@ -23,45 +23,6 @@ function ChevronDownIcon({ size = 28 }: { size?: number }) {
   );
 }
 
-function CheckIcon({ size = 18 }: { size?: number }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
-  );
-}
-
-function XIcon({ size = 18 }: { size?: number }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M18 6 6 18" />
-      <path d="m6 6 12 12" />
-    </svg>
-  );
-}
-
 const DEMO_LINES = [
   "#include <bits/stdc++.h>",
   "using namespace std;",
@@ -190,10 +151,10 @@ export default function ReviewLegendPreview({ preview = true, className }: Props
                   <div className="review-verdict__actions">
                     <div className="review-verdict__ok-rj">
                       <span className="btn btn--icon btn--ok" aria-hidden>
-                        <CheckIcon />
+                        AC
                       </span>
                       <span className="btn btn--icon btn--rj" aria-hidden>
-                        <XIcon />
+                        RJ
                       </span>
                     </div>
                     <span className="btn btn--comment" aria-hidden>

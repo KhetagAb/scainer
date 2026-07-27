@@ -76,11 +76,21 @@ export function useParallelPageData({ parallelId, threshold, onUnauthorized }: O
           const report = findingsQueries[i]?.data as ReportData | undefined;
           const findings = (report?.findings ?? []) as FindingView[];
           const problems = (problemsQueries[i]?.data ?? []) as ProblemInfo[];
-          const ready = Boolean(findingsQueries[i]?.isSuccess && problemsQueries[i]?.isSuccess);
+          const findingsQ = findingsQueries[i];
+          const problemsQ = problemsQueries[i];
+          const ready = Boolean(findingsQ?.isSuccess && problemsQ?.isSuccess);
           const submissionCount = c.submissionCount ?? 0;
           const problemStats = ready
             ? buildProblemSignalStats(problems, findings, threshold)
             : undefined;
+          const statsLoading =
+            !ready &&
+            !findingsQ?.isError &&
+            !problemsQ?.isError &&
+            (findingsQ?.isPending ||
+              problemsQ?.isPending ||
+              findingsQ?.isFetching ||
+              problemsQ?.isFetching);
 
           return {
             id: c.id,
@@ -92,6 +102,7 @@ export function useParallelPageData({ parallelId, threshold, onUnauthorized }: O
             },
             hasStrongSignals: contestHasStrongSignals(problemStats),
             pendingCount: contestPendingCount(problemStats),
+            statsLoading,
             stats: {
               id: c.id,
               submissionCount,

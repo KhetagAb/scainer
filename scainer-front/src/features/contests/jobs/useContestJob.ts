@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { postContestSync } from "@/client/sdk.gen";
+import { postContestResync, postContestSync } from "@/client/sdk.gen";
 import { authHeaders } from "@/features/auth/authStorage";
 import { resumeContestJob, watchContestJob } from "@/features/contests/jobs/contestJobRunner";
 import {
@@ -7,28 +7,41 @@ import {
   extractJobId,
   isAbortError,
   readStoredJobId,
+  resyncJobStorageKey,
+  SYNC_JOB_FAIL_MESSAGE,
   syncJobStorageKey,
   writeStoredJobId,
+  type ContestJobKind,
   type JobProgress,
 } from "@/features/contests/jobs/jobShared";
 import { formatApiError } from "@/lib/apiError";
 
 export type { JobProgress as SyncProgress } from "@/features/contests/jobs/jobShared";
 
-const FAIL_MESSAGE = "обновление завершилось с ошибкой";
-
 type UseContestJobOptions = {
   contestId?: string | null;
+  kind?: ContestJobKind;
   onSettled?: (ok: boolean) => void | Promise<void>;
   onImportDone?: () => void;
 };
 
-/** POST /sync → jobId → SSE → localStorage resume. */
+function storageKeyFor(kind: ContestJobKind) {
+  return kind === "resync" ? resyncJobStorageKey : syncJobStorageKey;
+}
+
+function postJobFor(kind: ContestJobKind) {
+  return kind === "resync" ? postContestResync : postContestSync;
+}
+
+/** POST /sync or /resync → jobId → SSE → localStorage resume. */
 export function useContestJob(
   onUnauthorized?: () => void,
   options?: UseContestJobOptions,
 ) {
   const contestId = options?.contestId ?? null;
+  const kind = options?.kind ?? "sync";
+  const storageKey = storageKeyFor(kind);
+  const postJob = postJobFor(kind);
 
   const onSettledRef = useRef(options?.onSettled);
   onSettledRef.current = options?.onSettled;
@@ -55,20 +68,20 @@ export function useContestJob(
 
   const watchJob = useCallback(
     async (id: string, jobId: string, signal: AbortSignal): Promise<boolean> => {
-      const ok = await watchContestJob({
+      const outcome = await watchContestJob({
         contestId: id,
         jobId,
-        storageKey: syncJobStorageKey,
+        storageKey,
         signal,
         onProgress: setProgress,
         onImportDone: () => onImportDoneRef.current?.(),
       });
-      if (!ok) {
-        setError(FAIL_MESSAGE);
+      if (!outcome.ok) {
+        setError(outcome.error ?? SYNC_JOB_FAIL_MESSAGE);
       }
-      return ok;
+      return outcome.ok;
     },
-    [],
+    [storageKey],
   );
 
   const start = useCallback(
@@ -85,14 +98,14 @@ export function useContestJob(
       let jobIdWritten = false;
       let ok = false;
       try {
-        const res = await postContestSync({
+        const res = await postJob({
           path: { id },
           headers: authHeaders(),
         });
 
         if (res.error) {
           if (res.response.status === 401) onUnauthorized?.();
-          if (res.response.status === 404) clearStoredJobId(id, syncJobStorageKey);
+          if (res.response.status === 404) clearStoredJobId(id, storageKey);
           setError(formatApiError(res.error, res.response.status));
           await settle(false);
           return false;
@@ -105,14 +118,14 @@ export function useContestJob(
           return false;
         }
 
-        writeStoredJobId(id, jobId, syncJobStorageKey);
+        writeStoredJobId(id, jobId, storageKey);
         jobIdWritten = true;
         ok = await watchJob(id, jobId, controller.signal);
         await settle(ok);
         return ok;
       } catch (e) {
         if (isAbortError(e)) return false;
-        if (!jobIdWritten) clearStoredJobId(id, syncJobStorageKey);
+        if (!jobIdWritten) clearStoredJobId(id, storageKey);
         setError(formatApiError(e));
         await settle(false);
         return false;
@@ -122,14 +135,14 @@ export function useContestJob(
         activeContestRef.current = null;
       }
     },
-    [onUnauthorized, settle, watchJob],
+    [onUnauthorized, postJob, settle, storageKey, watchJob],
   );
 
   useEffect(() => {
     if (!contestId) return;
     if (activeContestRef.current) return;
 
-    const jobId = readStoredJobId(contestId, syncJobStorageKey);
+    const jobId = readStoredJobId(contestId, storageKey);
     if (!jobId) return;
 
     let cancelled = false;
@@ -144,7 +157,7 @@ export function useContestJob(
         const result = await resumeContestJob({
           contestId,
           jobId,
-          storageKey: syncJobStorageKey,
+          storageKey,
           signal: controller.signal,
           onUnauthorized,
           onProgress: setProgress,
@@ -156,12 +169,12 @@ export function useContestJob(
         if (result.kind === "aborted" || result.kind === "cleared") return;
 
         if (result.kind === "done") {
-          if (!result.ok) setError(FAIL_MESSAGE);
+          if (!result.ok) setError(result.error ?? SYNC_JOB_FAIL_MESSAGE);
           await settle(result.ok);
           return;
         }
 
-        if (!result.ok) setError(FAIL_MESSAGE);
+        if (!result.ok) setError(result.error ?? SYNC_JOB_FAIL_MESSAGE);
         if (!cancelled) await settle(result.ok);
       } catch (e) {
         if (cancelled || isAbortError(e)) return;
@@ -182,7 +195,7 @@ export function useContestJob(
       if (abortRef.current === controller) abortRef.current = null;
       if (activeContestRef.current === contestId) activeContestRef.current = null;
     };
-  }, [contestId, onUnauthorized, settle]);
+  }, [contestId, onUnauthorized, settle, storageKey]);
 
   const cancel = useCallback(() => {
     abortRef.current?.abort();

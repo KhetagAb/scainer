@@ -28,7 +28,7 @@ export function useContestSync({ contestId, onUnauthorized }: UseContestSyncOpti
     refetchContests(contestsQuery);
   }, [contestsQuery]);
 
-  const refreshAfterSync = useCallback(
+  const refreshAfterJob = useCallback(
     async (ok: boolean) => {
       if (!contestId) return;
       await refreshContestAfterSync(queryClient, contestsQuery, contestId, ok);
@@ -39,15 +39,24 @@ export function useContestSync({ contestId, onUnauthorized }: UseContestSyncOpti
   const syncJob = useContestJob(onUnauthorized, {
     contestId,
     onImportDone: refreshContests,
-    onSettled: refreshAfterSync,
+    onSettled: refreshAfterJob,
   });
+
+  const resyncJob = useContestJob(onUnauthorized, {
+    contestId,
+    kind: "resync",
+    onImportDone: refreshContests,
+    onSettled: refreshAfterJob,
+  });
+
+  const jobBusy = syncJob.isBusy || resyncJob.isBusy;
 
   const syncAction = buildSyncAction(
     {
       lastImportedAt: contest?.lastImportedAt,
       computedAt: contest?.computedAt,
     },
-    { busy: syncJob.isBusy },
+    { busy: jobBusy },
   );
 
   const startSync = useCallback(() => {
@@ -55,13 +64,25 @@ export function useContestSync({ contestId, onUnauthorized }: UseContestSyncOpti
     void syncJob.start(contestId);
   }, [contestId, syncJob]);
 
+  const startResync = useCallback(() => {
+    if (!contestId) return;
+    void resyncJob.start(contestId);
+  }, [contestId, resyncJob]);
+
+  const progress = syncJob.isBusy
+    ? syncJob.progress
+    : resyncJob.isBusy
+      ? resyncJob.progress
+      : null;
+
   return {
     contestsQuery,
     contest,
     syncAction,
-    progress: syncJob.progress,
-    isBusy: syncJob.isBusy,
-    error: syncJob.error,
+    progress,
+    isBusy: jobBusy,
+    error: syncJob.error ?? resyncJob.error,
     startSync,
+    startResync,
   };
 }

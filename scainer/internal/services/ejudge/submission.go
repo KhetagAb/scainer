@@ -150,6 +150,11 @@ func mapProblem(run ejgen.Run) (domain.ProblemID, error) {
 	return "", fmt.Errorf("ejudge: run_id=%v без ключа задачи", derefInt(run.RunId))
 }
 
+func hasProblemKey(run ejgen.Run) bool {
+	_, err := mapProblem(run)
+	return err == nil
+}
+
 func derefInt(p *int) any {
 	if p == nil {
 		return nil

@@ -19,6 +19,7 @@ type StatsProps = {
   stats: ContestStatsFields;
   problemStats?: ProblemSignalStat[];
   syncProgress?: JobProgress;
+  statsLoading?: boolean;
   freshness?: ContestFreshness;
 };
 
@@ -76,6 +77,7 @@ export default function ContestCard({
   stats,
   problemStats,
   syncProgress,
+  statsLoading,
   freshness,
   className,
   preview,
@@ -84,22 +86,26 @@ export default function ContestCard({
   const reviewTo = `/contests/${encodeURIComponent(id)}/review`;
   const findingsTo = `/contests/${encodeURIComponent(id)}/findings`;
   const subs = stats.submissionCount ?? 0;
-  const showStaleDot = freshness ? contestNeedsSyncDot(freshness) : false;
-  const showFindingsMeta =
-    syncProgress !== undefined ||
-    (problemStats !== undefined && problemStats.length > 0);
+  const needsSyncHighlight = freshness ? contestNeedsSyncDot(freshness) : false;
+  const showSyncProgress = syncProgress !== undefined;
+  const showStatsLoading = statsLoading && !showSyncProgress;
+  const showProgressBar = showSyncProgress || showStatsLoading;
+  const progressForBar = showSyncProgress ? syncProgress : showStatsLoading ? null : undefined;
+  const showChips =
+    !showProgressBar && problemStats !== undefined && problemStats.length > 0;
+  const showFindingsMeta = showProgressBar || showChips;
 
   return (
     <div
-      className={className ? `contest-card ${className}` : "contest-card"}
+      className={
+        (className ? `contest-card ${className}` : "contest-card") +
+        (needsSyncHighlight ? " contest-card--stale" : "")
+      }
       aria-hidden={ariaHidden}
     >
       <div className="contest-card__top">
         <div className="contest-card__title">
           <span className="contest-card__name">{displayName || id}</span>
-          {showStaleDot ? (
-            <span className="contest-card__stale-dot" title="Данные устарели" aria-hidden />
-          ) : null}
           {id !== name ? <ContestIdCopy id={id} preview={preview} /> : null}
         </div>
         <span className="contest-card__meta">{subs} посылок</span>
@@ -140,14 +146,14 @@ export default function ContestCard({
           </span>
           {showFindingsMeta ? (
             <div className="contest-card__findings-meta">
-              {syncProgress !== undefined ? (
+              {showProgressBar ? (
                 <JobProgressBar
-                  progress={syncProgress}
+                  progress={progressForBar ?? null}
                   className="import-progress-bar--card"
                 />
               ) : null}
-              {problemStats ? (
-                <ContestProblemChips problemStats={problemStats} variant="card" />
+              {showChips ? (
+                <ContestProblemChips problemStats={problemStats!} variant="card" />
               ) : null}
             </div>
           ) : null}

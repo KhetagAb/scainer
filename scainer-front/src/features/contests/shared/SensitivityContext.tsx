@@ -17,7 +17,7 @@ import {
 type SensitivityContextValue = {
   /** null — вне параллели/контеста (главная и пр.). */
   scopeParallelId: string | null;
-  /** true на /contests/:id/(findings|review) — контролы в AppHeader. */
+  /** true на /contests/:id/(findings|review) — табы в шапке контеста. */
   onContestPage: boolean;
   /** true только на findings — табы группировки. */
   onFindingsPage: boolean;

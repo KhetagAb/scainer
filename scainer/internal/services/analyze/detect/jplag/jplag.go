@@ -76,6 +76,9 @@ func (d *Detector) Analyze(ctx context.Context, u domain.ProblemUnit) ([]domain.
 	if len(subs) < 2 {
 		return nil, nil
 	}
+	if u.Lang == "" {
+		return nil, nil
+	}
 
 	jplagLang, ok := d.LangMap[u.Lang]
 	if !ok {

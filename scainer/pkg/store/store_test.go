@@ -86,3 +86,42 @@ func TestMem_ConcurrentPutAndRead(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+func TestMemDeleteByContestAndCursor(t *testing.T) {
+	ctx := context.Background()
+	m := NewMem()
+	_ = m.Put(ctx, []domain.Submission{
+		{ID: "a", Contest: "c1", Problem: "A", Participant: "p1"},
+		{ID: "b", Contest: "c2", Problem: "A", Participant: "p2"},
+	})
+	_ = m.SetCursor(ctx, "ejudge:cursor:1", "10")
+	_ = m.SetCursor(ctx, "ejudge:cursor:2", "20")
+
+	if err := m.DeleteByContest(ctx, "c1"); err != nil {
+		t.Fatal(err)
+	}
+	got, err := m.GetByIDs(ctx, []domain.SubmissionID{"a", "b"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0].ID != "b" {
+		t.Fatalf("after delete: %+v", got)
+	}
+	byProblem, err := m.ByProblem(ctx, "c1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(byProblem) != 0 {
+		t.Fatalf("c1 submissions remain: %+v", byProblem)
+	}
+
+	if err := m.DeleteCursor(ctx, "ejudge:cursor:1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok, _ := m.GetCursor(ctx, "ejudge:cursor:1"); ok {
+		t.Fatal("cursor 1 should be deleted")
+	}
+	if _, ok, _ := m.GetCursor(ctx, "ejudge:cursor:2"); !ok {
+		t.Fatal("cursor 2 should remain")
+	}
+}

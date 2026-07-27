@@ -17,8 +17,16 @@ export type SyncActionModel = {
 };
 
 const SYNC_HINT =
-  "Догрузить посылки из ejudge и пересчитать детекторы (включая AI).";
+  "Догрузить посылки из ejudge и пересчитать детекторы.";
 const SYNC_IDLE_LABEL = "Обновить";
+export const SYNC_WARN_LOAD_LABEL = "Синхронизировать посылки";
+export const SYNC_WARN_ANALYZE_LABEL = "Актуализировать анализ";
+
+export const RESYNC_HINT =
+  "Удалить все посылки и сигналы, затем заново загрузить из ejudge и пересчитать детекторы.";
+
+export const RESYNC_CONFIRM =
+  "Удалить все посылки и сигналы контеста и заново загрузить из ejudge с полным анализом?";
 
 /** Анализ отстаёт от import (не «нужен AI»). */
 export function isAnalysisStale(
@@ -49,13 +57,13 @@ function pickWarnReason(
   now = Date.now(),
 ): WarnPick | null {
   if (!contest.lastImportedAt) {
-    return { warnReason: "no_import", label: "Нужна дозагрузка" };
+    return { warnReason: "no_import", label: SYNC_WARN_LOAD_LABEL };
   }
   if (isImportStale(contest.lastImportedAt, now)) {
-    return { warnReason: "import_stale", label: "Посылки устарели" };
+    return { warnReason: "import_stale", label: SYNC_WARN_LOAD_LABEL };
   }
   if (isAnalysisStale(contest.lastImportedAt, contest.computedAt)) {
-    return { warnReason: "analyze_stale", label: "Данные устарели" };
+    return { warnReason: "analyze_stale", label: SYNC_WARN_ANALYZE_LABEL };
   }
   return null;
 }
@@ -66,13 +74,13 @@ function pickParallelWarnReason(
 ): WarnPick | null {
   if (contests.length === 0) return null;
   if (contests.some((c) => !c.lastImportedAt)) {
-    return { warnReason: "no_import", label: "Нужна дозагрузка" };
+    return { warnReason: "no_import", label: SYNC_WARN_LOAD_LABEL };
   }
   if (contests.some((c) => isImportStale(c.lastImportedAt, now))) {
-    return { warnReason: "import_stale", label: "Посылки устарели" };
+    return { warnReason: "import_stale", label: SYNC_WARN_LOAD_LABEL };
   }
   if (contests.some((c) => isAnalysisStale(c.lastImportedAt, c.computedAt))) {
-    return { warnReason: "analyze_stale", label: "Данные устарели" };
+    return { warnReason: "analyze_stale", label: SYNC_WARN_ANALYZE_LABEL };
   }
   return null;
 }
@@ -137,17 +145,6 @@ export function buildParallelSyncAction(
     label: SYNC_IDLE_LABEL,
     hint: SYNC_HINT,
   };
-}
-
-/** Бейдж на списке параллелей — только import stale. */
-export function parallelCardImportBadge(
-  contests: ContestFreshness[],
-  now = Date.now(),
-): boolean {
-  if (contests.length === 0) return false;
-  return contests.some(
-    (c) => !c.lastImportedAt || isImportStale(c.lastImportedAt, now),
-  );
 }
 
 /** Dot на карточке контеста — любая проблема sync. */

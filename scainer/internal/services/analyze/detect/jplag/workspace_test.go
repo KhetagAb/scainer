@@ -171,3 +171,28 @@ func TestPrepareWorkDir_CleanupRemovesRunDir(t *testing.T) {
 		t.Fatalf("после cleanup run-dir должен исчезнуть, err=%v", err)
 	}
 }
+
+func TestAnalyze_SkipsEmptyLang(t *testing.T) {
+	fs, err := store.NewFS(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	d, err := New("bin/jplag.jar", fs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	u := domain.ProblemUnit{
+		Problem: "A",
+		Subs: []domain.Submission{
+			{ID: "1", Participant: "alice", Lang: "", Verdict: domain.VerdictOK, Source: []byte("x")},
+			{ID: "2", Participant: "bob", Lang: "", Verdict: domain.VerdictOK, Source: []byte("y")},
+		},
+	}
+	sigs, err := d.Analyze(context.Background(), u)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sigs != nil {
+		t.Fatalf("want nil signals, got %#v", sigs)
+	}
+}

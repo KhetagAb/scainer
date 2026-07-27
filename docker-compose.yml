@@ -44,12 +44,16 @@ services:
     depends_on:
       - scainer
     restart: unless-stopped
+    networks:
+      - default
 
 volumes:
   mongodb_data:
   scainer_data:
 
 networks:
+  default:
+    name: scainer_default
   monitoring:
     external: true
     name: monitoring_default

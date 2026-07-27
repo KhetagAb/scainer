@@ -7,14 +7,14 @@ import {
   extractJobId,
   isAbortError,
   readStoredJobId,
+  SYNC_JOB_FAIL_MESSAGE,
   syncJobStorageKey,
   writeStoredJobId,
   type JobProgress,
 } from "@/features/contests/jobs/jobShared";
+import { formatApiError } from "@/lib/apiError";
 
 export type { JobProgress } from "@/features/contests/jobs/jobShared";
-
-const FAIL_MESSAGE = "обновление завершилось с ошибкой";
 
 type UseParallelContestJobsOptions = {
   contestIds: string[];
@@ -137,7 +137,10 @@ export function useParallelContestJobs({
         if (res.error) {
           if (res.response.status === 401) onUnauthorizedRef.current?.();
           if (res.response.status === 404) clearStoredJobId(id, syncJobStorageKey);
-          setErrorById((prev) => ({ ...prev, [id]: res.error!.error }));
+          setErrorById((prev) => ({
+            ...prev,
+            [id]: formatApiError(res.error, res.response.status),
+          }));
           settledOk = false;
           return;
         }
@@ -150,7 +153,7 @@ export function useParallelContestJobs({
         }
         writeStoredJobId(id, jobId, syncJobStorageKey);
         jobIdWritten = true;
-        settledOk = await watchContestJob({
+        const outcome = await watchContestJob({
           contestId: id,
           jobId,
           storageKey: syncJobStorageKey,
@@ -158,15 +161,19 @@ export function useParallelContestJobs({
           onProgress: (p) => setProgressById((prev) => ({ ...prev, [id]: p })),
           onImportDone: () => onImportDoneRef.current?.(id),
         });
-        if (!settledOk) {
-          setErrorById((prev) => ({ ...prev, [id]: FAIL_MESSAGE }));
+        settledOk = outcome.ok;
+        if (!outcome.ok) {
+          setErrorById((prev) => ({
+            ...prev,
+            [id]: outcome.error ?? SYNC_JOB_FAIL_MESSAGE,
+          }));
         }
       } catch (e) {
         if (isAbortError(e)) return;
         if (!jobIdWritten) clearStoredJobId(id, syncJobStorageKey);
         setErrorById((prev) => ({
           ...prev,
-          [id]: e instanceof Error ? e.message : String(e),
+          [id]: formatApiError(e),
         }));
         settledOk = false;
       } finally {
@@ -213,20 +220,26 @@ export function useParallelContestJobs({
         if (result.kind === "done") {
           settledOk = result.ok;
           if (!result.ok) {
-            setErrorById((prev) => ({ ...prev, [id]: FAIL_MESSAGE }));
+            setErrorById((prev) => ({
+              ...prev,
+              [id]: result.error ?? SYNC_JOB_FAIL_MESSAGE,
+            }));
           }
           return;
         }
 
         settledOk = result.ok;
         if (!result.ok) {
-          setErrorById((prev) => ({ ...prev, [id]: FAIL_MESSAGE }));
+          setErrorById((prev) => ({
+            ...prev,
+            [id]: result.error ?? SYNC_JOB_FAIL_MESSAGE,
+          }));
         }
       } catch (e) {
         if (isAbortError(e)) return;
         setErrorById((prev) => ({
           ...prev,
-          [id]: e instanceof Error ? e.message : String(e),
+          [id]: formatApiError(e),
         }));
         settledOk = false;
       } finally {

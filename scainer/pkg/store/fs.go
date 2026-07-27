@@ -279,3 +279,52 @@ func (f *FS) SetCursor(ctx context.Context, key string, value string) error {
 	f.cursors = next
 	return nil
 }
+
+func (f *FS) contestDir(contest domain.ContestID) string {
+	return filepath.Join(f.root, fs.SanitizeFileName(string(contest)))
+}
+
+func (f *FS) DeleteByContest(ctx context.Context, contest domain.ContestID) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	if err := os.RemoveAll(f.contestDir(contest)); err != nil {
+		return fmt.Errorf("fs store: remove contest %s: %w", contest, err)
+	}
+
+	var nextOrder []domain.SubmissionID
+	for _, id := range f.order {
+		s, ok := f.byID[id]
+		if !ok || s.Contest != contest {
+			nextOrder = append(nextOrder, id)
+			continue
+		}
+		delete(f.byID, id)
+	}
+	f.order = nextOrder
+	return nil
+}
+
+func (f *FS) DeleteCursor(ctx context.Context, key string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if _, ok := f.cursors[key]; !ok {
+		return nil
+	}
+	next := make(map[string]string, len(f.cursors)-1)
+	for k, v := range f.cursors {
+		if k == key {
+			continue
+		}
+		next[k] = v
+	}
+	raw, err := json.MarshalIndent(next, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := fs.WriteFileAtomic(filepath.Join(f.root, cursorsFileName), raw, 0o644); err != nil {
+		return fmt.Errorf("fs store: write cursors: %w", err)
+	}
+	f.cursors = next
+	return nil
+}

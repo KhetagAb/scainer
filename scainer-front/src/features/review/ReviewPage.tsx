@@ -182,7 +182,7 @@ export default function ReviewPage({
             findingsReport={report}
             problemLabel={problemLabel}
             nextSubmissionId={queue[i + 1]?.id ?? null}
-            nextProblemId={isLast ? nextProblemId : null}
+            nextProblemId={nextProblemId}
             onUnauthorized={onUnauthorized}
             showAllSubmissions={isLast && hasHiddenSubmissions && Boolean(nextProblemId)}
             onShowAllSubmissions={showAllSubmissions}

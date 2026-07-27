@@ -8,7 +8,6 @@ import ContestLegendModal, {
 } from "@/features/contests/legend/ContestLegendModal";
 import { useParallelPageData } from "@/features/contests/pages/useParallelPageData";
 import { UNGROUPED_PARALLEL } from "@/features/contests/shared/contestHelpers";
-import { parallelLabel } from "@/features/contests/shared/parallels";
 import { useSensitivity } from "@/features/contests/shared/SensitivityContext";
 import AddContestForm from "@/features/contests/ui/AddContestForm";
 import SensitivitySlider from "@/features/contests/ui/SensitivitySlider";
@@ -53,7 +52,6 @@ export default function ParallelPage({ onUnauthorized }: Props) {
   checkUnauthorized();
 
   const canAdd = parallelId !== UNGROUPED_PARALLEL;
-  const title = parallelLabel(parallelId, UNGROUPED_PARALLEL);
   const syncAction = buildParallelSyncAction(parallelContests, {
     busy: syncJobs.isBusy,
   });
@@ -61,9 +59,6 @@ export default function ParallelPage({ onUnauthorized }: Props) {
   return (
     <>
       <div className="contest-head">
-        <h1>
-          <span className="contest-head__name">{title}</span>
-        </h1>
         <div className="contest-head__actions">
           <ContestSyncAction
             model={syncAction}
@@ -92,6 +87,7 @@ export default function ParallelPage({ onUnauthorized }: Props) {
               stats={c.stats}
               problemStats={c.problemStats}
               freshness={c.freshness}
+              statsLoading={c.statsLoading}
               syncProgress={
                 c.id in syncJobs.progressById
                   ? syncJobs.progressById[c.id]

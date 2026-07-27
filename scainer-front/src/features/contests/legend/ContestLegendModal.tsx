@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import ContestCard from "@/features/contests/cards/ContestCard";
 import ContestSyncAction from "@/features/contests/sync/ContestSyncAction";
+import { SYNC_WARN_LOAD_LABEL } from "@/features/contests/sync/contestDataStatus";
 import { ContestSyncIcon } from "@/features/contests/sync/ContestSyncIcon";
 import {
   ContestFindingsIcon,
@@ -130,15 +131,29 @@ export default function ContestLegendModal({ open, onClose }: Props) {
                     </span>
                     <div className="legend-callout__section-body">
                       <p lang="ru">
-                        <strong>Обновить</strong> — в шапке параллели и контеста: догрузка
-                        посылок и пересчёт детекторов одним нажатием.
+                        <strong>Обновить</strong> — догрузка посылок и пересчёт детекторов.
+                        Жёлтый чип и обводка карточки — данные устарели.
+                        На странице контеста: <strong>⌘+клик</strong> — полный пересбор
+                        (удалить все посылки и сигналы и загрузить заново).
                       </p>
                       <ul className="legend-callout__swatches legend-callout__swatches--inline">
+                        <li>
+                          <span className="btn btn--primary btn--icon" aria-hidden>
+                            <ContestSyncIcon size={16} className="btn--icon__glyph" />
+                          </span>
+                          <span>дозагрузка + анализ</span>
+                        </li>
+                        <li>
+                          <span className="btn btn--primary btn--icon" aria-hidden>
+                            <ContestSyncIcon size={16} className="btn--icon__glyph" />
+                          </span>
+                          <span>⌘+клик — сброс и полная загрузка</span>
+                        </li>
                         <li>
                           <ContestSyncAction
                             model={{
                               state: "warn",
-                              label: "Посылки устарели",
+                              label: SYNC_WARN_LOAD_LABEL,
                               hint: "Догрузить посылки из ejudge и пересчитать детекторы.",
                               warnReason: "import_stale",
                             }}
@@ -168,6 +183,7 @@ export default function ContestLegendModal({ open, onClose }: Props) {
                   { id: "b", name: "B", suspiciousSharePercent: 20, pendingCount: 0 },
                   { id: "c", name: "C", suspiciousSharePercent: 10, pendingCount: 0 },
                 ]}
+                freshness={{ lastImportedAt: null }}
               />
             </div>
 

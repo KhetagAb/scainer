@@ -4,14 +4,14 @@ import { client } from "@/client/client.gen";
 import { useSession } from "@/features/auth/SessionProvider";
 import { authHeaders, clearToken } from "@/features/auth/authStorage";
 import LoginPage from "@/features/auth/LoginPage";
-import ParallelsPage from "@/features/contests/ParallelsPage";
-import ParallelPage from "@/features/contests/ParallelPage";
-import ContestPage from "@/features/contests/ContestPage";
+import ParallelsPage from "@/features/contests/pages/ParallelsPage";
+import ParallelPage from "@/features/contests/pages/ParallelPage";
+import ContestPage from "@/features/contests/pages/ContestPage";
 import {
   ContestFindingsRoute,
   ContestReviewRoute,
   ContestReviewSubmissionRoute,
-} from "@/features/contests/ContestRoutes";
+} from "@/features/contests/pages/ContestRoutes";
 import RootLayout from "@/app/RootLayout";
 import NotFoundPage from "@/app/NotFoundPage";
 

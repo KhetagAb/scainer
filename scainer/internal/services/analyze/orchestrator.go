@@ -50,7 +50,7 @@ type detectorRun[U domain.Unit] struct {
 }
 
 func (d *detectorRun[U]) run(in contestRun, snap *contests.AnalysisSnapshot) error {
-	units, err := d.selector(in.contestID).Select(in.ctx, in.store)
+	units, err := d.selector(in.contestID)(in.ctx, in.store)
 	if err != nil {
 		return fmt.Errorf("%s: %w", d.name, err)
 	}

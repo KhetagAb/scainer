@@ -3,11 +3,11 @@ import { useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getContestsOptions } from "@/client/@tanstack/react-query.gen";
 import { authHeaders } from "@/features/auth/authStorage";
-import { UNGROUPED_PARALLEL } from "@/features/contests/contestHelpers";
+import { UNGROUPED_PARALLEL } from "@/features/contests/shared/contestHelpers";
 import {
   DEFAULT_SENSITIVITY,
   useUserSensitivity,
-} from "@/features/contests/useUserSensitivity";
+} from "@/features/contests/shared/useUserSensitivity";
 import type { GroupBy } from "@/features/findings/reportModel";
 import {
   DEFAULT_GROUP_BY,

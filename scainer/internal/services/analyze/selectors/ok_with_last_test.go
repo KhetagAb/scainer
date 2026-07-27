@@ -25,7 +25,7 @@ func TestOkWithLastSelector(t *testing.T) {
 		{ID: "8", Contest: "c", Problem: "X", Participant: "alice", Verdict: domain.VerdictOK, SubmittedAt: base.Add(time.Second)},
 	})
 
-	units, err := selectors.OkWithLastSelector{Contest: "c"}.Select(ctx, st)
+	units, err := selectors.OkWithLast("c")(ctx, st)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,7 +66,7 @@ func TestOkWithLastSelector_WindowCap(t *testing.T) {
 	}
 	_ = st.Put(ctx, subs)
 
-	units, err := selectors.OkWithLastSelector{Contest: "c"}.Select(ctx, st)
+	units, err := selectors.OkWithLast("c")(ctx, st)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -2,9 +2,9 @@ import { Outlet, useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { getContestsQueryKey } from "@/client/@tanstack/react-query.gen";
 import { authHeaders } from "@/features/auth/authStorage";
-import ImportContestsPanel from "@/features/contests/ImportContestsPanel";
-import { SensitivityProvider } from "@/features/contests/SensitivityContext";
-import ContestSectionNav from "@/features/contests/ContestSectionNav";
+import ImportContestsPanel from "@/features/contests/ui/ImportContestsPanel";
+import { SensitivityProvider } from "@/features/contests/shared/SensitivityContext";
+import ContestSectionNav from "@/features/contests/ui/ContestSectionNav";
 import AppHeader from "@/app/AppHeader";
 
 function HeaderActions() {

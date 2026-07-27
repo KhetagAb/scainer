@@ -1,10 +1,10 @@
-import { formatSuspicionPercent } from "@/features/contests/contestHelpers";
+import { formatSuspicionPercent } from "@/features/contests/shared/contestHelpers";
 import {
   type ProblemSignalStat,
   PROBLEM_SUSPICION_TOOLTIP,
   problemSuspicionLevel,
   problemSuspicionLevelHint,
-} from "@/features/contests/problemSignalStats";
+} from "@/features/contests/shared/problemSignalStats";
 
 type Props = {
   problemStats: ProblemSignalStat[];

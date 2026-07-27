@@ -67,8 +67,8 @@ func TestListStatsZeroBeforeImport(t *testing.T) {
 		t.Fatalf("len: got %d", len(list))
 	}
 	got := list[0]
-	if got.Statistic.SubmissionCount != 0 || got.Statistic.ProblemCount != 0 {
-		t.Fatalf("counts: got subs=%d problems=%d", got.Statistic.SubmissionCount, got.Statistic.ProblemCount)
+	if got.SubmissionCount != 0 || got.ProblemCount != 0 {
+		t.Fatalf("counts: got subs=%d problems=%d", got.SubmissionCount, got.ProblemCount)
 	}
 }
 
@@ -140,11 +140,11 @@ func TestListEnrichStats(t *testing.T) {
 		t.Fatalf("List: %v", err)
 	}
 	got := list[0]
-	if got.Statistic.SubmissionCount != 3 {
-		t.Fatalf("SubmissionCount: got %d want 3", got.Statistic.SubmissionCount)
+	if got.SubmissionCount != 3 {
+		t.Fatalf("SubmissionCount: got %d want 3", got.SubmissionCount)
 	}
-	if got.Statistic.ProblemCount != 2 {
-		t.Fatalf("ProblemCount: got %d want 2", got.Statistic.ProblemCount)
+	if got.ProblemCount != 2 {
+		t.Fatalf("ProblemCount: got %d want 2", got.ProblemCount)
 	}
 }
 

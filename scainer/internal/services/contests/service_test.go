@@ -50,7 +50,7 @@ func waitForJob(t *testing.T, svc *analyze.Service, jobID string) error {
 
 func submitAndWait(t *testing.T, svc *analyze.Service, ctx context.Context, id domain.ContestID) error {
 	t.Helper()
-	jobID, err := svc.ImportThenAnalyze(ctx, id)
+	jobID, err := svc.SyncManual(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -260,8 +260,12 @@ func TestRegistryIsSourceOfTruthAcrossServiceRestart(t *testing.T) {
 	if got.ParallelID != "par2" {
 		t.Fatalf("параллель не пережила рестарт: %+v", got)
 	}
-	if len(got.ExcludedProblems) != 2 {
-		t.Fatalf("ExcludedProblems не пережили рестарт: %+v", got.ExcludedProblems)
+	rec, ok, err := registry.Get(ctx, "contest01")
+	if err != nil || !ok {
+		t.Fatalf("Get: err=%v ok=%v", err, ok)
+	}
+	if len(rec.Contest.ExcludedProblems) != 2 {
+		t.Fatalf("ExcludedProblems не пережили рестарт: %+v", rec.Contest.ExcludedProblems)
 	}
 
 	if _, err := svc2.Register(ctx, decl); !errors.Is(err, contests.ErrDuplicateContest) {
@@ -338,7 +342,6 @@ func TestSetExcludedProblems(t *testing.T) {
 	reg := newFakeRegistry()
 	fs := newFakeAnalysisRepository()
 	svc := contests.NewService(reg, fs, "stub")
-	reader := contests.NewContestReader(reg, store.NewMem(), fs, scoring.NewWeighted())
 
 	decl := contests.Registration{
 		ID: "contest01",
@@ -356,13 +359,12 @@ func TestSetExcludedProblems(t *testing.T) {
 		t.Fatalf("SetExcludedProblems: %v", err)
 	}
 
-	list, err := reader.List(ctx)
-	if err != nil {
-		t.Fatalf("List: %v", err)
+	rec, ok, err := reg.Get(ctx, "contest01")
+	if err != nil || !ok {
+		t.Fatalf("Get: err=%v ok=%v", err, ok)
 	}
-
-	if len(list[0].ExcludedProblems) != 2 {
-		t.Fatalf("ExcludedProblems: got %v want 2 items", len(list[0].ExcludedProblems))
+	if len(rec.Contest.ExcludedProblems) != 2 {
+		t.Fatalf("ExcludedProblems: got %v want 2 items", len(rec.Contest.ExcludedProblems))
 	}
 }
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ContestReviewIcon } from "@/features/contests/ContestSectionNav";
+import { ContestReviewIcon } from "@/features/contests/ui/ContestSectionNav";
 import ReviewLegendPreview from "@/features/review/ReviewLegendPreview";
 import {
   REVIEW_LEGEND_DEMO_PROBLEMS,

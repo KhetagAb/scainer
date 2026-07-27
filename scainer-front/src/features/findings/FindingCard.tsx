@@ -3,7 +3,7 @@ import type { EvidenceView, FindingView, ReportData, SubmissionView } from "@/cl
 import {
   PROBLEM_SUSPICION_TOOLTIP,
   problemSuspicionLevel,
-} from "@/features/contests/problemSignalStats";
+} from "@/features/contests/shared/problemSignalStats";
 import {
   formatSignalCount,
   formatSubmissionCount,

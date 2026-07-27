@@ -1,4 +1,4 @@
-import { type ContestStatsFields } from "@/features/contests/contestHelpers";
+import { type ContestStatsFields } from "@/features/contests/shared/contestHelpers";
 
 type Props = {
   stats: ContestStatsFields;

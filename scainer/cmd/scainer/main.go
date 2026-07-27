@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -61,7 +62,7 @@ func run(cfg *configs.Config) error {
 	}
 	defer mongo.client.Disconnect(context.Background())
 
-	if err := seedTeacherLogins(context.Background(), cfg.TeachersLogins, mongo.teachers); err != nil {
+	if err := seedTeacherLogins(context.Background(), teacherLoginsToSeed(cfg), mongo.teachers); err != nil {
 		return fmt.Errorf("teachers: %w", err)
 	}
 
@@ -91,12 +92,20 @@ func run(cfg *configs.Config) error {
 	cronCtx, stopCron := context.WithCancel(context.Background())
 	defer stopCron()
 	if cfg.ImportCron.Enabled {
-		cancel, err := cron.StartImportCron(cronCtx, mongo.registry, svcs.analyze, cfg.ImportCron.Interval)
+		masterLogin := cfg.ImportCron.MasterLogin
+		if cfg.Ejudge.Enabled() {
+			warmCtx, cancel := context.WithTimeout(auth.WithLogin(context.Background(), masterLogin), 30*time.Second)
+			if err := ejGateway.EnsureAPIKey(warmCtx); err != nil {
+				fmt.Fprintf(os.Stderr, "scainer: import_cron ejudge warmup for masterlogin %s: %v\n", masterLogin, err)
+			}
+			cancel()
+		}
+		cancel, err := cron.StartImportCron(cronCtx, mongo.registry, svcs.analyze, cfg.ImportCron.Interval, masterLogin)
 		if err != nil {
 			return fmt.Errorf("import_cron: %w", err)
 		}
 		defer cancel()
-		fmt.Fprintf(os.Stderr, "scainer: import_cron every %s\n", cfg.ImportCron.Interval)
+		fmt.Fprintf(os.Stderr, "scainer: import_cron every %s as masterlogin %s\n", cfg.ImportCron.Interval, masterLogin)
 	}
 
 	var ejudgeGw *ejgateway.Gateway
@@ -105,6 +114,20 @@ func run(cfg *configs.Config) error {
 	}
 	e := transport.New(svcs.contests, svcs.reader, svcs.analyze, svcs.review, svcs.teachers, svcs.auth, ejudgeGw).Echo()
 	return serveHTTP(cfg.HTTP, e)
+}
+
+func teacherLoginsToSeed(cfg *configs.Config) []string {
+	logins := append([]string(nil), cfg.TeachersLogins...)
+	ml := strings.TrimSpace(cfg.ImportCron.MasterLogin)
+	if ml == "" {
+		return logins
+	}
+	for _, l := range logins {
+		if l == ml {
+			return logins
+		}
+	}
+	return append(logins, ml)
 }
 
 type mongoDeps struct {

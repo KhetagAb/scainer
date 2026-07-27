@@ -50,7 +50,7 @@ func waitForJob(t *testing.T, svc *analyze.Service, jobID string) error {
 
 func submitAndWait(t *testing.T, svc *analyze.Service, ctx context.Context, id domain.ContestID) error {
 	t.Helper()
-	jobID, err := svc.ImportThenAnalyze(ctx, id)
+	jobID, err := svc.SyncManual(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -253,14 +253,14 @@ func TestUsesOrchestratorDetectors(t *testing.T) {
 	}
 }
 
-func TestImportThenAnalyze_AsyncJobFlow(t *testing.T) {
+func TestSyncManual_AsyncJobFlow(t *testing.T) {
 	ctx := context.Background()
 	reader, analyzeSvc, _ := registerWithSubs(t, []domain.Submission{
 		{ID: "1", Contest: "contest01", Problem: "A", Participant: "alice", Lang: domain.LangCPP, Source: []byte("a"), Verdict: domain.VerdictOK},
 		{ID: "2", Contest: "contest01", Problem: "A", Participant: "bob", Lang: domain.LangCPP, Source: []byte("b"), Verdict: domain.VerdictOK},
 	})
 
-	jobID, err := analyzeSvc.ImportThenAnalyze(ctx, "contest01")
+	jobID, err := analyzeSvc.SyncManual(ctx, "contest01")
 	if err != nil {
 		t.Fatalf("Submit: %v", err)
 	}
@@ -287,15 +287,71 @@ func TestImportThenAnalyze_AsyncJobFlow(t *testing.T) {
 	}
 }
 
-func TestImportThenAnalyze_UnknownContest(t *testing.T) {
+func TestSyncManual_UnknownContest(t *testing.T) {
 	ctx := context.Background()
 	analyzeSvc := analyze.New(
 		jobs.NewPool(4),
 		analyze.NewRunner(newFakeRegistry(), store.NewMem(), newFakeAnalysisRepository(), testOrchestrator()),
 	)
 
-	if _, err := analyzeSvc.ImportThenAnalyze(ctx, "missing"); !errors.Is(err, contests.ErrContestNotFound) {
+	if _, err := analyzeSvc.SyncManual(ctx, "missing"); !errors.Is(err, contests.ErrContestNotFound) {
 		t.Fatalf("got %v want ErrContestNotFound", err)
+	}
+}
+
+func TestAnalyze_WithoutImport(t *testing.T) {
+	ctx := context.Background()
+	_, analyzeSvc, calls := registerWithSubs(t, []domain.Submission{
+		{ID: "1", Contest: "contest01", Problem: "A", Participant: "alice", Lang: domain.LangCPP, Source: []byte("a"), Verdict: domain.VerdictOK},
+	})
+
+	jobID, err := analyzeSvc.Analyze(ctx, "contest01")
+	if err == nil || !errors.Is(err, analyze.ErrNotImported) {
+		t.Fatalf("Analyze without import: got %v want ErrNotImported", err)
+	}
+	if jobID != "" {
+		t.Fatalf("expected empty jobID, got %q", jobID)
+	}
+	if *calls != 0 {
+		t.Fatalf("Analyze without import must not call detectors, got %d", *calls)
+	}
+}
+
+func TestAnalyze_WithImport(t *testing.T) {
+	ctx := context.Background()
+	reader, analyzeSvc, calls := registerWithSubs(t, []domain.Submission{
+		{ID: "1", Contest: "contest01", Problem: "A", Participant: "alice", Lang: domain.LangCPP, Source: []byte("a"), Verdict: domain.VerdictOK},
+		{ID: "2", Contest: "contest01", Problem: "A", Participant: "bob", Lang: domain.LangCPP, Source: []byte("b"), Verdict: domain.VerdictOK},
+	})
+
+	importJobID, err := analyzeSvc.Import(ctx, "contest01")
+	if err != nil {
+		t.Fatalf("Import: %v", err)
+	}
+	if err := waitForJob(t, analyzeSvc, importJobID); err != nil {
+		t.Fatalf("import job: %v", err)
+	}
+	if *calls != 0 {
+		t.Fatalf("Import не должен вызывать детекторы, got %d calls", *calls)
+	}
+
+	analyzeJobID, err := analyzeSvc.Analyze(ctx, "contest01")
+	if err != nil {
+		t.Fatalf("Analyze: %v", err)
+	}
+	if err := waitForJob(t, analyzeSvc, analyzeJobID); err != nil {
+		t.Fatalf("analyze job: %v", err)
+	}
+	if *calls == 0 {
+		t.Fatal("ожидали вызов детектора после Analyze")
+	}
+
+	findings, _, err := reader.GetFindings(ctx, "contest01")
+	if err != nil {
+		t.Fatalf("GetFindings: %v", err)
+	}
+	if len(findings) == 0 {
+		t.Fatal("ожидали находки после Analyze")
 	}
 }
 
@@ -374,9 +430,9 @@ func TestJobConflict(t *testing.T) {
 		time.Sleep(time.Millisecond)
 	}
 
-	secondJobID, err := analyzeSvc.ImportThenAnalyze(ctx, "contest01")
+	secondJobID, err := analyzeSvc.SyncManual(ctx, "contest01")
 	if err != nil {
-		t.Fatalf("second ImportThenAnalyze: %v", err)
+		t.Fatalf("second SyncManual: %v", err)
 	}
 	if secondJobID != jobID {
 		t.Fatalf("got job %q want same job %q", secondJobID, jobID)

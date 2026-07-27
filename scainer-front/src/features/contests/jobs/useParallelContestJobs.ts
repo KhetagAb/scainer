@@ -1,44 +1,39 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getJob, postContestImport } from "@/client/sdk.gen";
+import { postContestSync } from "@/client/sdk.gen";
 import { authHeaders } from "@/features/auth/authStorage";
-import { subscribeJobEvents } from "@/features/contests/jobProgress";
+import { resumeContestJob, watchContestJob } from "@/features/contests/jobs/contestJobRunner";
 import {
   clearStoredJobId,
   extractJobId,
   isAbortError,
-  progressFromState,
   readStoredJobId,
+  syncJobStorageKey,
   writeStoredJobId,
-  type ImportProgress,
-} from "@/features/contests/importJobShared";
+  type JobProgress,
+} from "@/features/contests/jobs/jobShared";
 
-export type { ImportProgress } from "@/features/contests/importJobShared";
+export type { JobProgress } from "@/features/contests/jobs/jobShared";
 
-type UseParallelImportJobsOptions = {
+const FAIL_MESSAGE = "обновление завершилось с ошибкой";
+
+type UseParallelContestJobsOptions = {
   contestIds: string[];
   onUnauthorized?: () => void;
-  /** Когда все job'ы текущей пачки (start + resume) завершились. */
   onSettled?: () => void;
-  /** Один раз на контест при переходе в analyzing — посылки уже в store. */
   onImportDone?: (contestId: string) => void;
-  /**
-   * После завершения job'а одного контеста (до снятия прогресс-бара).
-   * Можно дождаться refetch findings/problems, чтобы чипы появились без «дыры».
-   */
   onContestSettled?: (contestId: string, ok: boolean) => void | Promise<void>;
 };
 
 /**
- * Пачка import-job'ов для всех контестов параллели.
- * Отдельный POST …/import на каждый id; прогресс — Record по contestId.
+ * Пачка sync-job'ов для всех контестов параллели.
  */
-export function useParallelImportJobs({
+export function useParallelContestJobs({
   contestIds,
   onUnauthorized,
   onSettled,
   onImportDone,
   onContestSettled,
-}: UseParallelImportJobsOptions) {
+}: UseParallelContestJobsOptions) {
   const onSettledRef = useRef(onSettled);
   onSettledRef.current = onSettled;
   const onImportDoneRef = useRef(onImportDone);
@@ -48,9 +43,10 @@ export function useParallelImportJobs({
   const onUnauthorizedRef = useRef(onUnauthorized);
   onUnauthorizedRef.current = onUnauthorized;
 
-  const [progressById, setProgressById] = useState<Record<string, ImportProgress>>({});
+  const [progressById, setProgressById] = useState<Record<string, JobProgress>>({});
   const [errorById, setErrorById] = useState<Record<string, string>>({});
   const [activeIds, setActiveIds] = useState<Set<string>>(() => new Set());
+  const [settlingCount, setSettlingCount] = useState(0);
 
   const abortsRef = useRef<Map<string, AbortController>>(new Map());
   const activeRef = useRef<Set<string>>(new Set());
@@ -90,40 +86,9 @@ export function useParallelImportJobs({
     });
   }, []);
 
-  const watchJob = useCallback(
-    async (id: string, jobId: string, signal: AbortSignal): Promise<boolean> => {
-      let notifiedImportDone = false;
-      const final = await subscribeJobEvents(
-        jobId,
-        (state) => {
-          setProgressById((prev) => ({ ...prev, [id]: progressFromState(state) }));
-          if (!notifiedImportDone && state.progress.phase === "analyzing") {
-            notifiedImportDone = true;
-            onImportDoneRef.current?.(id);
-          }
-        },
-        signal,
-      );
-
-      // Только после терминального статуса — иначе remount/F5 сотрёт jobId и resume сломается.
-      if (final.status === "succeeded" || final.status === "failed") {
-        clearStoredJobId(id);
-      }
-
-      if (final.status === "failed") {
-        setErrorById((prev) => ({
-          ...prev,
-          [id]: final.error || "импорт завершился с ошибкой",
-        }));
-        return false;
-      }
-      return true;
-    },
-    [],
-  );
-
   const finishOne = useCallback(
     async (id: string, ok: boolean) => {
+      setSettlingCount((n) => n + 1);
       try {
         if (ok) {
           setErrorById((prev) => {
@@ -136,6 +101,7 @@ export function useParallelImportJobs({
         await onContestSettledRef.current?.(id, ok);
       } finally {
         clearContestProgress(id);
+        setSettlingCount((n) => Math.max(0, n - 1));
       }
     },
     [clearContestProgress],
@@ -163,14 +129,14 @@ export function useParallelImportJobs({
         });
         setProgressById((prev) => ({ ...prev, [id]: null }));
 
-        const res = await postContestImport({
+        const res = await postContestSync({
           path: { id },
           headers: authHeaders(),
         });
 
         if (res.error) {
           if (res.response.status === 401) onUnauthorizedRef.current?.();
-          if (res.response.status === 404) clearStoredJobId(id);
+          if (res.response.status === 404) clearStoredJobId(id, syncJobStorageKey);
           setErrorById((prev) => ({ ...prev, [id]: res.error!.error }));
           settledOk = false;
           return;
@@ -182,12 +148,22 @@ export function useParallelImportJobs({
           settledOk = false;
           return;
         }
-        writeStoredJobId(id, jobId);
+        writeStoredJobId(id, jobId, syncJobStorageKey);
         jobIdWritten = true;
-        settledOk = await watchJob(id, jobId, controller.signal);
+        settledOk = await watchContestJob({
+          contestId: id,
+          jobId,
+          storageKey: syncJobStorageKey,
+          signal: controller.signal,
+          onProgress: (p) => setProgressById((prev) => ({ ...prev, [id]: p })),
+          onImportDone: () => onImportDoneRef.current?.(id),
+        });
+        if (!settledOk) {
+          setErrorById((prev) => ({ ...prev, [id]: FAIL_MESSAGE }));
+        }
       } catch (e) {
         if (isAbortError(e)) return;
-        if (!jobIdWritten) clearStoredJobId(id);
+        if (!jobIdWritten) clearStoredJobId(id, syncJobStorageKey);
         setErrorById((prev) => ({
           ...prev,
           [id]: e instanceof Error ? e.message : String(e),
@@ -204,7 +180,7 @@ export function useParallelImportJobs({
         bumpPending(-1);
       }
     },
-    [bumpPending, clearContestProgress, finishOne, markActive, watchJob],
+    [bumpPending, clearContestProgress, finishOne, markActive],
   );
 
   const resumeOne = useCallback(
@@ -220,42 +196,34 @@ export function useParallelImportJobs({
 
       let settledOk: boolean | null = null;
       try {
-        const snap = await getJob({
-          path: { jobId },
-          headers: authHeaders(),
+        const result = await resumeContestJob({
+          contestId: id,
+          jobId,
+          storageKey: syncJobStorageKey,
+          signal: controller.signal,
+          onUnauthorized: () => onUnauthorizedRef.current?.(),
+          onProgress: (p) => setProgressById((prev) => ({ ...prev, [id]: p })),
+          onImportDone: () => onImportDoneRef.current?.(id),
         });
 
         if (controller.signal.aborted) return;
 
-        if (snap.error) {
-          if (snap.response.status === 401) onUnauthorizedRef.current?.();
-          if (snap.response.status === 404) clearStoredJobId(id);
-          else {
-            setErrorById((prev) => ({ ...prev, [id]: snap.error!.error }));
-            settledOk = false;
+        if (result.kind === "aborted" || result.kind === "cleared") return;
+
+        if (result.kind === "done") {
+          settledOk = result.ok;
+          if (!result.ok) {
+            setErrorById((prev) => ({ ...prev, [id]: FAIL_MESSAGE }));
           }
           return;
         }
 
-        if (snap.response.status === 404 || !snap.data) {
-          clearStoredJobId(id);
-          return;
+        settledOk = result.ok;
+        if (!result.ok) {
+          setErrorById((prev) => ({ ...prev, [id]: FAIL_MESSAGE }));
         }
-
-        const status = snap.data.status;
-        if (status === "succeeded" || status === "failed") {
-          clearStoredJobId(id);
-          // Уже завершённый job после remount: при success — дотянем карточку;
-          // при fail — не показываем устаревший баннер, storage просто чистим.
-          if (status === "succeeded") settledOk = true;
-          return;
-        }
-
-        setProgressById((prev) => ({ ...prev, [id]: progressFromState(snap.data!) }));
-        settledOk = await watchJob(id, jobId, controller.signal);
       } catch (e) {
         if (isAbortError(e)) return;
-        // Сеть/прокси: jobId оставляем — после F5 resume подхватит снова.
         setErrorById((prev) => ({
           ...prev,
           [id]: e instanceof Error ? e.message : String(e),
@@ -272,7 +240,7 @@ export function useParallelImportJobs({
         bumpPending(-1);
       }
     },
-    [bumpPending, clearContestProgress, finishOne, markActive, watchJob],
+    [bumpPending, clearContestProgress, finishOne, markActive],
   );
 
   const startAll = useCallback(() => {
@@ -283,18 +251,16 @@ export function useParallelImportJobs({
     }
   }, [runOne]);
 
-  // Resume сохранённых job'ов при появлении contestIds.
   useEffect(() => {
     const ids = contestIdsKey ? contestIdsKey.split("\0").filter(Boolean) : [];
     for (const id of ids) {
       if (activeRef.current.has(id)) continue;
-      const jobId = readStoredJobId(id);
+      const jobId = readStoredJobId(id, syncJobStorageKey);
       if (!jobId) continue;
       void resumeOne(id, jobId);
     }
   }, [contestIdsKey, resumeOne]);
 
-  // Abort job'ов контестов, ушедших из списка (смена параллели).
   useEffect(() => {
     const ids = new Set(contestIdsKey ? contestIdsKey.split("\0").filter(Boolean) : []);
     let changed = false;
@@ -322,13 +288,14 @@ export function useParallelImportJobs({
   }, []);
 
   const isRunning = activeIds.size > 0;
+  const isBusy = isRunning || settlingCount > 0;
 
   const batchProgress = useMemo(() => {
-    if (!isRunning) return null;
+    if (!isBusy) return null;
     const total = contestIds.length;
     if (total === 0) return null;
     return { done: Math.max(0, total - activeIds.size), total };
-  }, [activeIds.size, contestIds.length, isRunning]);
+  }, [activeIds.size, contestIds.length, isBusy]);
 
   const error = useMemo(() => {
     const entries = Object.entries(errorById);
@@ -346,6 +313,7 @@ export function useParallelImportJobs({
     errorById,
     error,
     isRunning,
+    isBusy,
     batchProgress,
   };
 }

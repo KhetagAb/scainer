@@ -2,13 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { getContestsOptions } from "@/client/@tanstack/react-query.gen";
 import { authHeaders } from "@/features/auth/authStorage";
-import { DEFAULT_PARALLEL_IDS, parallelLabel } from "@/features/contests/parallels";
+import { parallelCardImportBadge } from "@/features/contests/sync/contestDataStatus";
 import {
   UNGROUPED_PARALLEL,
   collator,
   compactContestName,
   contestsCountLabel,
-} from "@/features/contests/contestHelpers";
+} from "@/features/contests/shared/contestHelpers";
+import { DEFAULT_PARALLEL_IDS, parallelLabel } from "@/features/contests/shared/parallels";
 
 type Props = {
   onUnauthorized: () => void;
@@ -23,6 +24,7 @@ type ParallelCard = {
   id: string;
   contests: ContestChip[];
   submissionCount: number;
+  importStale: boolean;
 };
 
 export default function ParallelsPage({ onUnauthorized }: Props) {
@@ -41,6 +43,10 @@ export default function ParallelsPage({ onUnauthorized }: Props) {
   const contests = contestsQuery.data ?? [];
   const byParallel = new Map<string, ContestChip[]>();
   const submissionsByParallel = new Map<string, number>();
+  const freshnessByParallel = new Map<
+    string,
+    Array<{ lastImportedAt?: string | null; computedAt?: string | null }>
+  >();
 
   for (const c of contests) {
     const pid = c.parallelId || UNGROUPED_PARALLEL;
@@ -54,6 +60,9 @@ export default function ParallelsPage({ onUnauthorized }: Props) {
       pid,
       (submissionsByParallel.get(pid) ?? 0) + (c.submissionCount ?? 0),
     );
+    const fresh = freshnessByParallel.get(pid) ?? [];
+    fresh.push({ lastImportedAt: c.lastImportedAt, computedAt: c.computedAt });
+    freshnessByParallel.set(pid, fresh);
   }
 
   for (const list of byParallel.values()) {
@@ -70,6 +79,7 @@ export default function ParallelsPage({ onUnauthorized }: Props) {
       id,
       contests: byParallel.get(id) ?? [],
       submissionCount: submissionsByParallel.get(id) ?? 0,
+      importStale: parallelCardImportBadge(freshnessByParallel.get(id) ?? []),
     }))
     .sort((a, b) => collator.compare(a.id, b.id));
 
@@ -78,6 +88,7 @@ export default function ParallelsPage({ onUnauthorized }: Props) {
       id,
       contests: byParallel.get(id) ?? [],
       submissionCount: submissionsByParallel.get(id) ?? 0,
+      importStale: parallelCardImportBadge(freshnessByParallel.get(id) ?? []),
     })),
     ...extras,
   ];
@@ -88,6 +99,7 @@ export default function ParallelsPage({ onUnauthorized }: Props) {
       id: UNGROUPED_PARALLEL,
       contests: ungrouped,
       submissionCount: submissionsByParallel.get(UNGROUPED_PARALLEL) ?? 0,
+      importStale: parallelCardImportBadge(freshnessByParallel.get(UNGROUPED_PARALLEL) ?? []),
     });
   }
 
@@ -109,8 +121,13 @@ export default function ParallelsPage({ onUnauthorized }: Props) {
               <span className="parallel-card__title">
                 {parallelLabel(p.id, UNGROUPED_PARALLEL)}
               </span>
-              <span className="parallel-card__count">
-                {contestsCountLabel(p.contests.length)}
+              <span className="parallel-card__head-meta">
+                {p.importStale ? (
+                  <span className="parallel-card__stale-badge">Посылки устарели</span>
+                ) : null}
+                <span className="parallel-card__count">
+                  {contestsCountLabel(p.contests.length)}
+                </span>
               </span>
             </div>
             <div className="parallel-card__contests">

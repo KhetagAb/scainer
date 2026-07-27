@@ -1,8 +1,8 @@
 import { useMemo, useEffect } from "react";
 import type { UseQueryResult } from "@tanstack/react-query";
 import type { FindingView, ReportData, SubmissionView } from "@/client/types.gen";
-import { useSensitivity } from "@/features/contests/SensitivityContext";
-import { countSignalsForProblem } from "@/features/contests/problemSignalStats";
+import { useSensitivity } from "@/features/contests/shared/SensitivityContext";
+import { countSignalsForProblem } from "@/features/contests/shared/problemSignalStats";
 import {
   FindingRow,
   GroupTitle,

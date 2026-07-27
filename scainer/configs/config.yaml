@@ -30,6 +30,7 @@ analyze:
 import_cron:
   enabled: true
   interval: 5m
+  masterlogin: khetag_dz
 
 aiusage:
   enabled: false

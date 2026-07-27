@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Scainer API
-  description: HTTP API веб-сервиса детекции нечестных решений (обёртка над Pipeline).
+  description: HTTP API веб-сервиса детекции нечестных решений.
   version: 1.0.0
 
 servers:
@@ -151,11 +151,56 @@ paths:
   /api/contests/{id}/import:
     post:
       operationId: postContestImport
-      summary: Поставить дозагрузку+пересчёт findings в очередь (асинхронно)
+      summary: Поставить дозагрузку посылок в очередь
       description: >
-        Возвращает jobId сразу, не дожидаясь выполнения. Прогресс/статус — GET /api/jobs/{jobId}
-        (и GET /api/jobs/{jobId}/events для потокового чтения, вне OpenAPI-спеки). Готовые findings
-        читаются как обычно через GET .../findings после завершения job'а.
+        Только import — детекторы не запускаются. Возвращает jobId сразу; прогресс/статус — GET /api/jobs/{jobId}
+      parameters:
+        - $ref: '#/components/parameters/ContestID'
+      responses:
+        '202':
+          description: Job поставлен в очередь
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/contests/{id}/analyze:
+    post:
+      operationId: postContestAnalyze
+      summary: Поставить пересчёт findings в очередь (асинхронно)
+      description: >
+        Только analyze по уже импортированным посылкам; включает AI-детектор (ManualOnly).
+        Прогресс — GET /api/jobs/{jobId}.
+      parameters:
+        - $ref: '#/components/parameters/ContestID'
+      responses:
+        '202':
+          description: Job поставлен в очередь
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobResponse'
+        '400':
+          $ref: '#/components/responses/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/contests/{id}/sync:
+    post:
+      operationId: postContestSync
+      summary: Дозагрузить посылки и пересчитать детекторы (Sync)
+      description: >
+        Import + analyze в одном job; analyze с WithManual (AI). Прогресс — GET /api/jobs/{jobId}.
       parameters:
         - $ref: '#/components/parameters/ContestID'
       responses:
@@ -175,7 +220,7 @@ paths:
   /api/jobs/{jobId}:
     get:
       operationId: getJob
-      summary: Статус/прогресс job'а, поставленного через .../import
+      summary: Статус/прогресс job'а, поставленного через .../import, .../analyze или .../sync
       parameters:
         - name: jobId
           in: path
@@ -447,6 +492,11 @@ components:
           type: string
           format: date-time
           nullable: true
+        computedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Время последнего успешного analyze
         submissionCount:
           type: integer
           description: Число выгруженных посылок контеста

@@ -2,8 +2,8 @@ import { useRef, useState, type FormEvent, type KeyboardEvent, type MouseEvent }
 import { useMutation } from "@tanstack/react-query";
 import { postContestsMutation } from "@/client/@tanstack/react-query.gen";
 import { authHeaders } from "@/features/auth/authStorage";
-import { parallelLabel } from "@/features/contests/parallels";
-import { UNGROUPED_PARALLEL } from "@/features/contests/contestHelpers";
+import { parallelLabel } from "@/features/contests/shared/parallels";
+import { UNGROUPED_PARALLEL } from "@/features/contests/shared/contestHelpers";
 
 type Props = {
   parallelId: string;

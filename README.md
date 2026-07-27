@@ -11,7 +11,7 @@
 - MongoDB
 - Java (JRE 17+) в `PATH` — для JPlag
 
-## Быстрый старт (Docker Compose)
+## Быстрый старт (Compose)
 
 Локально:
 
@@ -84,13 +84,14 @@ npm run dev   # http://localhost:5173, /api → :8080
 ## Команды
 
 
-| Команда                    | Где              | Действие                       |
-| -------------------------- | ---------------- | ------------------------------ |
-| `make setup`               | `scainer/`       | Скачать `jplag.jar`            |
-| `make build` / `make test` | `scainer/`       | Сборка и тесты                 |
-| `make code-gen`            | `scainer/`       | OpenAPI → `generated/` |
-| `make run-serve`           | `scainer/`       | HTTP на `:8080`                |
-| `npm run build`            | `scainer-front/` | Production-сборка              |
-| `npm run generate-client`  | `scainer-front/` | Клиент из OpenAPI              |
+| Команда                    | Где                         | Действие                       |
+| -------------------------- | --------------------------- | ------------------------------ |
+| `make up` / `make rebuild` | `scainer/` (корень compose) | `podman-compose` up/down       |
+| `make setup`               | `scainer/scainer/`          | Скачать `jplag.jar`            |
+| `make build` / `make test` | `scainer/scainer/`          | Сборка и тесты                 |
+| `make code-gen`            | `scainer/scainer/`          | OpenAPI → `generated/`         |
+| `make run-serve`           | `scainer/scainer/`          | HTTP на `:8080`                |
+| `npm run build`            | `scainer-front/`            | Production-сборка              |
+| `npm run generate-client`  | `scainer-front/`            | Клиент из OpenAPI              |
 
 

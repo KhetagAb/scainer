@@ -35,12 +35,30 @@ func (s *Service) Import(ctx context.Context, id domain.ContestID) (string, erro
 	})
 }
 
-func (s *Service) ImportThenAnalyze(ctx context.Context, id domain.ContestID) (string, error) {
+func (s *Service) Analyze(ctx context.Context, id domain.ContestID) (string, error) {
+	if err := s.runner.requireImported(ctx, id); err != nil {
+		return "", err
+	}
+	return s.enqueue(ctx, id, func(jobCtx context.Context) error {
+		return s.runner.Analyze(WithManual(jobCtx), id)
+	})
+}
+
+func (s *Service) Sync(ctx context.Context, id domain.ContestID) (string, error) {
 	return s.enqueue(ctx, id, func(jobCtx context.Context) error {
 		if _, err := s.runner.Import(jobCtx, id); err != nil {
 			return err
 		}
 		return s.runner.Analyze(jobCtx, id)
+	})
+}
+
+func (s *Service) SyncManual(ctx context.Context, id domain.ContestID) (string, error) {
+	return s.enqueue(ctx, id, func(jobCtx context.Context) error {
+		if _, err := s.runner.Import(jobCtx, id); err != nil {
+			return err
+		}
+		return s.runner.Analyze(WithManual(jobCtx), id)
 	})
 }
 

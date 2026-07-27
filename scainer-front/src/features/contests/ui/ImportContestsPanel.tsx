@@ -7,8 +7,8 @@ import {
   parallelLabel,
   type ParsedImportRow,
   type SkippedImportRow,
-} from "@/features/contests/parallels";
-import { UNGROUPED_PARALLEL } from "@/features/contests/contestHelpers";
+} from "@/features/contests/shared/parallels";
+import { UNGROUPED_PARALLEL } from "@/features/contests/shared/contestHelpers";
 
 type Props = {
   onSuccess: () => void;

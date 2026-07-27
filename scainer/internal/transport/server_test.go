@@ -204,12 +204,190 @@ func TestPostContestImportSubmitsJob(t *testing.T) {
 		t.Fatal("ожидали непустой jobId")
 	}
 
-	statusReq := httptest.NewRequest(http.MethodGet, "/api/jobs/"+body.JobID, nil)
-	statusReq.Header.Set("Authorization", "Bearer "+token)
-	statusRec := httptest.NewRecorder()
-	e.ServeHTTP(statusRec, statusReq)
-	if statusRec.Code != http.StatusOK {
-		t.Fatalf("GetJob status: got %d want 200 body=%s", statusRec.Code, statusRec.Body.String())
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		statusReq := httptest.NewRequest(http.MethodGet, "/api/jobs/"+body.JobID, nil)
+		statusReq.Header.Set("Authorization", "Bearer "+token)
+		statusRec := httptest.NewRecorder()
+		e.ServeHTTP(statusRec, statusReq)
+		if statusRec.Code != http.StatusOK {
+			t.Fatalf("GetJob status: got %d want 200 body=%s", statusRec.Code, statusRec.Body.String())
+		}
+		var st struct {
+			Status   string `json:"status"`
+			Progress struct {
+				Phase string `json:"phase"`
+			} `json:"progress"`
+		}
+		if err := json.Unmarshal(statusRec.Body.Bytes(), &st); err != nil {
+			t.Fatal(err)
+		}
+		if st.Status == "succeeded" || st.Status == "failed" {
+			if st.Progress.Phase == "analyzing" {
+				t.Fatalf("import job must not enter analyzing phase, got %+v", st)
+			}
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("import job did not finish in time")
+}
+
+func TestPostContestSync(t *testing.T) {
+	authSvc := testAuth()
+	token, _, err := authSvc.IssueToken("admin")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reg := newFakeRegistry()
+	fs := newFakeAnalysisRepository()
+	st := store.NewMem()
+	orch := emptyOrchestrator()
+	svc := contests.NewService(reg, fs, "stub")
+	reader := contests.NewContestReader(reg, st, fs, scoring.NewWeighted())
+	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, orch))
+
+	if _, err := svc.Register(context.Background(), contests.Registration{
+		ID:     "contest01",
+		Source: &contests.SourceSpec{Type: "stub"},
+	}); err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+
+	e := transport.New(svc, reader, analyzeSvc, nil, testTeachers(), authSvc, nil).Echo()
+
+	req := httptest.NewRequest(http.MethodPost, "/api/contests/contest01/sync", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("status: got %d want 202 body=%s", rec.Code, rec.Body.String())
+	}
+	var body struct {
+		JobID string `json:"jobId"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	if body.JobID == "" {
+		t.Fatal("ожидали непустой jobId")
+	}
+
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		statusReq := httptest.NewRequest(http.MethodGet, "/api/jobs/"+body.JobID, nil)
+		statusReq.Header.Set("Authorization", "Bearer "+token)
+		statusRec := httptest.NewRecorder()
+		e.ServeHTTP(statusRec, statusReq)
+		if statusRec.Code != http.StatusOK {
+			t.Fatalf("GetJob status: got %d want 200 body=%s", statusRec.Code, statusRec.Body.String())
+		}
+		var st struct {
+			Status   string `json:"status"`
+			Progress struct {
+				Phase string `json:"phase"`
+			} `json:"progress"`
+		}
+		if err := json.Unmarshal(statusRec.Body.Bytes(), &st); err != nil {
+			t.Fatal(err)
+		}
+		if st.Status == "succeeded" || st.Status == "failed" {
+			if st.Status == "failed" {
+				t.Fatalf("sync job failed: %+v", st)
+			}
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("sync job did not finish in time")
+}
+
+func TestPostContestAnalyzeWithoutImport(t *testing.T) {
+	authSvc := testAuth()
+	token, _, err := authSvc.IssueToken("admin")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reg := newFakeRegistry()
+	fs := newFakeAnalysisRepository()
+	st := store.NewMem()
+	orch := emptyOrchestrator()
+	svc := contests.NewService(reg, fs, "stub")
+	reader := contests.NewContestReader(reg, st, fs, scoring.NewWeighted())
+	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, orch))
+
+	if _, err := svc.Register(context.Background(), contests.Registration{
+		ID:     "contest01",
+		Source: &contests.SourceSpec{Type: "stub"},
+	}); err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+
+	e := transport.New(svc, reader, analyzeSvc, nil, testTeachers(), authSvc, nil).Echo()
+
+	req := httptest.NewRequest(http.MethodPost, "/api/contests/contest01/analyze", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status: got %d want 400 body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestPostContestAnalyzeSubmitsJob(t *testing.T) {
+	authSvc := testAuth()
+	token, _, err := authSvc.IssueToken("admin")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reg := newFakeRegistry()
+	fs := newFakeAnalysisRepository()
+	st := store.NewMem()
+	orch := emptyOrchestrator()
+	svc := contests.NewService(reg, fs, "stub")
+	reader := contests.NewContestReader(reg, st, fs, scoring.NewWeighted())
+	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, orch))
+
+	ctx := context.Background()
+	if _, err := svc.Register(ctx, contests.Registration{
+		ID:     "contest01",
+		Source: &contests.SourceSpec{Type: "stub"},
+	}); err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+	now := time.Now().UTC()
+	rec, ok, err := reg.Get(ctx, "contest01")
+	if err != nil || !ok {
+		t.Fatalf("Get contest: %v ok=%v", err, ok)
+	}
+	rec.Contest.LastImportedAt = &now
+	if err := reg.Put(ctx, rec); err != nil {
+		t.Fatal(err)
+	}
+
+	e := transport.New(svc, reader, analyzeSvc, nil, testTeachers(), authSvc, nil).Echo()
+
+	req := httptest.NewRequest(http.MethodPost, "/api/contests/contest01/analyze", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	httpRec := httptest.NewRecorder()
+	e.ServeHTTP(httpRec, req)
+
+	if httpRec.Code != http.StatusAccepted {
+		t.Fatalf("status: got %d want 202 body=%s", httpRec.Code, httpRec.Body.String())
+	}
+	var body struct {
+		JobID string `json:"jobId"`
+	}
+	if err := json.Unmarshal(httpRec.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	if body.JobID == "" {
+		t.Fatal("ожидали непустой jobId")
 	}
 }
 

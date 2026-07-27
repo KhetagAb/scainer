@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import ContestCard from "@/features/contests/ContestCard";
+import ContestCard from "@/features/contests/cards/ContestCard";
+import ContestSyncAction from "@/features/contests/sync/ContestSyncAction";
+import { ContestSyncIcon } from "@/features/contests/sync/ContestSyncIcon";
 import {
   ContestFindingsIcon,
   ContestReviewIcon,
-} from "@/features/contests/ContestSectionNav";
+} from "@/features/contests/ui/ContestSectionNav";
 
 const SEEN_KEY = "scainer.contestLegend.seen";
 const DEMO_CONTEST_ID = "50505";
@@ -115,6 +117,34 @@ export default function ContestLegendModal({ open, onClose }: Props) {
                             67 PR
                           </span>
                           <span>число ожидающих к проверке посылок</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </li>
+                  <li>
+                    <span
+                      className="legend-callout__section-icon legend-callout__section-icon--sync"
+                      aria-hidden
+                    >
+                      <ContestSyncIcon size={16} />
+                    </span>
+                    <div className="legend-callout__section-body">
+                      <p lang="ru">
+                        <strong>Обновить</strong> — в шапке параллели и контеста: догрузка
+                        посылок и пересчёт детекторов одним нажатием.
+                      </p>
+                      <ul className="legend-callout__swatches legend-callout__swatches--inline">
+                        <li>
+                          <ContestSyncAction
+                            model={{
+                              state: "warn",
+                              label: "Посылки устарели",
+                              hint: "Догрузить посылки из ejudge и пересчитать детекторы.",
+                              warnReason: "import_stale",
+                            }}
+                            onClick={() => {}}
+                            disabled
+                          />
                         </li>
                       </ul>
                     </div>

@@ -2,6 +2,7 @@ package analyze
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -10,6 +11,8 @@ import (
 	"scainer/internal/services/importer"
 	"scainer/pkg/progress"
 )
+
+var ErrNotImported = errors.New("contest has not been imported")
 
 func NewRunner(
 	registry contests.ContestRegistry,
@@ -58,12 +61,23 @@ func (r *Runner) Import(ctx context.Context, id domain.ContestID) (Result, error
 }
 
 func (r *Runner) Analyze(ctx context.Context, id domain.ContestID) error {
-	if _, err := lookup(ctx, r.registry, id); err != nil {
+	if err := r.requireImported(ctx, id); err != nil {
 		return err
 	}
 
 	progress.Report(ctx, progress.Event{Phase: "analyzing"})
 	return r.recomputeAnalysis(ctx, id)
+}
+
+func (r *Runner) requireImported(ctx context.Context, id domain.ContestID) error {
+	record, err := lookup(ctx, r.registry, id)
+	if err != nil {
+		return err
+	}
+	if record.Contest.LastImportedAt == nil {
+		return ErrNotImported
+	}
+	return nil
 }
 
 func (r *Runner) recomputeAnalysis(ctx context.Context, id domain.ContestID) error {

@@ -12,17 +12,17 @@ import (
 	"github.com/labstack/echo/v4"
 	echomiddleware "github.com/labstack/echo/v4/middleware"
 
+	"scainer/generated/server"
+	"scainer/internal/domain"
 	"scainer/internal/services/analyze"
 	"scainer/internal/services/contests"
-	"scainer/internal/domain"
 	"scainer/internal/services/ejudge/gateway"
-	"scainer/generated/server"
 	"scainer/internal/services/review"
 	"scainer/internal/services/teachers"
 	"scainer/pkg/auth"
 	"scainer/pkg/jobs"
-	scainermw "scainer/pkg/middleware"
 	"scainer/pkg/metrics"
+	scainermw "scainer/pkg/middleware"
 )
 
 type ejudgeGateway interface {
@@ -55,6 +55,7 @@ func (s *Server) Echo() *echo.Echo {
 	e.Use(echomiddleware.LoggerWithConfig(echomiddleware.LoggerConfig{
 		Format: `${time_rfc3339} ${remote_ip} ${method} ${uri} ${status} ${latency_human}` + "\n",
 	}))
+	e.Use(apiErrorFallbackMiddleware())
 	e.Use(scainermw.LoginRateLimit(5, time.Minute))
 	e.Use(scainermw.RequireJWT(s.auth))
 	e.Use(metrics.HTTPMiddleware())
@@ -171,7 +172,11 @@ func (s *Server) PostContests(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, server.Error{Error: err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, toContestInfo(contest))
+	summary, err := s.reader.Summary(c.Request().Context(), contest.ID)
+	if err != nil {
+		return mapContestErr(c, err)
+	}
+	return c.JSON(http.StatusOK, toContestInfo(summary))
 }
 
 func (s *Server) PatchContest(c echo.Context, id server.ContestID) error {
@@ -185,18 +190,11 @@ func (s *Server) PatchContest(c echo.Context, id server.ContestID) error {
 		return mapContestErr(c, err)
 	}
 
-	list, err := s.reader.List(c.Request().Context())
+	summary, err := s.reader.Summary(c.Request().Context(), domain.ContestID(id))
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, server.Error{Error: err.Error()})
+		return mapContestErr(c, err)
 	}
-
-	for _, info := range list {
-		if info.ID == domain.ContestID(id) {
-			return c.JSON(http.StatusOK, toContestInfo(info))
-		}
-	}
-
-	return c.JSON(http.StatusNotFound, server.Error{Error: "contest not found"})
+	return c.JSON(http.StatusOK, toContestInfo(summary))
 }
 
 func (s *Server) DeleteContest(c echo.Context, id server.ContestID) error {
@@ -365,7 +363,23 @@ func (s *Server) requireReview(c echo.Context) error {
 }
 
 func (s *Server) PostContestImport(c echo.Context, id server.ContestID) error {
-	jobID, err := s.analyze.ImportThenAnalyze(c.Request().Context(), domain.ContestID(id))
+	jobID, err := s.analyze.Import(c.Request().Context(), domain.ContestID(id))
+	if err != nil {
+		return mapContestErr(c, err)
+	}
+	return c.JSON(http.StatusAccepted, server.JobResponse{JobId: jobID})
+}
+
+func (s *Server) PostContestAnalyze(c echo.Context, id server.ContestID) error {
+	jobID, err := s.analyze.Analyze(c.Request().Context(), domain.ContestID(id))
+	if err != nil {
+		return mapContestErr(c, err)
+	}
+	return c.JSON(http.StatusAccepted, server.JobResponse{JobId: jobID})
+}
+
+func (s *Server) PostContestSync(c echo.Context, id server.ContestID) error {
+	jobID, err := s.analyze.SyncManual(c.Request().Context(), domain.ContestID(id))
 	if err != nil {
 		return mapContestErr(c, err)
 	}
@@ -466,38 +480,50 @@ func respondFindings(c echo.Context, findings []domain.Finding, subs map[domain.
 }
 
 func mapContestErr(c echo.Context, err error) error {
+	contestID := c.Param("id")
 	if errors.Is(err, contests.ErrContestNotFound) {
+		logAPIError(c, http.StatusNotFound, err, "contest_id", contestID)
 		return c.JSON(http.StatusNotFound, server.Error{Error: "contest not found"})
 	}
+	if errors.Is(err, analyze.ErrNotImported) {
+		logAPIError(c, http.StatusBadRequest, err, "contest_id", contestID)
+		return c.JSON(http.StatusBadRequest, server.Error{Error: "contest has not been imported"})
+	}
+	logAPIError(c, http.StatusInternalServerError, err, "contest_id", contestID)
 	return c.JSON(http.StatusInternalServerError, server.Error{Error: err.Error()})
 }
 
 func mapReviewErr(c echo.Context, err error) error {
+	fields := []any{"contest_id", c.Param("id"), "submission_id", c.Param("submissionId")}
 	switch {
 	case errors.Is(err, domain.ErrSubmissionNotFound):
+		logAPIError(c, http.StatusNotFound, err, fields...)
 		return c.JSON(http.StatusNotFound, server.Error{Error: "submission not found"})
 	case errors.Is(err, review.ErrInvalidVerdict):
+		logAPIError(c, http.StatusBadRequest, err, fields...)
 		return c.JSON(http.StatusBadRequest, server.Error{Error: err.Error()})
 	case errors.Is(err, gateway.ErrAPIKeyProvision):
+		logAPIError(c, http.StatusServiceUnavailable, err, fields...)
 		return c.JSON(http.StatusServiceUnavailable, server.Error{Error: "ejudge is temporarily unavailable"})
 	case errors.Is(err, gateway.ErrNoLogin):
+		logAPIError(c, http.StatusUnauthorized, err, fields...)
 		return c.JSON(http.StatusUnauthorized, server.Error{Error: "unauthorized"})
 	default:
+		logAPIError(c, http.StatusBadGateway, err, fields...)
 		return c.JSON(http.StatusBadGateway, server.Error{Error: err.Error()})
 	}
 }
 
-func toContestInfo(contest contests.Contest) server.ContestInfo {
-	st := contest.Statistic
-	out := server.ContestInfo{
-		Id:              string(contest.ID),
-		Name:            contest.Name,
-		ParallelId:      strToPtr(contest.ParallelID),
-		LastImportedAt:  contest.LastImportedAt,
-		SubmissionCount: intPtr(st.SubmissionCount),
-		ProblemCount:    intPtr(st.ProblemCount),
+func toContestInfo(summary contests.ContestSummary) server.ContestInfo {
+	return server.ContestInfo{
+		Id:              string(summary.ID),
+		Name:            summary.Name,
+		ParallelId:      strToPtr(summary.ParallelID),
+		LastImportedAt:  summary.LastImportedAt,
+		ComputedAt:      summary.ComputedAt,
+		SubmissionCount: intPtr(summary.SubmissionCount),
+		ProblemCount:    intPtr(summary.ProblemCount),
 	}
-	return out
 }
 
 func intPtr(n int) *int { return &n }

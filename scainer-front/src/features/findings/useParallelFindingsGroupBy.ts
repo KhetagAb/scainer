@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { UNGROUPED_PARALLEL } from "@/features/contests/contestHelpers";
+import { UNGROUPED_PARALLEL } from "@/features/contests/shared/contestHelpers";
 import type { GroupBy } from "@/features/findings/reportModel";
 
 export const DEFAULT_GROUP_BY: GroupBy = "problem";

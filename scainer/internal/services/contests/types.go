@@ -33,10 +33,14 @@ type Contest struct {
 	ParallelID       string             `bson:"parallel_id"`
 	ExcludedProblems []domain.ProblemID `bson:"excluded_problems"`
 	LastImportedAt   *time.Time         `bson:"last_imported_at,omitempty"`
-	Statistic        ContestStatistic   `bson:"-"`
 }
 
-type ContestStatistic struct {
+type ContestSummary struct {
+	ID              domain.ContestID
+	Name            string
+	ParallelID      string
+	LastImportedAt  *time.Time
+	ComputedAt      *time.Time
 	SubmissionCount int
 	ProblemCount    int
 }

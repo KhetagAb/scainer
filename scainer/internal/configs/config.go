@@ -65,8 +65,9 @@ type (
 	}
 
 	ImportCronConfig struct {
-		Enabled  bool          `mapstructure:"enabled"`
-		Interval time.Duration `mapstructure:"interval"`
+		Enabled      bool          `mapstructure:"enabled"`
+		Interval     time.Duration `mapstructure:"interval"`
+		MasterLogin  string        `mapstructure:"masterlogin"`
 	}
 
 	AIUsageConfig struct {
@@ -168,6 +169,9 @@ func (c *Config) validate() error {
 	if c.ImportCron.Enabled && c.ImportCron.Interval <= 0 {
 		return fmt.Errorf("import_cron.interval должен быть > 0 при import_cron.enabled")
 	}
+	if c.ImportCron.Enabled && strings.TrimSpace(c.ImportCron.MasterLogin) == "" {
+		return fmt.Errorf("import_cron.masterlogin обязателен при import_cron.enabled")
+	}
 	if strings.TrimSpace(c.JPlag.JarPath) == "" {
 		return fmt.Errorf("jplag.jar_path обязателен")
 	}
@@ -201,6 +205,7 @@ func bindEnv(v *viper.Viper) {
 	_ = v.BindEnv("analyze.analyze_concurrency", "ANALYZE_CONCURRENCY")
 	_ = v.BindEnv("import_cron.enabled", "IMPORT_CRON_ENABLED")
 	_ = v.BindEnv("import_cron.interval", "IMPORT_CRON_INTERVAL")
+	_ = v.BindEnv("import_cron.masterlogin", "MASTERLOGIN")
 	_ = v.BindEnv("aiusage.enabled", "AIUSAGE_ENABLED")
 	_ = v.BindEnv("openai.base_url", "OPENAI_BASE_URL")
 	_ = v.BindEnv("openai.username", "OPENAI_USERNAME")

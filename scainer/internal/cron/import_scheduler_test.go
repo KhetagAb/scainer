@@ -70,7 +70,7 @@ func TestImportSchedulerQueuesContests(t *testing.T) {
 	orch := analyze.NewOrchestrator(analyze.NewRegistry(detect.NewLimiter(4)))
 	svc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fakeAnalysis{}, orch))
 
-	sched := NewImportScheduler(reg, svc, time.Hour)
+	sched := NewImportScheduler(reg, svc, time.Hour, "cron-user")
 	sched.tick(context.Background())
 
 	deadline := time.Now().Add(3 * time.Second)

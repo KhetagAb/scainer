@@ -1,22 +1,25 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import type { ContestStatsFields } from "@/features/contests/contestHelpers";
-import type { ProblemSignalStat } from "@/features/contests/problemSignalStats";
-import type { ImportProgress } from "@/features/contests/importJobShared";
-import ContestIdCopy from "@/features/contests/ContestIdCopy";
-import ContestProblemChips from "@/features/contests/ContestProblemChips";
-import ImportProgressBar from "@/features/contests/ImportProgressBar";
+import ContestIdCopy from "@/features/contests/cards/ContestIdCopy";
+import ContestProblemChips from "@/features/contests/cards/ContestProblemChips";
+import JobProgressBar from "@/features/contests/jobs/JobProgressBar";
+import type { JobProgress } from "@/features/contests/jobs/jobShared";
+import type { ContestFreshness } from "@/features/contests/sync/contestDataStatus";
+import { contestNeedsSyncDot } from "@/features/contests/sync/contestDataStatus";
+import type { ContestStatsFields } from "@/features/contests/shared/contestHelpers";
+import type { ProblemSignalStat } from "@/features/contests/shared/problemSignalStats";
 import {
   ContestFindingsIcon,
   ContestReviewIcon,
-} from "@/features/contests/ContestSectionNav";
+} from "@/features/contests/ui/ContestSectionNav";
 
 const ACTION_ICON_SIZE = 40;
 
 type StatsProps = {
   stats: ContestStatsFields;
   problemStats?: ProblemSignalStat[];
-  importProgress?: ImportProgress;
+  syncProgress?: JobProgress;
+  freshness?: ContestFreshness;
 };
 
 type Props = StatsProps & {
@@ -72,7 +75,8 @@ export default function ContestCard({
   hasStrongSignals,
   stats,
   problemStats,
-  importProgress,
+  syncProgress,
+  freshness,
   className,
   preview,
   "aria-hidden": ariaHidden,
@@ -80,8 +84,9 @@ export default function ContestCard({
   const reviewTo = `/contests/${encodeURIComponent(id)}/review`;
   const findingsTo = `/contests/${encodeURIComponent(id)}/findings`;
   const subs = stats.submissionCount ?? 0;
+  const showStaleDot = freshness ? contestNeedsSyncDot(freshness) : false;
   const showFindingsMeta =
-    importProgress !== undefined ||
+    syncProgress !== undefined ||
     (problemStats !== undefined && problemStats.length > 0);
 
   return (
@@ -92,6 +97,9 @@ export default function ContestCard({
       <div className="contest-card__top">
         <div className="contest-card__title">
           <span className="contest-card__name">{displayName || id}</span>
+          {showStaleDot ? (
+            <span className="contest-card__stale-dot" title="Данные устарели" aria-hidden />
+          ) : null}
           {id !== name ? <ContestIdCopy id={id} preview={preview} /> : null}
         </div>
         <span className="contest-card__meta">{subs} посылок</span>
@@ -132,12 +140,13 @@ export default function ContestCard({
           </span>
           {showFindingsMeta ? (
             <div className="contest-card__findings-meta">
-              {importProgress !== undefined ? (
-                <ImportProgressBar
-                  progress={importProgress}
+              {syncProgress !== undefined ? (
+                <JobProgressBar
+                  progress={syncProgress}
                   className="import-progress-bar--card"
                 />
-              ) : problemStats ? (
+              ) : null}
+              {problemStats ? (
                 <ContestProblemChips problemStats={problemStats} variant="card" />
               ) : null}
             </div>

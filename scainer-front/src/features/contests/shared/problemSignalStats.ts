@@ -1,5 +1,5 @@
 import type { FindingView, ProblemInfo } from "@/client/types.gen";
-import { collator } from "@/features/contests/contestHelpers";
+import { collator } from "@/features/contests/shared/contestHelpers";
 
 export type ProblemSignalStat = {
   id: string;

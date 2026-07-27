@@ -19,7 +19,7 @@ func TestSubmissionsSelector(t *testing.T) {
 		{ID: "3", Contest: "c", Problem: "A", Participant: "carol", SubmittedAt: time.Unix(3, 0)},
 	})
 
-	units, err := selectors.SubmissionsSelector{Contest: "c"}.Select(ctx, st)
+	units, err := selectors.Submissions("c")(ctx, st)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -40,7 +40,7 @@ type Span struct {
 }
 
 // Signal — единица вывода любого детектора: подозрительность субъекта + доказательства.
-// AI выставляет Stage из Detector.AI(), не сам детектор в Analyze.
+// AI выставляет оркестратор из Detector.AI(), не сам детектор в Analyze.
 type Signal struct {
 	Detector string         `json:"detector" bson:"detector"`
 	AI       bool           `json:"ai,omitempty" bson:"ai,omitempty"`

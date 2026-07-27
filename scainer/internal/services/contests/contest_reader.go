@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"time"
 
 	"scainer/internal/domain"
 	"scainer/internal/services/scoring"
@@ -30,7 +31,7 @@ func NewContestReader(
 	}
 }
 
-func (r *ContestReader) List(ctx context.Context) ([]Contest, error) {
+func (r *ContestReader) List(ctx context.Context) ([]ContestSummary, error) {
 	records, err := r.registry.List(ctx)
 	if err != nil {
 		return nil, err
@@ -40,29 +41,68 @@ func (r *ContestReader) List(ctx context.Context) ([]Contest, error) {
 		return compareContestID(a.Contest.ID, b.Contest.ID)
 	})
 
-	out := make([]Contest, 0, len(records))
+	out := make([]ContestSummary, 0, len(records))
 	for _, record := range records {
-		contest := record.Contest
-		if err := r.fillStatistic(ctx, &contest); err != nil {
+		summary, err := r.buildSummary(ctx, record.Contest)
+		if err != nil {
 			return nil, err
 		}
-		out = append(out, contest)
+		out = append(out, summary)
 	}
 	return out, nil
 }
 
-func (r *ContestReader) fillStatistic(ctx context.Context, contest *Contest) error {
-	byProblem, err := r.store.ByProblem(ctx, contest.ID)
+func (r *ContestReader) Summary(ctx context.Context, id domain.ContestID) (ContestSummary, error) {
+	record, err := get(ctx, r.registry, id)
 	if err != nil {
-		return fmt.Errorf("stats ByProblem %s: %w", contest.ID, err)
+		return ContestSummary{}, err
 	}
-	submissionCount := 0
+	return r.buildSummary(ctx, record.Contest)
+}
+
+func (r *ContestReader) buildSummary(ctx context.Context, contest Contest) (ContestSummary, error) {
+	submissionCount, problemCount, err := r.countSubmissions(ctx, contest.ID)
+	if err != nil {
+		return ContestSummary{}, err
+	}
+
+	computedAt, err := r.computedAt(ctx, contest.ID)
+	if err != nil {
+		return ContestSummary{}, err
+	}
+
+	return ContestSummary{
+		ID:              contest.ID,
+		Name:            contest.Name,
+		ParallelID:      contest.ParallelID,
+		LastImportedAt:  contest.LastImportedAt,
+		ComputedAt:      computedAt,
+		SubmissionCount: submissionCount,
+		ProblemCount:    problemCount,
+	}, nil
+}
+
+func (r *ContestReader) computedAt(ctx context.Context, id domain.ContestID) (*time.Time, error) {
+	snap, ok, err := r.analysisRepo.Get(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("analysis snapshot %s: %w", id, err)
+	}
+	if !ok || snap.ComputedAt.IsZero() {
+		return nil, nil
+	}
+	t := snap.ComputedAt
+	return &t, nil
+}
+
+func (r *ContestReader) countSubmissions(ctx context.Context, id domain.ContestID) (submissionCount, problemCount int, err error) {
+	byProblem, err := r.store.ByProblem(ctx, id)
+	if err != nil {
+		return 0, 0, fmt.Errorf("stats ByProblem %s: %w", id, err)
+	}
 	for _, list := range byProblem {
 		submissionCount += len(list)
 	}
-	contest.Statistic.SubmissionCount = submissionCount
-	contest.Statistic.ProblemCount = len(byProblem)
-	return nil
+	return submissionCount, len(byProblem), nil
 }
 
 func (r *ContestReader) Problems(ctx context.Context, id domain.ContestID) ([]ProblemInfo, error) {

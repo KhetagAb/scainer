@@ -23,12 +23,12 @@ jplag:
   jar_path: "bin/jplag.jar"
 
 analyze:
-  jobs_max_concurrent: 4
+  jobs_max_concurrent: 16
   # Общий потолок JVM/JPlag/LLM на процесс (не на один job).
   analyze_concurrency: 4
 
 import_cron:
-  enabled: false
+  enabled: true
   interval: 5m
 
 aiusage:

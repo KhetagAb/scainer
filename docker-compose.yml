@@ -24,12 +24,18 @@ services:
       - ./scainer/.env
     environment:
       MONGODB_HOST: mongodb
+      STORE_DIR: /app/data
+    volumes:
+      - scainer_data:/app/data
     depends_on:
       mongodb:
         condition: service_healthy
     expose:
       - "8080"
     restart: unless-stopped
+    networks:
+      - default
+      - monitoring
 
   nginx:
     build:
@@ -41,3 +47,9 @@ services:
 
 volumes:
   mongodb_data:
+  scainer_data:
+
+networks:
+  monitoring:
+    external: true
+    name: monitoring_default

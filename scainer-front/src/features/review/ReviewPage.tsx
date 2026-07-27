@@ -42,6 +42,8 @@ type Props = {
   submissionsQuery: UseQueryResult<SubmissionListItem[]>;
   findingsQuery: UseQueryResult<unknown>;
   problems: ProblemInfo[];
+  contestName: string;
+  statementAvailable: boolean;
   onUnauthorized: () => void;
   prOnly: boolean;
   setReviewPrOnly: (value: boolean) => void;
@@ -51,6 +53,8 @@ export default function ReviewPage({
   submissionsQuery,
   findingsQuery,
   problems,
+  contestName,
+  statementAvailable,
   onUnauthorized,
   prOnly,
   setReviewPrOnly,
@@ -92,6 +96,11 @@ export default function ReviewPage({
     if (!problemId) return "";
     const p = problems.find((x) => x.id === problemId);
     return problemDisplay(problemId, p?.name);
+  }, [problemId, problems]);
+
+  const statementProblemLabel = useMemo(() => {
+    if (!problemId) return null;
+    return problems.find((x) => x.id === problemId)?.name ?? null;
   }, [problemId, problems]);
 
   const nextProblemId = useMemo(
@@ -181,6 +190,9 @@ export default function ReviewPage({
             submission={s}
             findingsReport={report}
             problemLabel={problemLabel}
+            statementAvailable={statementAvailable}
+            contestName={contestName}
+            statementProblemLabel={statementProblemLabel}
             nextSubmissionId={queue[i + 1]?.id ?? null}
             nextProblemId={nextProblemId}
             onUnauthorized={onUnauthorized}

@@ -25,10 +25,12 @@ import (
 	"scainer/internal/services/importer"
 	"scainer/internal/services/review"
 	"scainer/internal/services/scoring"
+	"scainer/internal/services/statements"
 	"scainer/internal/services/teachers"
 	"scainer/internal/transport"
 	"scainer/pkg/auth"
 	"scainer/pkg/jobs"
+	"scainer/pkg/lksh"
 	"scainer/pkg/store"
 )
 
@@ -112,7 +114,8 @@ func run(cfg *configs.Config) error {
 	if cfg.Ejudge.Enabled() {
 		ejudgeGw = ejGateway
 	}
-	e := transport.New(svcs.contests, svcs.reader, svcs.analyze, svcs.review, svcs.teachers, svcs.auth, ejudgeGw).Echo()
+	statementsSvc := wireStatements(cfg, mongo.registry)
+	e := transport.New(svcs.contests, svcs.reader, svcs.analyze, svcs.review, svcs.teachers, svcs.auth, ejudgeGw, statementsSvc).Echo()
 	return serveHTTP(cfg.HTTP, e)
 }
 
@@ -204,6 +207,14 @@ func wireServices(
 		teachers: teachersSvc,
 		auth:     auth.New(cfg.Admin.JWTSecret, cfg.Admin.JWTTTL),
 	}
+}
+
+func wireStatements(cfg *configs.Config, registry contests.ContestRegistry) *statements.Service {
+	lkshClient := lksh.NewClient(cfg.Ejudge.BaseURL, cfg.Ejudge.Timeout)
+	providers := map[string]statements.Provider{
+		statements.SourceLksh: ejudge.NewLkshStatementProvider(lkshClient),
+	}
+	return statements.NewService(registry, providers)
 }
 
 func serveHTTP(hc configs.HTTPConfig, e *echo.Echo) error {

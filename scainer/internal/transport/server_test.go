@@ -18,6 +18,7 @@ import (
 	"scainer/internal/services/importer"
 	"scainer/internal/services/review"
 	"scainer/internal/services/scoring"
+	"scainer/internal/services/statements"
 	"scainer/internal/services/teachers"
 	"scainer/internal/transport"
 	"scainer/pkg/auth"
@@ -143,7 +144,7 @@ func TestPostContestImportNotFound(t *testing.T) {
 		t.Fatalf("Register: %v", err)
 	}
 
-	e := transport.New(svc, reader, analyzeSvc, nil, testTeachers(), authSvc, nil).Echo()
+	e := transport.New(svc, reader, analyzeSvc, nil, testTeachers(), authSvc, nil, nil).Echo()
 
 	req := httptest.NewRequest(http.MethodPost, "/api/contests/missing/import", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -184,7 +185,7 @@ func TestPostContestImportSubmitsJob(t *testing.T) {
 		t.Fatalf("Register: %v", err)
 	}
 
-	e := transport.New(svc, reader, analyzeSvc, nil, testTeachers(), authSvc, nil).Echo()
+	e := transport.New(svc, reader, analyzeSvc, nil, testTeachers(), authSvc, nil, nil).Echo()
 
 	req := httptest.NewRequest(http.MethodPost, "/api/contests/contest01/import", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -255,7 +256,7 @@ func TestPostContestSync(t *testing.T) {
 		t.Fatalf("Register: %v", err)
 	}
 
-	e := transport.New(svc, reader, analyzeSvc, nil, testTeachers(), authSvc, nil).Echo()
+	e := transport.New(svc, reader, analyzeSvc, nil, testTeachers(), authSvc, nil, nil).Echo()
 
 	req := httptest.NewRequest(http.MethodPost, "/api/contests/contest01/sync", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -326,7 +327,7 @@ func TestPostContestAnalyzeWithoutImport(t *testing.T) {
 		t.Fatalf("Register: %v", err)
 	}
 
-	e := transport.New(svc, reader, analyzeSvc, nil, testTeachers(), authSvc, nil).Echo()
+	e := transport.New(svc, reader, analyzeSvc, nil, testTeachers(), authSvc, nil, nil).Echo()
 
 	req := httptest.NewRequest(http.MethodPost, "/api/contests/contest01/analyze", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -370,7 +371,7 @@ func TestPostContestAnalyzeSubmitsJob(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	e := transport.New(svc, reader, analyzeSvc, nil, testTeachers(), authSvc, nil).Echo()
+	e := transport.New(svc, reader, analyzeSvc, nil, testTeachers(), authSvc, nil, nil).Echo()
 
 	req := httptest.NewRequest(http.MethodPost, "/api/contests/contest01/analyze", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -409,6 +410,7 @@ func TestGetJobNotFound(t *testing.T) {
 		nil,
 		testTeachers(),
 		authSvc,
+		nil,
 		nil,
 	).Echo()
 
@@ -471,7 +473,7 @@ func TestGetContestSubmissions(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	e := transport.New(svc, reader, analyzeSvc, reviewSvc, testTeachers(), authSvc, nil).Echo()
+	e := transport.New(svc, reader, analyzeSvc, reviewSvc, testTeachers(), authSvc, nil, nil).Echo()
 	req := httptest.NewRequest(http.MethodGet, "/api/contests/contest01/submissions", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
@@ -514,7 +516,7 @@ func TestGetSubmissionComments(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	e := transport.New(svc, reader, analyzeSvc, reviewSvc, testTeachers(), authSvc, nil).Echo()
+	e := transport.New(svc, reader, analyzeSvc, reviewSvc, testTeachers(), authSvc, nil, nil).Echo()
 	req := httptest.NewRequest(http.MethodGet, "/api/contests/contest01/submissions/ejudge:contest01:1/comments", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
@@ -568,7 +570,7 @@ func TestGetAuthMe_UsernameOnly(t *testing.T) {
 	svc := contests.NewService(reg, fs, "stub")
 	reader := contests.NewContestReader(reg, st, fs, scoring.NewWeighted())
 	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, orch))
-	e := transport.New(svc, reader, analyzeSvc, nil, testTeachers(), authSvc, nil).Echo()
+	e := transport.New(svc, reader, analyzeSvc, nil, testTeachers(), authSvc, nil, nil).Echo()
 
 	req := httptest.NewRequest(http.MethodGet, "/api/auth/me", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -611,7 +613,7 @@ func TestGetContestEjudgeLogin_OK(t *testing.T) {
 			ContestID: 50506,
 		},
 		ok: true,
-	}).Echo()
+	}, nil).Echo()
 
 	req := httptest.NewRequest(http.MethodGet, "/api/contests/50506/ejudge-login", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -630,4 +632,47 @@ func TestGetContestEjudgeLogin_OK(t *testing.T) {
 	if body["login"] != "admin" || body["password"] != "secret" || body["contest_id"] != float64(50506) {
 		t.Fatalf("browser login fields=%v", body)
 	}
+}
+
+func TestGetContestStatement_notAvailable(t *testing.T) {
+	authSvc := testAuth()
+	token, _, err := authSvc.IssueToken("admin")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reg := newFakeRegistry()
+	fs := newFakeAnalysisRepository()
+	st := store.NewMem()
+	orch := emptyOrchestrator()
+	svc := contests.NewService(reg, fs, "stub")
+	reader := contests.NewContestReader(reg, st, fs, scoring.NewWeighted())
+	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, orch))
+	statementsSvc := statements.NewService(reg, map[string]statements.Provider{
+		statements.SourceLksh: &statementStubProvider{},
+	})
+
+	if _, err := svc.Register(context.Background(), contests.Registration{
+		ID:     "50501",
+		Source: &contests.SourceSpec{Type: "stub"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	e := transport.New(svc, reader, analyzeSvc, nil, testTeachers(), authSvc, nil, statementsSvc).Echo()
+	req := httptest.NewRequest(http.MethodGet, "/api/contests/50501/statement", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+type statementStubProvider struct{}
+
+func (statementStubProvider) SourceType() string { return statements.SourceLksh }
+
+func (statementStubProvider) Fetch(context.Context, statements.Contest) (statements.Document, error) {
+	return statements.Document{}, statements.ErrNotAvailable
 }

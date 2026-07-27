@@ -8,19 +8,6 @@ Backlog идей по улучшению экранов ревью и детек
 
 ## Детали
 
-### Ссылка на условие задачи / контеста
-
-**Контекст:** На экране ревью преподаватель видит код посылки, но не может быстро открыть условие задачи. `EjudgeContestChip` (`scainer-front/src/features/ejudge/EjudgeContestChip.tsx`) умеет открывать контест в ejudge, но не конкретную задачу. В API `ProblemInfo` (`scainer/api/openapi.yaml`) есть только `id`, `name`, `submissionCount`, `pendingCount` — URL условия нет.
-
-**Идея:** Добавить ссылку рядом с чипом задачи в хедере ревью (и/или в панели посылки). Варианты реализации:
-
-- Собрать URL ejudge по шаблону (`ejudge.base_url` из конфига + contest/problem id)
-- Или расширить API, если URL условия хранится/импортируется из ejudge
-
-Затронутые файлы: `ReviewProblemPicker.tsx`, `ContestPage.tsx`, возможно бэкенд `contest_reader.go`.
-
----
-
 ### Кнопка Compare между посылками (по умолчанию — предыдущая по задаче)
 
 **Контекст:** В ejudge есть встроенное сравнение посылок (см. `view_source_run_114_full.html` в тестах: поле `run_id2` + action Compare). В scAIner side-by-side есть только в детектах (`FindingCard.tsx` → `SideBySide`), на экране ревью — нет.

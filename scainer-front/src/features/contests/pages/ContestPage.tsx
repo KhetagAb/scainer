@@ -138,6 +138,8 @@ export default function ContestPage({ onUnauthorized }: Props) {
           submissionsQuery,
           problems: (problemsQuery.data ?? []) as ProblemInfo[],
           problemSubmissionCounts,
+          contestName: contest.name,
+          statementAvailable: Boolean(contest.parallelId),
           onUnauthorized,
           findingKey,
           reviewPrOnly,

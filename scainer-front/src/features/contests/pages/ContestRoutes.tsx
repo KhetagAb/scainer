@@ -10,6 +10,8 @@ export type ContestOutletContext = {
   submissionsQuery: UseQueryResult<SubmissionListItem[]>;
   problems: ProblemInfo[];
   problemSubmissionCounts: Record<string, number>;
+  contestName: string;
+  statementAvailable: boolean;
   onUnauthorized: () => void;
   findingKey: string | null;
   reviewPrOnly: boolean;
@@ -33,6 +35,8 @@ export function ContestReviewRoute() {
     submissionsQuery,
     findingsQuery,
     problems,
+    contestName,
+    statementAvailable,
     onUnauthorized,
     reviewPrOnly,
     setReviewPrOnly,
@@ -42,6 +46,8 @@ export function ContestReviewRoute() {
       submissionsQuery={submissionsQuery}
       findingsQuery={findingsQuery}
       problems={problems}
+      contestName={contestName}
+      statementAvailable={statementAvailable}
       onUnauthorized={onUnauthorized}
       prOnly={reviewPrOnly}
       setReviewPrOnly={setReviewPrOnly}

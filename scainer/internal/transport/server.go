@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -18,6 +19,7 @@ import (
 	"scainer/internal/services/contests"
 	"scainer/internal/services/ejudge/gateway"
 	"scainer/internal/services/review"
+	"scainer/internal/services/statements"
 	"scainer/internal/services/teachers"
 	"scainer/pkg/auth"
 	"scainer/pkg/jobs"
@@ -31,17 +33,18 @@ type ejudgeGateway interface {
 }
 
 type Server struct {
-	contests *contests.Service
-	reader   *contests.ContestReader
-	analyze  *analyze.Service
-	review   *review.Service
-	teachers *teachers.Service
-	auth     auth.Service
-	ejudge   ejudgeGateway
+	contests   *contests.Service
+	reader     *contests.ContestReader
+	analyze    *analyze.Service
+	review     *review.Service
+	teachers   *teachers.Service
+	auth       auth.Service
+	ejudge     ejudgeGateway
+	statements *statements.Service
 }
 
-func New(contestsSvc *contests.Service, reader *contests.ContestReader, analyzeSvc *analyze.Service, reviewSvc *review.Service, teachersSvc *teachers.Service, authSvc auth.Service, ejudgeGw ejudgeGateway) *Server {
-	return &Server{contests: contestsSvc, reader: reader, analyze: analyzeSvc, review: reviewSvc, teachers: teachersSvc, auth: authSvc, ejudge: ejudgeGw}
+func New(contestsSvc *contests.Service, reader *contests.ContestReader, analyzeSvc *analyze.Service, reviewSvc *review.Service, teachersSvc *teachers.Service, authSvc auth.Service, ejudgeGw ejudgeGateway, statementsSvc *statements.Service) *Server {
+	return &Server{contests: contestsSvc, reader: reader, analyze: analyzeSvc, review: reviewSvc, teachers: teachersSvc, auth: authSvc, ejudge: ejudgeGw, statements: statementsSvc}
 }
 
 func (s *Server) Echo() *echo.Echo {
@@ -139,6 +142,40 @@ func (s *Server) GetContestEjudgeLogin(c echo.Context, id server.ContestID) erro
 		Password:  login.Password,
 		ContestId: login.ContestID,
 	})
+}
+
+func (s *Server) GetContestStatement(c echo.Context, id server.ContestID) error {
+	if s.statements == nil {
+		return c.JSON(http.StatusInternalServerError, server.Error{Error: "statements service is not configured"})
+	}
+	doc, err := s.statements.Fetch(c.Request().Context(), domain.ContestID(id))
+	if err != nil {
+		return statementHTTPError(c, err)
+	}
+	defer doc.Body.Close()
+
+	ct := doc.ContentType
+	if ct == "" {
+		ct = "application/pdf"
+	}
+	c.Response().Header().Set("Content-Type", ct)
+	if doc.Filename != "" {
+		c.Response().Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%q", doc.Filename))
+	}
+	_, err = io.Copy(c.Response().Writer, doc.Body)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, server.Error{Error: "failed to stream statement"})
+	}
+	return nil
+}
+
+func statementHTTPError(c echo.Context, err error) error {
+	switch {
+	case errors.Is(err, contests.ErrContestNotFound), errors.Is(err, statements.ErrNotAvailable):
+		return c.JSON(http.StatusNotFound, server.Error{Error: "statement not available"})
+	default:
+		return c.JSON(http.StatusBadGateway, server.Error{Error: "failed to fetch statement"})
+	}
 }
 
 func (s *Server) GetContests(c echo.Context) error {

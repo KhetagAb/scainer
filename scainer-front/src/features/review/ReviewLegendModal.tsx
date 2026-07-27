@@ -1,3 +1,4 @@
+import { Scroll } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ContestReviewIcon } from "@/features/contests/ui/ContestSectionNav";
@@ -6,6 +7,7 @@ import {
   REVIEW_LEGEND_DEMO_PROBLEMS,
   reviewLegendProblemLabel,
 } from "@/features/review/reviewLegendDemo";
+import { useReviewLegendAnchors } from "@/features/review/useReviewLegendAnchors";
 
 const SEEN_KEY = "scainer.reviewLegend.seen";
 
@@ -71,8 +73,12 @@ type Props = {
 
 export default function ReviewLegendModal({ open, onClose }: Props) {
   const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const cardWrapRef = useRef<HTMLDivElement>(null);
+  const diagramRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(open);
   const [visible, setVisible] = useState(false);
+
+  useReviewLegendAnchors(cardWrapRef, diagramRef, open && visible);
 
   useEffect(() => {
     if (open) {
@@ -126,11 +132,14 @@ export default function ReviewLegendModal({ open, onClose }: Props) {
           <h2 id="review-legend-title" className="contest-legend-panel__title" lang="ru">
             Как проводить code review посылок?
           </h2>
-          <div className="legend-diagram legend-diagram--review">
+          <div ref={diagramRef} className="legend-diagram legend-diagram--review">
             <div className="legend-diagram__notes legend-diagram__notes--left">
               <aside className="legend-callout legend-callout--sections">
                 <ul className="legend-callout__sections">
-                  <li>
+                  <li
+                    className="legend-callout__section--align-anchor"
+                    data-legend-anchor="picker"
+                  >
                     <span
                       className="legend-callout__section-icon legend-callout__section-icon--review"
                       aria-hidden
@@ -157,7 +166,10 @@ export default function ReviewLegendModal({ open, onClose }: Props) {
                       </ul>
                     </div>
                   </li>
-                  <li>
+                  <li
+                    className="legend-callout__section--align-anchor"
+                    data-legend-anchor="cite"
+                  >
                     <span className="legend-callout__section-icon" aria-hidden>
                       <CodeCiteIcon />
                     </span>
@@ -178,14 +190,33 @@ export default function ReviewLegendModal({ open, onClose }: Props) {
               </aside>
             </div>
 
-            <div className="legend-diagram__card-wrap legend-diagram__card-wrap--review">
+            <div
+              ref={cardWrapRef}
+              className="legend-diagram__card-wrap legend-diagram__card-wrap--review"
+            >
               <ReviewLegendPreview className="legend-diagram__card" preview />
             </div>
 
             <div className="legend-diagram__notes legend-diagram__notes--right">
               <aside className="legend-callout legend-callout--sections">
                 <ul className="legend-callout__sections">
-                  <li>
+                  <li
+                    className="legend-callout__section--align-anchor"
+                    data-legend-anchor="statement"
+                  >
+                    <span className="legend-callout__section-icon" aria-hidden>
+                      <Scroll size={16} strokeWidth={2} />
+                    </span>
+                    <div className="legend-callout__section-body">
+                      <p lang="ru">
+                        <strong>Условие задачи</strong> — PDF с формулировкой задачи.
+                      </p>
+                    </div>
+                  </li>
+                  <li
+                    className="legend-callout__section--align-anchor"
+                    data-legend-anchor="pr-only"
+                  >
                     <span className="legend-callout__section-icon" aria-hidden>
                       <input
                         type="checkbox"
@@ -199,7 +230,10 @@ export default function ReviewLegendModal({ open, onClose }: Props) {
                       <strong>PR only</strong> — показать только посылки на проверку.
                     </p>
                   </li>
-                  <li>
+                  <li
+                    className="legend-callout__section--align-anchor"
+                    data-legend-anchor="verdict"
+                  >
                     <span className="legend-callout__section-icon" aria-hidden />
                     <div className="legend-callout__section-body">
                       <p lang="ru">
@@ -218,7 +252,10 @@ export default function ReviewLegendModal({ open, onClose }: Props) {
                       </ul>
                     </div>
                   </li>
-                  <li>
+                  <li
+                    className="legend-callout__section--align-anchor"
+                    data-legend-anchor="nav"
+                  >
                     <span className="legend-callout__section-icon" aria-hidden>
                       <NavDownIcon />
                     </span>

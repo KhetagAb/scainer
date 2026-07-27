@@ -37,6 +37,7 @@ import SourceCode from "@/features/code/SourceCode";
 import SourceCodeCopyButton from "@/features/code/SourceCodeCopyButton";
 import ReviewCelebrateOverlay from "@/features/review/ReviewCelebrateOverlay";
 import { EjudgeContestChip } from "@/features/ejudge/EjudgeContestChip";
+import ProblemStatementScrollZone from "@/features/statements/ProblemStatementScrollZone";
 import { RadarAttentionIcon } from "@/features/review/RadarAttentionIcon";
 
 function ChevronDownIcon({ size = 16 }: { size?: number }) {
@@ -101,6 +102,9 @@ type Props = {
   submission: SubmissionListItem;
   findingsReport: ReportData | undefined;
   problemLabel: string;
+  statementAvailable: boolean;
+  contestName: string;
+  statementProblemLabel: string | null;
   nextSubmissionId: string | null;
   nextProblemId: string | null;
   onUnauthorized: () => void;
@@ -113,6 +117,9 @@ export default function ReviewSubmissionPanel({
   submission,
   findingsReport,
   problemLabel,
+  statementAvailable,
+  contestName,
+  statementProblemLabel,
   nextSubmissionId,
   nextProblemId,
   onUnauthorized,
@@ -126,6 +133,7 @@ export default function ReviewSubmissionPanel({
   const [actionError, setActionError] = useState<string | null>(null);
   const [commentsOpen, setCommentsOpen] = useState(true);
   const [celebrate, setCelebrate] = useState(false);
+  const [statementOpen, setStatementOpen] = useState(false);
 
   const submissionId = submission.id;
   const panelId = submissionPanelId(submissionId);
@@ -496,7 +504,16 @@ export default function ReviewSubmissionPanel({
 
         <div className="review-side-rail">
           <div className="review-side-rail__track">
-            <aside className="review-side-panel">
+            <div className="review-side-rail__panel-shell">
+              <aside className="review-side-panel">
+              {statementAvailable ? (
+                <button
+                  type="button"
+                  className="review-scroll-head__padding-zone"
+                  aria-label="Условие задачи"
+                  onClick={() => setStatementOpen(true)}
+                />
+              ) : null}
               <div className="review-side-head">
                 <span className="review-side-head__name">{submission.participant}</span>
                 <span className={`review-verdict-chip review-verdict-chip--${verdictTone}`}>
@@ -566,6 +583,7 @@ export default function ReviewSubmissionPanel({
               </form>
               {commentsSection}
             </aside>
+            </div>
 
             {nextEnabled ? (
               showAllBesideNext ? (
@@ -636,6 +654,15 @@ export default function ReviewSubmissionPanel({
                 </div>
               )
             ) : null}
+            <ProblemStatementScrollZone
+              contestId={contestId}
+              contestName={contestName}
+              problemLabel={statementProblemLabel}
+              statementAvailable={statementAvailable}
+              open={statementOpen}
+              onOpen={() => setStatementOpen(true)}
+              onClose={() => setStatementOpen(false)}
+            />
           </div>
         </div>
       </div>

@@ -152,6 +152,29 @@ paths:
         '503':
           $ref: '#/components/responses/ErrorResponse'
 
+  /api/contests/{id}/statement:
+    get:
+      operationId: getContestStatement
+      summary: PDF условия контеста
+      parameters:
+        - $ref: '#/components/parameters/ContestID'
+      responses:
+        '200':
+          description: PDF условия
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '502':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
   /api/contests/{id}/import:
     post:
       operationId: postContestImport

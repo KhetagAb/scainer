@@ -38,6 +38,7 @@ import SourceCode from "@/features/code/SourceCode";
 import SourceCodeCopyButton from "@/features/code/SourceCodeCopyButton";
 import UnifiedDiffView from "@/features/code/UnifiedDiffView";
 import ReviewCelebrateOverlay from "@/features/review/ReviewCelebrateOverlay";
+import ReviewShowAllSubmissions from "@/features/review/ReviewShowAllSubmissions";
 import SubmissionCompareInline from "@/features/review/SubmissionCompareInline";
 import {
   defaultCompareRunId,
@@ -135,8 +136,6 @@ export default function ReviewSubmissionPanel({
   const commentFieldId = `review-comment-${panelId}`;
   const goNextProblem = !nextSubmissionId && Boolean(nextProblemId);
   const nextEnabled = Boolean(nextSubmissionId || nextProblemId);
-  const showAllBesideNext =
-    showAllSubmissions && goNextProblem && Boolean(onShowAllSubmissions);
 
   useEffect(() => {
     setCommentsOpen(true);
@@ -665,6 +664,9 @@ export default function ReviewSubmissionPanel({
               onCiteLines={insertCite}
             />
           )}
+          {showAllSubmissions && onShowAllSubmissions ? (
+            <ReviewShowAllSubmissions onClick={onShowAllSubmissions} />
+          ) : null}
         </div>
 
         <div className="review-side-rail">
@@ -741,73 +743,36 @@ export default function ReviewSubmissionPanel({
             </aside>
 
             {nextEnabled ? (
-              showAllBesideNext ? (
-                <div className="review-side-rail__scroll review-side-rail__scroll--duo">
-                  <div
-                    className="review-scroll-duo__next"
-                    role="button"
-                    tabIndex={actionPending ? -1 : 0}
-                    aria-disabled={actionPending}
-                    aria-label="Следующая задача"
-                    onClick={() => {
-                      if (!actionPending) onManualNext();
-                    }}
-                    onKeyDown={onScrollZoneKeyDown}
-                  >
-                    <div className="review-scroll-duo__bar">
-                      <button
-                        type="button"
-                        className="review-scroll-duo__show-all"
-                        aria-label="Показать все посылки"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onShowAllSubmissions?.();
-                        }}
-                      >
-                        Показать все посылки
-                        <ChevronDownIcon size={22} />
-                      </button>
-                      <span className="review-scroll-duo__next-cluster" aria-hidden>
-                        <span className="review-scroll-duo__next-label">
-                          Следующая задача
-                        </span>
-                        <ChevronRightIcon size={22} />
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div
-                  className="review-side-rail__scroll"
-                  role="button"
-                  tabIndex={actionPending ? -1 : 0}
-                  aria-disabled={actionPending}
-                  aria-label={
-                    goNextProblem ? "Следующая задача" : "Следующая посылка"
+              <div
+                className="review-side-rail__scroll"
+                role="button"
+                tabIndex={actionPending ? -1 : 0}
+                aria-disabled={actionPending}
+                aria-label={
+                  goNextProblem ? "Следующая задача" : "Следующая посылка"
+                }
+                onClick={() => {
+                  if (!actionPending) onManualNext();
+                }}
+                onKeyDown={onScrollZoneKeyDown}
+              >
+                <span
+                  className={
+                    "review-scroll-hint" +
+                    (goNextProblem ? " review-scroll-hint--next-problem" : "")
                   }
-                  onClick={() => {
-                    if (!actionPending) onManualNext();
-                  }}
-                  onKeyDown={onScrollZoneKeyDown}
+                  aria-hidden
                 >
-                  <span
-                    className={
-                      "review-scroll-hint" +
-                      (goNextProblem ? " review-scroll-hint--next-problem" : "")
-                    }
-                    aria-hidden
-                  >
-                    <span className="review-scroll-hint__label">
-                      {goNextProblem ? "Следующая задача" : "Следующая посылка"}
-                    </span>
-                    {goNextProblem ? (
-                      <ChevronRightIcon size={28} />
-                    ) : (
-                      <ChevronDownIcon size={28} />
-                    )}
+                  <span className="review-scroll-hint__label">
+                    {goNextProblem ? "Следующая задача" : "Следующая посылка"}
                   </span>
-                </div>
-              )
+                  {goNextProblem ? (
+                    <ChevronRightIcon size={28} />
+                  ) : (
+                    <ChevronDownIcon size={28} />
+                  )}
+                </span>
+              </div>
             ) : null}
           </div>
         </div>

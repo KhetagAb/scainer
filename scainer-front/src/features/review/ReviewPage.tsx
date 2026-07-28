@@ -14,34 +14,8 @@ import { isPendingReview } from "@/features/review/reviewVerdicts";
 import { ensureProblemComments } from "@/features/review/reviewPrefetch";
 import { scrollToReviewPanel } from "@/features/review/reviewScroll";
 import ReviewSubmissionPanel from "@/features/review/ReviewSubmissionPanel";
+import ReviewShowAllSubmissions from "@/features/review/ReviewShowAllSubmissions";
 import { useReviewActivePanel } from "@/features/review/useReviewActivePanel";
-
-function ReviewShowAllSubmissions({
-  onClick,
-}: {
-  onClick: () => void;
-}) {
-  return (
-    <div className="review-show-all">
-      <button type="button" className="review-show-all__btn" onClick={onClick}>
-        <span className="review-show-all__label">Показать все посылки</span>
-        <svg
-          width="28"
-          height="28"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden
-        >
-          <path d="m6 9 6 6 6-6" />
-        </svg>
-      </button>
-    </div>
-  );
-}
 
 type Props = {
   submissionsQuery: UseQueryResult<SubmissionListItem[]>;
@@ -226,20 +200,16 @@ export default function ReviewPage({
   if (!queue.length) {
     return (
       <div className="review-empty">
-        <p>
-          {prOnly ? (
-            <>
-              По задаче <strong>{problemId}</strong> нет посылок со статусом PR.
-            </>
-          ) : (
-            <>
-              По задаче <strong>{problemId}</strong> нет посылок.
-            </>
-          )}
-        </p>
         {hasHiddenSubmissions ? (
-          <ReviewShowAllSubmissions onClick={showAllSubmissions} />
-        ) : null}
+          <ReviewShowAllSubmissions
+            className="review-show-all--empty"
+            onClick={showAllSubmissions}
+          />
+        ) : (
+          <p>
+            По задаче <strong>{problemId}</strong> нет посылок.
+          </p>
+        )}
       </div>
     );
   }
@@ -259,9 +229,7 @@ export default function ReviewPage({
             nextSubmissionId={queue[i + 1]?.id ?? null}
             nextProblemId={nextProblemId}
             onUnauthorized={onUnauthorized}
-            showAllSubmissions={
-              isLast && hasHiddenForProblem(problemId) && Boolean(nextProblemId)
-            }
+            showAllSubmissions={isLast && hasHiddenForProblem(problemId)}
             onShowAllSubmissions={showAllSubmissions}
             onGoToNextProblem={goToNextProblem}
             problemTransitionPending={isProblemTransitioning}

@@ -10,174 +10,12 @@
   border: none;
   background: transparent;
   cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .review-side-rail__scroll[aria-disabled="true"] {
   cursor: default;
-}
-
-.review-side-rail__scroll--duo {
-  cursor: default;
-  display: flex;
-  flex-direction: column;
-}
-
-.review-scroll-duo__next {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  min-height: 2.5rem;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  color: var(--text-faint);
-}
-
-.review-scroll-duo__bar {
-  margin-top: auto;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: 1.25rem 2rem;
-  width: 100%;
-  padding: 0.35rem;
-  position: sticky;
-  bottom: 0.75rem;
-}
-
-.review-scroll-duo__show-all {
-  display: inline-flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.35rem;
-  flex: 0 0 auto;
-  margin: 0;
-  padding: 0.35rem;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-family: var(--font-ui);
-  font-size: 0.8rem;
-  line-height: 1.2;
-  color: var(--text-faint);
-  white-space: nowrap;
-  transition: color 0.15s ease;
-}
-
-.review-scroll-duo__show-all svg {
-  opacity: 0.28;
-  transition:
-    opacity 0.15s ease,
-    color 0.15s ease,
-    transform 0.15s ease;
-}
-
-.review-scroll-duo__show-all:hover,
-.review-scroll-duo__show-all:focus-visible {
-  color: var(--text-muted);
-  outline: none;
-}
-
-.review-scroll-duo__show-all:hover svg,
-.review-scroll-duo__show-all:focus-visible svg {
-  opacity: 1;
-  color: var(--text-muted);
-  transform: translateY(0.12rem);
-}
-
-.review-scroll-duo__next-cluster {
-  display: inline-flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.35rem;
-  flex: 0 0 auto;
-  color: var(--text-faint);
-  pointer-events: none;
-}
-
-.review-scroll-duo__next-label {
-  font-family: var(--font-ui);
-  font-size: 0.8rem;
-  line-height: 1.2;
-  white-space: nowrap;
-  transition: color 0.15s ease;
-}
-
-.review-scroll-duo__next-cluster svg {
-  opacity: 0.28;
-  transition:
-    opacity 0.15s ease,
-    color 0.15s ease,
-    transform 0.15s ease;
-}
-
-.review-scroll-duo__next:hover:not([aria-disabled="true"]) .review-scroll-duo__next-cluster {
-  color: var(--text-muted);
-}
-
-.review-scroll-duo__next:hover:not([aria-disabled="true"]) .review-scroll-duo__next-cluster svg {
-  opacity: 1;
-  color: var(--text-muted);
-  transform: translateX(0.12rem);
-}
-
-.review-scroll-duo__next:hover:not([aria-disabled="true"])
-  .review-scroll-duo__show-all:hover
-  ~ .review-scroll-duo__next-cluster {
-  color: var(--text-faint);
-}
-
-.review-scroll-duo__next:hover:not([aria-disabled="true"])
-  .review-scroll-duo__show-all:hover
-  ~ .review-scroll-duo__next-cluster
-  svg {
-  opacity: 0.28;
-  color: inherit;
-  transform: none;
-}
-
-.review-scroll-duo__next:hover:not([aria-disabled="true"])
-  .review-scroll-duo__show-all:not(:hover):not(:focus-visible) {
-  color: var(--text-faint);
-}
-
-.review-scroll-duo__next:hover:not([aria-disabled="true"])
-  .review-scroll-duo__show-all:not(:hover):not(:focus-visible)
-  svg {
-  opacity: 0.28;
-  transform: none;
-}
-
-.review-scroll-duo__next:focus-visible {
-  outline: none;
-}
-
-.review-scroll-duo__next:focus-visible .review-scroll-duo__next-cluster {
-  color: var(--text-muted);
-}
-
-.review-scroll-duo__next:focus-visible .review-scroll-duo__next-cluster svg {
-  opacity: 1;
-  color: var(--text-muted);
-  outline: 2px solid color-mix(in srgb, var(--chip-border) 80%, var(--text-faint) 20%);
-  outline-offset: 3px;
-  border-radius: 0.2rem;
-}
-
-.review-scroll-duo__next[aria-disabled="true"] {
-  cursor: default;
-}
-
-.review-scroll-duo__next[aria-disabled="true"] .review-scroll-duo__next-cluster {
-  color: var(--text-faint);
-}
-
-.review-scroll-duo__next[aria-disabled="true"] .review-scroll-duo__next-cluster svg {
-  opacity: 0.2;
 }
 
 .review-scroll-hint {
@@ -194,6 +32,8 @@
   pointer-events: none;
   position: sticky;
   bottom: 0.75rem;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .review-scroll-hint--next-problem {
@@ -221,45 +61,44 @@
     transform 0.15s ease;
 }
 
-.review-side-rail__scroll:not(.review-side-rail__scroll--duo):hover:not([aria-disabled="true"])
-  .review-scroll-hint__label,
-.review-side-rail__scroll:not(.review-side-rail__scroll--duo):focus-visible .review-scroll-hint__label {
+.review-side-rail__scroll:hover:not([aria-disabled="true"]) .review-scroll-hint__label,
+.review-side-rail__scroll:focus-visible .review-scroll-hint__label {
   opacity: 1;
   color: var(--text-muted);
 }
 
-.review-side-rail__scroll:not(.review-side-rail__scroll--duo):hover:not([aria-disabled="true"])
-  .review-scroll-hint
-  svg,
-.review-side-rail__scroll:not(.review-side-rail__scroll--duo):focus-visible .review-scroll-hint svg {
+.review-side-rail__scroll:hover:not([aria-disabled="true"]) .review-scroll-hint svg,
+.review-side-rail__scroll:focus-visible .review-scroll-hint svg {
   opacity: 1;
   color: var(--text-muted);
   transform: translateY(0.12rem);
 }
 
-.review-side-rail__scroll:not(.review-side-rail__scroll--duo):hover:not([aria-disabled="true"])
+.review-side-rail__scroll:hover:not([aria-disabled="true"])
   .review-scroll-hint--next-problem
   svg {
   transform: translateX(0.12rem);
 }
 
-.review-side-rail__scroll:not(.review-side-rail__scroll--duo):focus-visible {
+.review-side-rail__scroll:focus-visible {
   outline: none;
 }
 
-.review-side-rail__scroll:not(.review-side-rail__scroll--duo):focus-visible .review-scroll-hint svg {
+.review-side-rail__scroll:focus-visible .review-scroll-hint svg {
   outline: 2px solid color-mix(in srgb, var(--chip-border) 80%, var(--text-faint) 20%);
   outline-offset: 3px;
   border-radius: 0.2rem;
 }
 
-.review-side-rail__scroll:not(.review-side-rail__scroll--duo)[aria-disabled="true"]
-  .review-scroll-hint__label {
+.review-side-rail__scroll[aria-disabled="true"] .review-scroll-hint__label {
   opacity: 0;
 }
 
-.review-side-rail__scroll:not(.review-side-rail__scroll--duo)[aria-disabled="true"]
-  .review-scroll-hint
-  svg {
+.review-side-rail__scroll[aria-disabled="true"] .review-scroll-hint svg {
   opacity: 0.2;
+}
+
+.review-side-rail__scroll--head {
+  user-select: none;
+  -webkit-user-select: none;
 }

@@ -9,49 +9,55 @@
 
 .review-show-all {
   display: flex;
-  justify-content: center;
-  padding: 0.5rem 0 1.5rem;
-}
-
-.review-show-all__btn {
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 0.1rem;
-  margin: 0;
-  padding: 0.35rem;
+  gap: 0.75rem;
+  width: 100%;
+  margin: 0.75rem 0 0;
+  padding: 0.35rem 0;
   border: none;
   background: transparent;
   cursor: pointer;
   font-family: var(--font-ui);
+  transition: color 0.15s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.review-show-all__rule {
+  flex: 1 1 auto;
+  height: 1px;
+  background: color-mix(in srgb, var(--chip-border) 75%, transparent);
+}
+
+.review-show-all__label {
+  flex: 0 0 auto;
   font-size: 0.8rem;
   line-height: 1.2;
   color: var(--text-faint);
+  white-space: nowrap;
   transition: color 0.15s ease;
 }
 
-.review-show-all__btn svg {
-  opacity: 0.28;
-  transition:
-    opacity 0.15s ease,
-    color 0.15s ease,
-    transform 0.15s ease;
+.review-show-all:hover .review-show-all__label,
+.review-show-all:focus-visible .review-show-all__label {
+  color: var(--text-muted);
 }
 
-.review-show-all__btn:hover,
-.review-show-all__btn:focus-visible {
-  color: var(--text-muted);
+.review-show-all:hover .review-show-all__rule,
+.review-show-all:focus-visible .review-show-all__rule {
+  background: color-mix(in srgb, var(--chip-border) 90%, var(--text-faint) 10%);
+}
+
+.review-show-all:focus-visible {
   outline: none;
 }
 
-.review-show-all__btn:hover svg,
-.review-show-all__btn:focus-visible svg {
-  opacity: 1;
-  color: var(--text-muted);
-  transform: translateY(0.12rem);
+.review-show-all--empty {
+  max-width: 36rem;
+  margin: 0 auto;
+  padding: 0.75rem 0 1.5rem;
 }
 
-.review-empty .review-show-all {
+.review-empty .review-show-all--empty {
   padding-top: 0.75rem;
 }

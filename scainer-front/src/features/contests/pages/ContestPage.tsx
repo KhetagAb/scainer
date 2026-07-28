@@ -83,9 +83,11 @@ export default function ContestPage({ onUnauthorized }: Props) {
           <div className="contest-head__review-nav">
             <ReviewProblemPicker
               contestId={contestId}
+              contestName={contest.name}
               problems={(problemsQuery.data ?? []) as ProblemInfo[]}
               submissions={(submissionsQuery.data ?? []) as SubmissionListItem[]}
               activeProblemId={activeProblemId}
+              statementAvailable={Boolean(contest.parallelId)}
               prOnly={reviewPrOnly}
               onPrOnlyChange={setReviewPrOnly}
             />

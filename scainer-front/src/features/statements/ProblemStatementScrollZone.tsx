@@ -1,4 +1,4 @@
-import { Scroll } from "lucide-react";
+import { FileText } from "lucide-react";
 import { useCallback, type KeyboardEvent, type Ref } from "react";
 import ProblemStatementModal from "@/features/statements/ProblemStatementModal";
 
@@ -58,7 +58,7 @@ export default function ProblemStatementScrollZone({
           className="review-scroll-hint review-scroll-hint--statement"
           aria-hidden={!statementAvailable}
         >
-          <Scroll size={28} strokeWidth={2} />
+          <FileText size={28} strokeWidth={2} />
           <span className="review-scroll-hint__label">
             {statementAvailable ? enabledLabel : disabledLabel}
           </span>

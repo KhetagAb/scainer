@@ -1,4 +1,4 @@
-import { Scroll } from "lucide-react";
+import { FileText } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -73,7 +73,7 @@ export default function AppTopbarCrumb() {
               aria-label={`Условия задач — ${shortName}`}
               onClick={() => setStatementOpen(true)}
             >
-              <Scroll size={15} strokeWidth={2} aria-hidden />
+              <FileText size={15} strokeWidth={2} aria-hidden />
               <span className="app-topbar__crumb-statement-label">Условия задач</span>
             </button>
           </>

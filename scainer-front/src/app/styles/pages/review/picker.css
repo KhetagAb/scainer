@@ -88,6 +88,48 @@
   color: #fff;
 }
 
+.review-picker__chip-main {
+  display: inline-grid;
+  align-items: center;
+}
+
+.review-picker-row--statements .review-picker__chip-main {
+  min-width: 7.35rem;
+  justify-items: center;
+}
+
+.review-picker__chip-main > .review-picker__chip-label,
+.review-picker__chip-main > .review-picker__chip-statement {
+  grid-area: 1 / 1;
+}
+
+.review-picker__chip-label {
+  white-space: nowrap;
+  text-align: center;
+}
+
+.review-picker__chip-statement {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.22rem;
+  white-space: nowrap;
+}
+
+.review-picker__chip.is-statement .review-picker__chip-statement {
+  visibility: hidden;
+}
+
+.review-picker__chip.is-active.is-statement:hover .review-picker__chip-label,
+.review-picker__chip.is-active.is-statement:focus-visible .review-picker__chip-label {
+  visibility: hidden;
+}
+
+.review-picker__chip.is-active.is-statement:hover .review-picker__chip-statement,
+.review-picker__chip.is-active.is-statement:focus-visible .review-picker__chip-statement {
+  visibility: visible;
+}
+
 .review-picker__empty,
 .review-empty {
   margin: 1rem 0;

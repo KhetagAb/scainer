@@ -1,25 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
-import { Highlight, themes, type Language } from "prism-react-renderer";
-
-const PRISM_LANG: Record<string, Language> = {
-  cpp: "cpp",
-  c: "c",
-  python: "python",
-  java: "java",
-  go: "go",
-  javascript: "javascript",
-  js: "javascript",
-  typescript: "typescript",
-  ts: "typescript",
-};
+import { Highlight, themes } from "prism-react-renderer";
+import { toPrismLang } from "@/features/code/codeLang";
 
 const LINE_FLASH_MS = 1250;
-
-function toPrismLang(lang?: string): Language {
-  if (!lang) return "clike";
-  const key = lang.trim().toLowerCase();
-  return PRISM_LANG[key] ?? "clike";
-}
 
 function CiteIcon() {
   return (

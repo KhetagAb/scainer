@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useState } from "react";
 import { Outlet, useNavigate, useParams } from "react-router-dom";
 import type { ProblemInfo, SubmissionListItem } from "@/client/types.gen";
 import ContestStats from "@/features/contests/cards/ContestStats";
@@ -8,12 +7,7 @@ import { useContestSync } from "@/features/contests/sync/useContestSync";
 import { useSensitivity } from "@/features/contests/shared/SensitivityContext";
 import FindingsGroupTabs from "@/features/findings/FindingsGroupTabs";
 import ReviewProblemPicker from "@/features/review/ReviewProblemPicker";
-import ReviewLegendModal, {
-  markReviewLegendSeen,
-  wasReviewLegendSeen,
-} from "@/features/review/ReviewLegendModal";
 import { useReviewPrOnlyFilter } from "@/features/review/useReviewPrOnlyFilter";
-import helpIconUrl from "@/assets/help-icon.png";
 
 type Props = {
   onUnauthorized: () => void;
@@ -52,18 +46,6 @@ export default function ContestPage({ onUnauthorized }: Props) {
   });
 
   const { prOnly: reviewPrOnly, setPrOnly: setReviewPrOnly } = useReviewPrOnlyFilter();
-  const [reviewLegendOpen, setReviewLegendOpen] = useState(false);
-
-  useEffect(() => {
-    if (onReviewPage && !wasReviewLegendSeen()) {
-      setReviewLegendOpen(true);
-    }
-  }, [onReviewPage]);
-
-  const closeReviewLegend = useCallback(() => {
-    markReviewLegendSeen();
-    setReviewLegendOpen(false);
-  }, []);
 
   if (!contestId) {
     navigate("/", { replace: true });
@@ -147,30 +129,6 @@ export default function ContestPage({ onUnauthorized }: Props) {
           setReviewPrOnly,
         }}
       />
-
-      {onReviewPage ? (
-        <>
-          <div className="page-corner-actions">
-            <button
-              type="button"
-              className="page-help-btn"
-              aria-label="Справка по ревью посылок"
-              title="Справка по ревью посылок"
-              onClick={() => setReviewLegendOpen(true)}
-            >
-              <span
-                className="page-help-btn__glyph"
-                style={{
-                  maskImage: `url(${helpIconUrl})`,
-                  WebkitMaskImage: `url(${helpIconUrl})`,
-                }}
-                aria-hidden
-              />
-            </button>
-          </div>
-          <ReviewLegendModal open={reviewLegendOpen} onClose={closeReviewLegend} />
-        </>
-      ) : null}
     </>
   );
 }

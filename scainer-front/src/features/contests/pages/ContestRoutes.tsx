@@ -52,13 +52,6 @@ export function ContestReviewRoute() {
 }
 
 export function ContestReviewSubmissionRoute() {
-  const { submissionsQuery, findingsQuery, onUnauthorized } =
-    useOutletContext<ContestOutletContext>();
-  return (
-    <ReviewSubmissionPage
-      submissionsQuery={submissionsQuery}
-      findingsQuery={findingsQuery}
-      onUnauthorized={onUnauthorized}
-    />
-  );
+  const { submissionsQuery } = useOutletContext<ContestOutletContext>();
+  return <ReviewSubmissionPage submissionsQuery={submissionsQuery} />;
 }

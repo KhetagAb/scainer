@@ -11,6 +11,19 @@ export function prCountByProblem(items: SubmissionListItem[]): Map<string, numbe
   return map;
 }
 
+/** Первая задача в порядке чипов (A, B, …). */
+export function firstProblem(
+  problems: { id: string; name?: string | null }[],
+): string | null {
+  if (!problems.length) return null;
+  const sorted = problems.slice().sort((a, b) => {
+    const la = problemDisplay(a.id, a.name);
+    const lb = problemDisplay(b.id, b.name);
+    return la < lb ? -1 : la > lb ? 1 : 0;
+  });
+  return sorted[0].id;
+}
+
 /** Первая задача (в порядке чипов) с числом PR > 0. */
 export function firstProblemWithPr(
   problems: { id: string; name?: string | null }[],

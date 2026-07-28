@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { isReviewScrollLocked, registerReviewScrollPickActive } from "./reviewScroll";
 
 function readChromeTopPx(): number {
   const raw = getComputedStyle(document.documentElement).getPropertyValue("--review-chrome-top");
@@ -32,6 +33,7 @@ export function useReviewActivePanel(panelIds: string[]): string | null {
     const rootMargin = `-${chromeTop}px 0px 0px 0px`;
 
     const pickActive = () => {
+      if (isReviewScrollLocked()) return;
       const visible = panels
         .filter((panel) => {
           const rect = panel.getBoundingClientRect();
@@ -43,6 +45,8 @@ export function useReviewActivePanel(panelIds: string[]): string | null {
 
     pickActive();
 
+    const unregisterScrollPick = registerReviewScrollPickActive(pickActive);
+
     const observer = new IntersectionObserver(() => pickActive(), {
       root: null,
       rootMargin,
@@ -53,6 +57,7 @@ export function useReviewActivePanel(panelIds: string[]): string | null {
     window.addEventListener("resize", pickActive);
 
     return () => {
+      unregisterScrollPick();
       observer.disconnect();
       window.removeEventListener("resize", pickActive);
     };

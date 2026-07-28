@@ -76,7 +76,7 @@
   --font-head: 'Podkova', 'Merriweather', Georgia, serif;
   --page-gutter: clamp(1rem, 2.75vw, 2rem);
   --app-topbar-height: 3.1rem;
-  --contest-review-head-height: 2.2rem;
+  --contest-review-head-height: 2.5rem;
   --review-chrome-top: calc(var(--app-topbar-height) + var(--contest-review-head-height));
   --review-sticky-scroll-offset: calc(var(--review-chrome-top) + 0.35rem);
   --logo-ai-gradient: linear-gradient(

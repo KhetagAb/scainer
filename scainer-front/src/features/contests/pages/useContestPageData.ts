@@ -6,11 +6,15 @@ import {
   getContestProblemsOptions,
   getContestSubmissionsOptions,
   getContestsOptions,
-  getSubmissionCommentsOptions,
 } from "@/client/@tanstack/react-query.gen";
-import type { ProblemInfo } from "@/client/types.gen";
+import type { ProblemInfo, SubmissionListItem } from "@/client/types.gen";
 import { authHeaders } from "@/features/auth/authStorage";
 import { problemSubmissionCountsMap } from "@/features/contests/shared/problemSignalStats";
+import {
+  nextProblemWithPr,
+  prQueueForProblem,
+} from "@/features/review/reviewFindings";
+import { prefetchSubmissionComments } from "@/features/review/reviewPrefetch";
 
 type Options = {
   contestId?: string;
@@ -56,33 +60,6 @@ export function useContestPageData({ contestId, onUnauthorized }: Options) {
 
   const onReviewPage = location.pathname.includes("/review");
 
-  useEffect(() => {
-    if (!onReviewPage || !contestId || !submissionsQuery.data) return;
-    for (const s of submissionsQuery.data) {
-      if (s.verdict !== "PR") continue;
-      void queryClient.prefetchQuery(
-        getSubmissionCommentsOptions({
-          path: { id: contestId, submissionId: s.id },
-          headers: authHeaders(),
-        }),
-      );
-    }
-  }, [onReviewPage, contestId, submissionsQuery.data, queryClient]);
-
-  const problemSubmissionCounts = useMemo(
-    () => problemSubmissionCountsMap((problemsQuery.data ?? []) as ProblemInfo[]),
-    [problemsQuery.data],
-  );
-
-  const headerStats = useMemo(() => {
-    if (!contest) return null;
-    return {
-      id: contest.id,
-      submissionCount: contest.submissionCount ?? 0,
-      problemCount: contest.problemCount,
-    };
-  }, [contest]);
-
   const activeProblemId = useMemo(() => {
     const fromQuery = searchParams.get("problem");
     if (fromQuery) return fromQuery;
@@ -97,6 +74,56 @@ export function useContestPageData({ contestId, onUnauthorized }: Options) {
     const sub = (submissionsQuery.data ?? []).find((s) => s.id === sid);
     return sub?.problem ?? null;
   }, [searchParams, location.pathname, submissionsQuery.data]);
+
+  useEffect(() => {
+    if (!onReviewPage || !contestId || !submissionsQuery.data) return;
+
+    const items = submissionsQuery.data;
+    const problems = (problemsQuery.data ?? []) as ProblemInfo[];
+    const activeProblem = searchParams.get("problem") ?? activeProblemId;
+    const nextProblem =
+      activeProblem && problems.length
+        ? nextProblemWithPr(problems, items, activeProblem)
+        : null;
+
+    const prefetchSubmission = (s: SubmissionListItem) => {
+      if (s.verdict !== "PR") return;
+      prefetchSubmissionComments(queryClient, contestId, s.id);
+    };
+
+    if (nextProblem) {
+      for (const s of prQueueForProblem(items, nextProblem)) {
+        prefetchSubmission(s);
+      }
+    }
+
+    for (const s of items) {
+      if (nextProblem && s.problem === nextProblem) continue;
+      prefetchSubmission(s);
+    }
+  }, [
+    onReviewPage,
+    contestId,
+    submissionsQuery.data,
+    problemsQuery.data,
+    queryClient,
+    searchParams,
+    activeProblemId,
+  ]);
+
+  const problemSubmissionCounts = useMemo(
+    () => problemSubmissionCountsMap((problemsQuery.data ?? []) as ProblemInfo[]),
+    [problemsQuery.data],
+  );
+
+  const headerStats = useMemo(() => {
+    if (!contest) return null;
+    return {
+      id: contest.id,
+      submissionCount: contest.submissionCount ?? 0,
+      problemCount: contest.problemCount,
+    };
+  }, [contest]);
 
   const handleQueryError = useCallback(() => {
     if ((contestsQuery.error as { status?: number })?.status === 401) {
@@ -118,14 +145,3 @@ export function useContestPageData({ contestId, onUnauthorized }: Options) {
     handleQueryError,
   };
 }
-
-export type ContestPageOutletContext = {
-  findingsQuery: ReturnType<typeof useContestPageData>["findingsQuery"];
-  submissionsQuery: ReturnType<typeof useContestPageData>["submissionsQuery"];
-  problems: ProblemInfo[];
-  problemSubmissionCounts: Record<string, number>;
-  onUnauthorized: () => void;
-  findingKey: string | null;
-  reviewPrOnly: boolean;
-  setReviewPrOnly: (value: boolean) => void;
-};

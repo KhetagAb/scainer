@@ -9,8 +9,6 @@ export default function ReviewSubmissionPage({
   submissionsQuery,
 }: {
   submissionsQuery: UseQueryResult<SubmissionListItem[]>;
-  findingsQuery: UseQueryResult<unknown>;
-  onUnauthorized: () => void;
 }) {
   const { id: contestId, submissionId: rawSubmissionId } = useParams<{
     id: string;

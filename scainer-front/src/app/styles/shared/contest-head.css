@@ -92,6 +92,7 @@
 .contest-head--review .review-picker {
   display: flex;
   flex-wrap: nowrap;
+  align-items: center;
   min-width: 0;
   max-width: 100%;
   overflow-x: auto;
@@ -99,6 +100,8 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
   gap: 0.3rem;
+  padding-block: 0.2rem;
+  box-sizing: border-box;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -116,6 +119,10 @@
   font-size: 0.72rem;
   padding: 0.1rem 0.38rem;
   white-space: nowrap;
+}
+
+.contest-head--review .review-picker__chip.is-active {
+  box-shadow: none;
 }
 
 .contest-head--review .review-picker__pr {

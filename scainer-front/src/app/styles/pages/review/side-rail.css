@@ -1,4 +1,4 @@
-/* Side rail: panel + scroll-to-next footer in normal column flow */
+/* Side rail: sticky panel + scroll-to-next zone in column flow */
 
 .review-side-rail {
   grid-column: 2;
@@ -18,27 +18,23 @@
 }
 
 .review-side-panel {
+  position: sticky;
+  top: max(0.75rem, calc(50vh - 7rem));
   flex: 0 0 auto;
+  max-height: calc(100vh - 5rem);
   min-width: 0;
   width: 100%;
   padding: 0.75rem 0.85rem;
   box-sizing: border-box;
 }
 
-.review-side-rail__scroll {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  min-height: 2.5rem;
-  margin: 0;
-  padding: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
+.review-side-rail__track:has(.review-side-rail__scroll) .review-side-panel {
+  margin-bottom: var(--review-scroll-foot);
 }
 
-.review-side-rail__scroll[aria-disabled="true"] {
-  cursor: default;
+.review-side-rail__track:has(.review-side-rail__scroll) .review-side-rail__scroll {
+  margin-top: calc(-1 * var(--review-scroll-foot));
+  min-height: calc(2.5rem + var(--review-scroll-foot));
 }
 
 .review-detail--panel:not(.review-detail--active) .review-side-panel {

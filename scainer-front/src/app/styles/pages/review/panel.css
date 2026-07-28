@@ -136,6 +136,7 @@
 }
 
 .review-comments {
+  flex-shrink: 0;
   margin: 0.65rem 0 0;
   min-width: 0;
   max-height: min(14rem, calc(100vh - 18rem));
@@ -146,6 +147,13 @@
 
 .review-comments::-webkit-scrollbar {
   display: none;
+}
+
+.review-side-rail__track:has(.review-side-rail__scroll) .review-comments {
+  max-height: min(
+    12rem,
+    calc(100vh - 5rem - var(--review-scroll-foot) - var(--review-side-form-est))
+  );
 }
 
 .review-comments__title {
@@ -272,6 +280,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .review-verdict__input {

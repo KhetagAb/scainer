@@ -1,16 +1,19 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import type { UseQueryResult } from "@tanstack/react-query";
+import { useQueryClient, type UseQueryResult } from "@tanstack/react-query";
 import type { ProblemInfo, ReportData, SubmissionListItem } from "@/client/types.gen";
 import {
+  firstProblem,
   firstProblemWithPr,
   nextProblemWithPr,
+  submissionPanelId,
   submissionsForProblemReview,
 } from "@/features/review/reviewFindings";
 import { problemDisplay } from "@/features/findings/reportModel";
 import { isPendingReview } from "@/features/review/reviewVerdicts";
+import { ensureProblemComments } from "@/features/review/reviewPrefetch";
+import { scrollToReviewPanel } from "@/features/review/reviewScroll";
 import ReviewSubmissionPanel from "@/features/review/ReviewSubmissionPanel";
-import { submissionPanelId } from "@/features/review/reviewFindings";
 import { useReviewActivePanel } from "@/features/review/useReviewActivePanel";
 
 function ReviewShowAllSubmissions({
@@ -60,6 +63,7 @@ export default function ReviewPage({
   const { id: contestId } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const problemId = searchParams.get("problem");
 
   const items = submissionsQuery.data ?? [];
@@ -88,7 +92,11 @@ export default function ReviewPage({
     setSessionProblemId(problemId);
   }, [problemId, sessionProblemId, items, submissionsQuery.isLoading, prOnly]);
 
-  const queue = sessionProblemId === problemId ? sessionQueue : [];
+  const queue = useMemo(() => {
+    if (!problemId) return [];
+    if (sessionProblemId === problemId) return sessionQueue;
+    return submissionsForProblemReview(items, problemId, prOnly);
+  }, [problemId, sessionProblemId, sessionQueue, items, prOnly]);
 
   const panelIds = useMemo(
     () => queue.map((s) => submissionPanelId(s.id)),
@@ -106,6 +114,42 @@ export default function ReviewPage({
     [problemId, problems, items],
   );
 
+  const [isProblemTransitioning, setIsProblemTransitioning] = useState(false);
+
+  const goToNextProblem = useCallback(async () => {
+    if (!nextProblemId || !contestId || !problemId || isProblemTransitioning) return;
+
+    setIsProblemTransitioning(true);
+    try {
+      const targetQueue = submissionsForProblemReview(items, nextProblemId, prOnly);
+      await ensureProblemComments(queryClient, contestId, targetQueue);
+
+      navigate(
+        `/contests/${encodeURIComponent(contestId)}/review?problem=${encodeURIComponent(nextProblemId)}`,
+        { replace: true },
+      );
+      if (window.location.hash) {
+        window.history.replaceState(
+          null,
+          "",
+          window.location.pathname + window.location.search,
+        );
+      }
+      window.scrollTo(0, 0);
+    } finally {
+      setIsProblemTransitioning(false);
+    }
+  }, [
+    nextProblemId,
+    contestId,
+    problemId,
+    isProblemTransitioning,
+    items,
+    prOnly,
+    queryClient,
+    navigate,
+  ]);
+
   const hasHiddenSubmissions = useMemo(() => {
     if (!problemId || !prOnly) return false;
     return items.some(
@@ -113,24 +157,47 @@ export default function ReviewPage({
     );
   }, [problemId, prOnly, items]);
 
+  const hasHiddenForProblem = (pid: string) => {
+    if (!prOnly) return false;
+    return items.some((s) => s.problem === pid && !isPendingReview(s.verdict));
+  };
+
   const showAllSubmissions = () => setReviewPrOnly(false);
 
   useEffect(() => {
     if (problemId) return;
     if (submissionsQuery.isLoading) return;
-    const first = firstProblemWithPr(problems, items);
-    if (!first || !contestId) return;
+    if (!contestId || !problems.length) return;
+
+    const firstWithPr = firstProblemWithPr(problems, items);
+    const target = firstWithPr ?? firstProblem(problems);
+    if (!target) return;
+
+    if (!firstWithPr && prOnly) {
+      setReviewPrOnly(false);
+    }
+
     navigate(
-      `/contests/${encodeURIComponent(contestId)}/review?problem=${encodeURIComponent(first)}`,
+      `/contests/${encodeURIComponent(contestId)}/review?problem=${encodeURIComponent(target)}`,
       { replace: true },
     );
-  }, [problemId, submissionsQuery.isLoading, problems, items, contestId, navigate]);
+  }, [
+    problemId,
+    submissionsQuery.isLoading,
+    problems,
+    items,
+    contestId,
+    navigate,
+    prOnly,
+    setReviewPrOnly,
+  ]);
 
   useEffect(() => {
     const hash = window.location.hash.replace(/^#/, "");
     if (!hash || !queue.length) return;
     const t = window.setTimeout(() => {
-      document.getElementById(hash)?.scrollIntoView({ block: "start" });
+      const el = document.getElementById(hash);
+      if (el) scrollToReviewPanel(el);
     }, 80);
     return () => window.clearTimeout(t);
   }, [queue, problemId]);
@@ -146,10 +213,10 @@ export default function ReviewPage({
   if (!contestId) return null;
 
   if (!problemId) {
-    if (firstProblemWithPr(problems, items) == null) {
+    if (!problems.length) {
       return (
         <div className="review-empty">
-          <p>Нет посылок со статусом PR.</p>
+          <p>Задач пока нет.</p>
         </div>
       );
     }
@@ -186,14 +253,18 @@ export default function ReviewPage({
             key={s.id}
             contestId={contestId}
             submission={s}
+            allSubmissions={items}
             findingsReport={report}
             problemLabel={problemLabel}
             nextSubmissionId={queue[i + 1]?.id ?? null}
             nextProblemId={nextProblemId}
             onUnauthorized={onUnauthorized}
-            showAllSubmissions={isLast && hasHiddenSubmissions && Boolean(nextProblemId)}
+            showAllSubmissions={
+              isLast && hasHiddenForProblem(problemId) && Boolean(nextProblemId)
+            }
             onShowAllSubmissions={showAllSubmissions}
-            isLastInStack={isLast}
+            onGoToNextProblem={goToNextProblem}
+            problemTransitionPending={isProblemTransitioning}
             isActive={activePanelId === submissionPanelId(s.id)}
           />
         );

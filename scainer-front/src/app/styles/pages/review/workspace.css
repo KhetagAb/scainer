@@ -6,8 +6,10 @@
   grid-template-rows: auto minmax(0, auto);
   column-gap: 1.5rem;
   row-gap: 0.25rem;
-  align-items: start;
+  align-items: stretch;
   margin: 0 0 1.25rem;
+  --review-scroll-foot: 4.5rem;
+  --review-side-form-est: 11rem;
 }
 
 .review-workspace__code,
@@ -52,6 +54,7 @@
 .review-workspace__code {
   grid-column: 1;
   position: relative;
+  min-width: 0;
 }
 
 .review-side-rail {

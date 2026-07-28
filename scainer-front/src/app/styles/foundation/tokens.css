@@ -1,0 +1,95 @@
+/* foundation/tokens.css — :root design tokens (--bg, --accent, fonts, layout vars) */
+
+:root {
+  --bg: #FBF8F3;
+  --surface: #fbf8f3;
+  --surface-head: #f0eee1;
+  --border: #e0dcd0;
+  --border-soft: #ebe8e1;
+  --text: #4f4e4e;
+  --text-muted: #6b6a68;
+  --text-faint: #8a8782;
+  --accent: #e58995;
+  --accent-strong: #bf9298;
+  --accent-violet: #6466fd;
+  --verdict-rj-bg: #edd6d4;
+  --verdict-rj-border: #d4b0ab;
+  --verdict-rj-text: #5c3030;
+  --danger: #b3261e;
+  --chip-border: #c4bfb3;
+  --chip-bg: #fff;
+  /* Подозрительность: amber → rose → red на кремовом фоне (не зелёный). */
+  --score-0: transparent;
+  --score-low: #f5e6c8;
+  --score-mid: #ecc878;
+  --score-high: #e8a29a;
+  --score-crit: #d06060;
+  --score-crit-text: #3a1c1c;
+  /* Подсветка matched-строк в коде — мягче, чем score-mid. */
+  --code-match-bg: #f6eedc;
+  --code-match-mark: #e0c48a;
+  /* Чипы задач / % групп: серый → светло-жёлтый (много) → зелёный (мало). */
+  --problem-0: transparent;
+  --problem-0-border: var(--border-soft);
+  --problem-weak: #f5e9c8;
+  /* Sync/resync: предупреждение об устаревших данных. */
+  --sync-warn-bg: #fff4e5;
+  --sync-warn-border: #e8c45a;
+  --sync-warn-text: #7a5a12;
+  --sync-warn-hover-bg: #ffeccf;
+  --problem-weak-border: #e0d09a;
+  --problem-strong: #7cb87a;
+  --problem-strong-border: #5a9a58;
+  --problem-strong-text: #1e3a1e;
+  /* Ночная посылка — общая поверхность для скора и чипа детектора. */
+  --night-surface-bg: #0f1a30;
+  --night-surface-border: rgba(140, 170, 230, 0.35);
+  --night-surface-text: #e8eef8;
+  --night-surface-text-shadow: 0 1px 2px rgba(8, 12, 24, 0.45);
+  --night-surface-shadow:
+    0 1px 4px rgba(15, 26, 48, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --night-surface-image:
+    radial-gradient(1px 1px at 12% 28%, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(1px 1px at 28% 62%, rgba(255, 255, 255, 0.55), transparent),
+    radial-gradient(1px 1px at 44% 18%, rgba(255, 255, 255, 0.65), transparent),
+    radial-gradient(1px 1px at 58% 72%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 72% 34%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1px 1px at 86% 58%, rgba(255, 255, 255, 0.45), transparent),
+    radial-gradient(1px 1px at 18% 82%, rgba(255, 255, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 92% 22%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(ellipse 80% 60% at 85% 15%, rgba(130, 150, 230, 0.22), transparent),
+    linear-gradient(135deg, #1a2a4a 0%, #0f1a30 52%, #243b6b 100%);
+  /* Списывание — общая поверхность для чипа детектора. */
+  --jplag-surface-bg: #f7f0ee;
+  --jplag-surface-border: rgba(160, 120, 130, 0.35);
+  --jplag-surface-text: #5a3d45;
+  --jplag-surface-shadow:
+    0 1px 3px rgba(90, 60, 70, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  --jplag-surface-image: linear-gradient(135deg, #faf6f4 0%, #f3ebe8 45%, #ebe4df 100%);
+  --detector-chip-width: 10.75rem;
+  --radius-card: 0.5rem;
+  --radius-chip: 0.35rem;
+  --font-ui: 'Montserrat Alternates', 'Segoe UI', sans-serif;
+  --font-body: 'Anonymous Pro', 'SFMono-Regular', monospace;
+  --font-head: 'Podkova', 'Merriweather', Georgia, serif;
+  --page-gutter: clamp(1rem, 2.75vw, 2rem);
+  --app-topbar-height: 3.1rem;
+  --contest-review-head-height: 2.2rem;
+  --review-chrome-top: calc(var(--app-topbar-height) + var(--contest-review-head-height));
+  --rail-gap-top: 0.35rem;
+  --rail-gap-bottom: 0.5rem;
+  --rail-pane-h: calc(
+    100dvh - var(--review-chrome-top) - var(--rail-gap-top) - var(--rail-gap-bottom)
+  );
+  --review-sticky-scroll-offset: calc(
+    var(--review-chrome-top) + var(--rail-gap-top) + 0.35rem
+  );
+  --logo-ai-gradient: linear-gradient(
+    135deg,
+    #c45c6a 0%,
+    var(--accent-violet) 48%,
+    var(--accent) 100%
+  );
+}

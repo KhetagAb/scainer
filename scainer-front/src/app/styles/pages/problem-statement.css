@@ -1,0 +1,124 @@
+/* pages/problem-statement.css — .problem-statement-* overlay */
+
+.problem-statement-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 3.5rem var(--page-gutter) 1.5rem;
+  overflow-y: auto;
+  background: rgba(22, 20, 18, 0);
+  -webkit-backdrop-filter: blur(0);
+  backdrop-filter: blur(0);
+  transition:
+    background 0.22s ease,
+    -webkit-backdrop-filter 0.22s ease,
+    backdrop-filter 0.22s ease;
+}
+
+.problem-statement-overlay--visible {
+  background: rgba(22, 20, 18, 0.45);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
+.problem-statement-overlay__close {
+  position: fixed;
+  top: 1rem;
+  right: max(1rem, var(--page-gutter));
+  z-index: 121;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.problem-statement-overlay__close:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.45);
+  color: #fff;
+}
+
+.problem-statement-overlay__close:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.65);
+  outline-offset: 2px;
+}
+
+.problem-statement-panel {
+  width: min(92vw, 56rem);
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+.problem-statement-panel--visible {
+  opacity: 1;
+}
+
+.problem-statement-panel__status,
+.problem-statement-panel__error,
+.problem-statement-viewer__loading,
+.problem-statement-viewer__error {
+  margin: 1rem 0;
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.82);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  text-align: center;
+}
+
+.problem-statement-panel__error,
+.problem-statement-viewer__error {
+  color: #ffb4ae;
+}
+
+.problem-statement-viewer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.problem-statement-page {
+  display: flex;
+  justify-content: center;
+  min-height: 8rem;
+  background: #fff;
+  border-radius: 0.25rem;
+  padding: 0.35rem;
+  box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 0.22);
+}
+
+.problem-statement-page__canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .problem-statement-overlay,
+  .problem-statement-panel {
+    transition: none;
+  }
+
+  .problem-statement-panel {
+    opacity: 1;
+  }
+}

@@ -10,6 +10,8 @@ import {
 import { problemDisplay } from "@/features/findings/reportModel";
 import { isPendingReview } from "@/features/review/reviewVerdicts";
 import ReviewSubmissionPanel from "@/features/review/ReviewSubmissionPanel";
+import { submissionPanelId } from "@/features/review/reviewFindings";
+import { useReviewActivePanel } from "@/features/review/useReviewActivePanel";
 
 function ReviewShowAllSubmissions({
   onClick,
@@ -92,6 +94,11 @@ export default function ReviewPage({
 
   const queue = sessionProblemId === problemId ? sessionQueue : [];
 
+  const panelIds = useMemo(
+    () => queue.map((s) => submissionPanelId(s.id)),
+    [queue],
+  );
+  const activePanelId = useReviewActivePanel(panelIds);
   const problemLabel = useMemo(() => {
     if (!problemId) return "";
     const p = problems.find((x) => x.id === problemId);
@@ -198,6 +205,8 @@ export default function ReviewPage({
             onUnauthorized={onUnauthorized}
             showAllSubmissions={isLast && hasHiddenSubmissions && Boolean(nextProblemId)}
             onShowAllSubmissions={showAllSubmissions}
+            isLastInStack={isLast}
+            isActive={activePanelId === submissionPanelId(s.id)}
           />
         );
       })}

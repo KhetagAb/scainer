@@ -1,0 +1,47 @@
+/* Verdict action button variants (review context) */
+
+.btn--ok {
+  background: #d4e2cc;
+  border-color: #a8b89c;
+  color: #3a5236;
+}
+
+.btn--ok:hover:not(:disabled) {
+  background: #c8d9bf;
+  border-color: #9aab8f;
+}
+
+.btn--rj {
+  background: var(--verdict-rj-bg);
+  border-color: var(--verdict-rj-border);
+  color: var(--verdict-rj-text);
+}
+
+.btn--rj:hover:not(:disabled) {
+  background: #e5cbc8;
+  border-color: #c9a39e;
+  color: #5c3030;
+}
+
+.btn--comment {
+  background: #d8e0ea;
+  border-color: #aebdcf;
+  color: #3a4654;
+}
+
+.btn--comment:hover:not(:disabled) {
+  background: #ccd6e2;
+  border-color: #a0b0c3;
+}
+
+.btn--comment.btn--comment--muted {
+  background: #e8e6e3;
+  border-color: #d4d2ce;
+  color: var(--text-muted);
+}
+
+.btn--comment.btn--comment--muted:hover:not(:disabled) {
+  background: #dedbd7;
+  border-color: #c8c5c0;
+  color: var(--text-muted);
+}

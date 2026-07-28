@@ -1,0 +1,22 @@
+/* Single submission panel shell */
+
+.review-detail--panel {
+  scroll-margin-top: var(--review-sticky-scroll-offset);
+  padding-bottom: 1.5rem;
+}
+
+.review-detail--panel + .review-detail--panel {
+  margin-top: 0.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.review-detail__warn {
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.65rem;
+  background: #fff4e5;
+  border-radius: var(--radius-chip);
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  color: #7a4a12;
+}

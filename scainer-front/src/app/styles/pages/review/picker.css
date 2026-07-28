@@ -1,0 +1,97 @@
+/* Review problem picker (/contests/:id/review) */
+
+.review-picker-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 0 0 1.1rem;
+}
+
+.review-picker__filter {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding-top: 0.15rem;
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  line-height: 1.25;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+  text-align: right;
+}
+
+.review-picker__filter-input {
+  flex-shrink: 0;
+  width: 0.9rem;
+  height: 0.9rem;
+  margin: 0;
+  accent-color: var(--accent, #c45c4a);
+  cursor: pointer;
+}
+
+.review-picker__filter-label {
+  white-space: nowrap;
+}
+
+.review-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  align-items: center;
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+.review-picker__item {
+  display: inline-flex;
+  align-items: center;
+}
+
+.review-picker__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  text-decoration: none;
+  line-height: 1.25;
+}
+
+.review-picker__chip.is-empty {
+  opacity: 0.55;
+}
+
+.review-picker__chip.is-active {
+  border-color: var(--accent, #c45c4a);
+  box-shadow: 0 0 0 1px var(--accent, #c45c4a);
+  opacity: 1;
+}
+
+.review-picker__pr {
+  min-width: 1rem;
+  padding: 0.02rem 0.28rem;
+  border-radius: 999px;
+  background: var(--bg);
+  font-size: 0.68rem;
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.review-picker__chip.is-active .review-picker__pr {
+  background: var(--accent, #c45c4a);
+  color: #fff;
+}
+
+.review-picker__empty,
+.review-empty {
+  margin: 1rem 0;
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+}

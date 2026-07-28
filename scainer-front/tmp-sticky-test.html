@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>sticky rail test</title>
+  <style>
+    body { margin: 0; font: 14px/1.5 sans-serif; }
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+      grid-template-rows: auto minmax(0, auto);
+      align-items: stretch;
+      column-gap: 1.5rem;
+    }
+    .code { grid-column: 1; grid-row: 2; background: #f6f5f2; }
+    .code pre { margin: 0; padding: 0.5rem; }
+    .rail {
+      grid-column: 2;
+      grid-row: 2;
+      align-self: stretch;
+      min-width: 0;
+      height: 0;
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: rgba(255, 0, 0, 0.05);
+    }
+    .track {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 auto;
+      min-height: 0;
+      width: 100%;
+      background: rgba(0, 255, 0, 0.05);
+    }
+    .head {
+      position: sticky;
+      top: 0.75rem;
+      height: 4.5rem;
+      flex: 0 0 auto;
+      background: #cde;
+      z-index: 2;
+    }
+    .body { flex: 0 0 auto; height: 12rem; background: #dec; }
+    .foot {
+      position: sticky;
+      bottom: 0.75rem;
+      height: 4.5rem;
+      flex: 0 0 auto;
+      background: #ecd;
+      z-index: 2;
+    }
+    .trail { flex: 1 1 auto; min-height: 1px; background: rgba(255, 255, 0, 0.2); }
+    #metrics {
+      position: fixed;
+      top: 0;
+      right: 0;
+      background: #000;
+      color: #0f0;
+      padding: 0.5rem;
+      font: 12px monospace;
+      z-index: 99;
+    }
+  </style>
+</head>
+<body>
+  <div id="metrics"></div>
+  <div class="grid">
+    <div class="code"><pre id="lines"></pre></div>
+    <div class="rail">
+      <div class="track">
+        <div class="head">HEAD sticky</div>
+        <div class="body">BODY</div>
+        <div class="foot">FOOT sticky</div>
+        <div class="trail" aria-hidden></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    document.getElementById("lines").textContent = Array.from(
+      { length: 120 },
+      (_, i) => `line ${i + 1}`,
+    ).join("\n");
+
+    const metrics = document.getElementById("metrics");
+    const code = document.querySelector(".code");
+    const rail = document.querySelector(".rail");
+    const track = document.querySelector(".track");
+    const head = document.querySelector(".head");
+    const foot = document.querySelector(".foot");
+
+    function report() {
+      const hr = head.getBoundingClientRect();
+      const fr = foot.getBoundingClientRect();
+      metrics.textContent = [
+        `code ${code.offsetHeight}`,
+        `rail ${rail.offsetHeight}`,
+        `track ${track.offsetHeight}`,
+        `head top ${hr.top.toFixed(1)}`,
+        `foot bottom ${fr.bottom.toFixed(1)}`,
+        `vh ${window.innerHeight}`,
+        `scroll ${window.scrollY}`,
+      ].join(" | ");
+    }
+
+    window.addEventListener("load", report);
+    window.addEventListener("scroll", report, { passive: true });
+    window.addEventListener("resize", report);
+  </script>
+</body>
+</html>

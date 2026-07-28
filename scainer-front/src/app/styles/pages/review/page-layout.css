@@ -1,0 +1,56 @@
+/* Submission stack and pagination on review page */
+
+.review-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.review-show-all {
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem 0 1.5rem;
+}
+
+.review-show-all__btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  margin: 0;
+  padding: 0.35rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  line-height: 1.2;
+  color: var(--text-faint);
+  transition: color 0.15s ease;
+}
+
+.review-show-all__btn svg {
+  opacity: 0.28;
+  transition:
+    opacity 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.review-show-all__btn:hover,
+.review-show-all__btn:focus-visible {
+  color: var(--text-muted);
+  outline: none;
+}
+
+.review-show-all__btn:hover svg,
+.review-show-all__btn:focus-visible svg {
+  opacity: 1;
+  color: var(--text-muted);
+  transform: translateY(0.12rem);
+}
+
+.review-empty .review-show-all {
+  padding-top: 0.75rem;
+}

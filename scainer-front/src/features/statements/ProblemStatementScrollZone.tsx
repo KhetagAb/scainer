@@ -39,7 +39,7 @@ export default function ProblemStatementScrollZone({
     <>
       <div
         className={
-          "review-side-rail__scroll review-side-rail__scroll--head" +
+          "review-side-rail__zone--head review-side-rail__slot--head review-side-rail__scroll review-side-rail__scroll--head" +
           (statementAvailable ? "" : " review-side-rail__scroll--head-disabled")
         }
         role="button"
@@ -51,20 +51,15 @@ export default function ProblemStatementScrollZone({
         }}
         onKeyDown={onKeyDown}
       >
-        <div className="review-scroll-head__bar">
-          <span
-            className="review-scroll-hint review-scroll-hint--statement"
-            aria-hidden={!statementAvailable}
-          >
-            <Scroll size={28} strokeWidth={2} />
-            <span className="review-scroll-hint__label">
-              {statementAvailable ? enabledLabel : disabledLabel}
-            </span>
+        <span
+          className="review-scroll-hint review-scroll-hint--statement"
+          aria-hidden={!statementAvailable}
+        >
+          <Scroll size={28} strokeWidth={2} />
+          <span className="review-scroll-hint__label">
+            {statementAvailable ? enabledLabel : disabledLabel}
           </span>
-        </div>
-        {statementAvailable ? (
-          <div className="review-scroll-head__hover-fill" aria-hidden />
-        ) : null}
+        </span>
       </div>
       {statementAvailable ? (
         <ProblemStatementModal

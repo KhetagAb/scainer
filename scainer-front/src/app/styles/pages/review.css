@@ -1,0 +1,12 @@
+/* pages/review.css — review page styles (/contests/:id/review) */
+
+@import "./review/picker.css";
+@import "./review/page-layout.css";
+@import "./review/celebrate.css";
+@import "./review/detail.css";
+@import "./review/source-code.css";
+@import "./review/workspace.css";
+@import "./review/side-rail.css";
+@import "./review/panel.css";
+@import "./review/verdict-buttons.css";
+@import "./review/scroll-nav.css";

@@ -1,0 +1,167 @@
+/* shared/layout.css — .app-shell, .app-topbar, .app-main, .logo, .meta */
+
+.app-shell {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: stretch;
+  gap: 1rem;
+  height: var(--app-topbar-height);
+  min-height: var(--app-topbar-height);
+  padding: 0 var(--page-gutter);
+  background: var(--surface-head);
+  border-bottom: 1px solid var(--border);
+}
+
+.app-topbar__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  flex: 0 0 auto;
+  margin-left: auto;
+  min-width: 0;
+  align-self: stretch;
+}
+
+.app-topbar__crumb {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  gap: 0.35rem;
+  min-width: 0;
+  flex: 1 1 auto;
+  transform: translateY(0.12rem);
+}
+
+.app-topbar__crumb-parallel {
+  flex-shrink: 0;
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--chip-border) 85%, transparent);
+  text-underline-offset: 0.16em;
+}
+
+.app-topbar__crumb-parallel:hover {
+  color: var(--text);
+  text-decoration-color: var(--text-muted);
+}
+
+.app-topbar__crumb-sep {
+  flex-shrink: 0;
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-faint);
+}
+
+.app-topbar__crumb-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-head);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.app-topbar__crumb-statement {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.app-topbar__crumb-statement:hover,
+.app-topbar__crumb-statement:focus-visible {
+  color: var(--text);
+  outline: none;
+}
+
+.app-topbar__crumb-statement-label {
+  overflow: hidden;
+  max-width: 0;
+  opacity: 0;
+  white-space: nowrap;
+  transition:
+    max-width 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.app-topbar__crumb-statement:hover .app-topbar__crumb-statement-label,
+.app-topbar__crumb-statement:focus-visible .app-topbar__crumb-statement-label {
+  max-width: 10rem;
+  opacity: 1;
+}
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 1.1rem var(--page-gutter) 2.75rem;
+}
+
+.app-main:has(> .contest-head--review) {
+  padding-top: 0;
+}
+
+.logo-link {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  text-decoration: none;
+  color: inherit;
+  white-space: nowrap;
+}
+
+.app-topbar .logo-link {
+  align-self: stretch;
+  padding: 0;
+}
+
+.logo {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 1.65rem;
+  font-weight: 100;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1.1;
+}
+
+.logo-ai {
+  font-weight: 100;
+  letter-spacing: -0.04em;
+  background: var(--logo-ai-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.meta {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}

@@ -126,7 +126,7 @@ export default function ReviewLegendPreview({ preview = true, className }: Props
             />
           </div>
 
-          <div className="review-side-rail">
+          <div className="review-side-rail review-side-rail--static">
             <div className="review-side-rail__track">
               <div className="review-side-rail__panel-shell">
               <aside className="review-side-panel">

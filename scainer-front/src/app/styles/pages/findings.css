@@ -1,0 +1,306 @@
+/* pages/findings.css — .ai-badge, .findings, .group-*, .finding-* */
+
+.ai-badge {
+  position: relative;
+  display: inline-block;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: 0 0 auto;
+  vertical-align: middle;
+  cursor: help;
+}
+
+/* Иконка через ::before — иначе mask съест tooltip. */
+.ai-badge::before {
+  content: '';
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--logo-ai-gradient);
+  -webkit-mask-image: url("../../../assets/ai-icon.png");
+  mask-image: url("../../../assets/ai-icon.png");
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+.ai-badge-tip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.55rem);
+  z-index: 20;
+  width: max-content;
+  max-width: min(16.5rem, 70vw);
+  padding: 0.55rem 0.7rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius-card) - 0.05rem);
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(55, 48, 40, 0.12);
+  transform: translateX(-50%) translateY(0.2rem);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.14s ease, transform 0.14s ease, visibility 0.14s;
+}
+
+.ai-badge-tip::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  margin-left: -5px;
+  border: 5px solid transparent;
+  border-top-color: #fff;
+  filter: drop-shadow(0 1px 0 var(--border));
+}
+
+.ai-badge-tip-label {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: var(--logo-ai-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.ai-badge-tip-text {
+  display: block;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+.ai-badge:hover .ai-badge-tip,
+.ai-badge:focus-visible .ai-badge-tip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.findings {
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+  margin-top: 0.85rem;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.group-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  padding: 0.15rem 0.15rem 0.35rem;
+}
+
+.group-title {
+  margin: 0;
+  flex: 1 1 auto;
+  font-family: var(--font-head);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.4rem 0.5rem;
+}
+
+.group-title code {
+  font-family: var(--font-body);
+  font-size: 0.95em;
+  font-weight: 700;
+}
+
+.group-count {
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-faint);
+}
+
+.group-stats {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-faint);
+}
+
+.group-stats--high {
+  color: #6a9e68;
+}
+
+.group-stats--low {
+  color: #c4a04a;
+}
+
+.group-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.finding-row__heads {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  align-items: stretch;
+}
+
+.finding-row__heads > .finding-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.finding-row__spacer {
+  min-height: 0;
+}
+
+.finding-row__expand {
+  background: var(--surface);
+}
+
+.finding-row--open-slot-0 .finding-card--ghost-slot,
+.finding-row--open-slot-1 .finding-card--ghost-slot {
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 820px) {
+  .finding-row__heads {
+    grid-template-columns: 1fr;
+  }
+
+  .finding-row__spacer {
+    display: none;
+  }
+}
+
+.finding-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+
+.finding-card--ghost-slot {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--border) 70%, var(--text-faint) 30%);
+  background: color-mix(in srgb, var(--surface-head) 85%, var(--surface) 15%);
+  overflow: hidden;
+}
+
+.finding-card--ghost-slot:focus-within {
+  outline: 2px solid var(--focus-ring, #4a7fd4);
+  outline-offset: -2px;
+}
+
+.group.hidden-group { display: none; }
+
+.finding-head {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  flex: 1 1 auto;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: var(--surface-head);
+  cursor: pointer;
+  list-style: none;
+  border-radius: var(--radius-card);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.finding-head__main {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  min-width: 0;
+}
+
+.finding-card-ghost {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  width: 100%;
+  flex: 1 1 auto;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  min-width: 0;
+  box-sizing: border-box;
+  border-radius: 0;
+}
+
+.finding-card-ghost:focus-visible {
+  outline: none;
+}
+
+.finding-card-ghost__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+
+.finding-card-ghost__action {
+  flex: 0 0 auto;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-faint);
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.finding-meta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  flex: 0 0 auto;
+}
+
+.finding-meta:empty { display: none; }
+
+.finding-title {
+  flex: 0 1 auto;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 0.95rem;
+  min-width: 0;
+}
+

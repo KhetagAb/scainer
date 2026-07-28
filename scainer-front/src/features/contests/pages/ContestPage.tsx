@@ -13,6 +13,7 @@ import ReviewLegendModal, {
   wasReviewLegendSeen,
 } from "@/features/review/ReviewLegendModal";
 import { useReviewPrOnlyFilter } from "@/features/review/useReviewPrOnlyFilter";
+import { useReviewRailChrome } from "@/features/review/useReviewRailChrome";
 import helpIconUrl from "@/assets/help-icon.png";
 
 type Props = {
@@ -65,6 +66,8 @@ export default function ContestPage({ onUnauthorized }: Props) {
     setReviewLegendOpen(false);
   }, []);
 
+  useReviewRailChrome(onReviewPage);
+
   if (!contestId) {
     navigate("/", { replace: true });
     return null;
@@ -89,6 +92,7 @@ export default function ContestPage({ onUnauthorized }: Props) {
         className={
           "contest-head" + (onReviewPage ? " contest-head--review" : "")
         }
+        {...(onReviewPage ? { "data-contest-head": true } : {})}
       >
         {onFindingsPage ? (
           <div className="contest-head__findings-tabs">

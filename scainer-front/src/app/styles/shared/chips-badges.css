@@ -1,0 +1,278 @@
+/* shared/chips-badges.css — .chip, .score-badge, .detector-chip, .contest-chip, .problem-chip */
+.score-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: var(--radius-chip);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+}
+
+.score-badge.level-0 { background: var(--score-0); }
+.score-badge.level-low { background: var(--score-low); }
+.score-badge.level-mid { background: var(--score-mid); }
+.score-badge.level-high { background: var(--score-high); }
+.score-badge.level-crit { background: var(--score-crit); color: var(--score-crit-text); }
+
+.score-badge.score-badge--night {
+  min-width: 2.75rem;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.78rem;
+  border-color: var(--night-surface-border);
+  color: var(--night-surface-text);
+  text-shadow: var(--night-surface-text-shadow);
+  background-color: var(--night-surface-bg);
+  background-image: var(--night-surface-image);
+  box-shadow: var(--night-surface-shadow);
+}
+
+/* % групп задач/участников — та же шкала, что у чипов задач. */
+.score-badge.score-badge--task-heat.level-0 {
+  background: var(--problem-0);
+  border: 1px solid var(--problem-0-border);
+  color: var(--text-faint);
+}
+.score-badge.score-badge--task-heat.level-low {
+  background: var(--problem-weak);
+  color: var(--text);
+}
+.score-badge.score-badge--task-heat.level-high {
+  background: var(--problem-strong);
+  color: var(--problem-strong-text);
+}
+
+.detectors {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  flex: 0 0 auto;
+}
+
+.detectors:empty { display: none; }
+
+.detector-chip__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  align-items: center;
+  justify-items: center;
+}
+
+.detector-chip__label--static {
+  text-align: center;
+}
+
+.detector-chip__text,
+.detector-chip__score-hover {
+  grid-area: 1 / 1;
+  width: 100%;
+  text-align: center;
+  transition: opacity 0.12s ease;
+}
+
+.detector-chip__score-hover {
+  opacity: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.detector-chip:hover .detector-chip__text,
+.detector-chip:focus-within .detector-chip__text {
+  opacity: 0;
+}
+
+.detector-chip:hover .detector-chip__score-hover,
+.detector-chip:focus-within .detector-chip__score-hover {
+  opacity: 1;
+}
+
+.contest-chip {
+  border-color: #9aa8b8;
+  background: #eef3f8;
+  color: #2c3e50;
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  max-width: min(28rem, 70vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.problem-chip {
+  border-color: var(--chip-border);
+  background: var(--chip-bg);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.detectors .detector-chip {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  color: var(--text-faint);
+}
+
+.ai-slot {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.ai-slot:empty { display: none; }
+
+.ai-slot .ai-badge {
+  width: 1.9rem;
+  height: 1.9rem;
+}
+
+.chip {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid var(--chip-border);
+  border-radius: var(--radius-chip);
+  background: var(--chip-bg);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.detectors .chip.detector-chip--night {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: var(--detector-chip-width);
+  box-sizing: border-box;
+  padding: 0.2rem 0.55rem 0.2rem 0.35rem;
+  border-color: var(--night-surface-border);
+  color: var(--night-surface-text);
+  font-weight: 600;
+  font-family: var(--font-ui);
+  text-shadow: var(--night-surface-text-shadow);
+  background-color: var(--night-surface-bg);
+  background-image: var(--night-surface-image);
+  box-shadow: var(--night-surface-shadow);
+}
+
+.detectors .chip.detector-chip--night .detector-chip__label {
+  white-space: nowrap;
+}
+
+.detector-chip__moon {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: 0 0 auto;
+  object-fit: contain;
+  filter: drop-shadow(0 0 3px rgba(255, 248, 220, 0.45));
+}
+
+.detectors .chip.detector-chip--jplag {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+  width: var(--detector-chip-width);
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: 0;
+  border-color: var(--jplag-surface-border);
+  font-weight: 600;
+  font-family: var(--font-ui);
+  background-color: var(--jplag-surface-bg);
+  box-shadow: var(--jplag-surface-shadow);
+}
+
+.detector-chip__jplag-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--jplag-fill, 0%);
+  z-index: 0;
+}
+
+.detector-chip__jplag-fill.level-low {
+  background: var(--score-low);
+}
+
+.detector-chip__jplag-fill.level-mid {
+  background: var(--score-mid);
+}
+
+.detector-chip__jplag-fill.level-high {
+  background: var(--score-high);
+}
+
+.detector-chip__jplag-fill.level-crit {
+  background: var(--score-crit);
+}
+
+.detector-chip__jplag-content {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0.2rem 0.55rem 0.2rem 0.35rem;
+  color: var(--jplag-surface-text);
+}
+
+.detector-chip--jplag:has(.level-crit) .detector-chip__jplag-content {
+  color: var(--score-crit-text);
+}
+
+.detector-chip__detective {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+
+a.chip--link {
+  text-decoration: none;
+  color: var(--accent-violet);
+  cursor: pointer;
+}
+
+a.chip--link:hover {
+  border-color: var(--accent-violet);
+  background: color-mix(in srgb, var(--accent-violet) 8%, var(--chip-bg));
+}
+
+.finding-body {
+  padding: 0.85rem 1rem 1.1rem;
+}
+
+.signal-block {
+  margin-bottom: 1rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.signal-block:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.signal-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.65rem;
+  margin-bottom: 0.45rem;
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+}
+
+.evidence-text {
+  margin: 0.35rem 0 0.65rem;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+}
+

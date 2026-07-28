@@ -110,6 +110,8 @@ type Props = {
   onUnauthorized: () => void;
   showAllSubmissions?: boolean;
   onShowAllSubmissions?: () => void;
+  isLastInStack?: boolean;
+  isActive?: boolean;
 };
 
 export default function ReviewSubmissionPanel({
@@ -125,10 +127,13 @@ export default function ReviewSubmissionPanel({
   onUnauthorized,
   showAllSubmissions = false,
   onShowAllSubmissions,
+  isLastInStack = false,
+  isActive = true,
 }: Props) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const commentRef = useRef<HTMLTextAreaElement>(null);
+  const commentsScrollRef = useRef<HTMLDivElement>(null);
   const [comment, setComment] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
   const [commentsOpen, setCommentsOpen] = useState(true);
@@ -138,6 +143,7 @@ export default function ReviewSubmissionPanel({
   const submissionId = submission.id;
   const panelId = submissionPanelId(submissionId);
   const commentFieldId = `review-comment-${panelId}`;
+
   const goNextProblem = !nextSubmissionId && Boolean(nextProblemId);
   const nextEnabled = Boolean(nextSubmissionId || nextProblemId);
   const showAllBesideNext =
@@ -235,6 +241,39 @@ export default function ReviewSubmissionPanel({
   const commentsCollapsed = !commentsOpen && thread.length > 1;
   const base = `/contests/${encodeURIComponent(contestId)}`;
 
+  useEffect(() => {
+    const el = commentsScrollRef.current;
+    if (!el) return;
+
+    const syncScrollHint = () => {
+      const scrollable = el.scrollHeight > el.clientHeight + 1;
+      el.classList.toggle("is-scrollable", scrollable);
+      el.classList.toggle("is-scrolled-top", scrollable && el.scrollTop > 1);
+      el.classList.toggle(
+        "is-scrolled-bottom",
+        scrollable && el.scrollTop + el.clientHeight < el.scrollHeight - 1,
+      );
+    };
+
+    syncScrollHint();
+    const ro = new ResizeObserver(syncScrollHint);
+    ro.observe(el);
+    el.addEventListener("scroll", syncScrollHint, { passive: true });
+    return () => {
+      ro.disconnect();
+      el.removeEventListener("scroll", syncScrollHint);
+    };
+  }, [thread.length, commentsOpen, submissionId]);
+
+  const withCommentsScroll = async (fn: () => Promise<void>) => {
+    const el = commentsScrollRef.current;
+    const scrollTop = el?.scrollTop ?? 0;
+    await fn();
+    requestAnimationFrame(() => {
+      if (el) el.scrollTop = scrollTop;
+    });
+  };
+
   const refreshComments = () =>
     queryClient.invalidateQueries({
       queryKey: getSubmissionCommentsQueryKey({
@@ -303,13 +342,15 @@ export default function ReviewSubmissionPanel({
     if (!commentText) return;
     setActionError(null);
     try {
-      await commentMutation.mutateAsync({
-        path: { id: contestId, submissionId },
-        body: { text: commentText },
-        headers: authHeaders(),
+      await withCommentsScroll(async () => {
+        await commentMutation.mutateAsync({
+          path: { id: contestId, submissionId },
+          body: { text: commentText },
+          headers: authHeaders(),
+        });
+        setComment("");
+        await refreshComments();
       });
-      setComment("");
-      await refreshComments();
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) onUnauthorized();
       setActionError(err instanceof ApiError ? err.error : "Не удалось отправить комментарий");
@@ -319,22 +360,24 @@ export default function ReviewSubmissionPanel({
   const submitVerdict = async (verdict: "OK" | "RJ") => {
     setActionError(null);
     try {
-      await verdictMutation.mutateAsync({
-        path: { id: contestId, submissionId },
-        body: {
-          verdict,
-          ...(commentText ? { comment: commentText } : {}),
-        },
-        headers: authHeaders(),
+      await withCommentsScroll(async () => {
+        await verdictMutation.mutateAsync({
+          path: { id: contestId, submissionId },
+          body: {
+            verdict,
+            ...(commentText ? { comment: commentText } : {}),
+          },
+          headers: authHeaders(),
+        });
+        setComment("");
+        patchSubmissionVerdict(verdict);
+        await refreshComments();
+        if (prLeftForProblem(submission.problem) === 0) {
+          setCelebrate(true);
+        } else if (nextSubmissionId) {
+          scrollToNext();
+        }
       });
-      setComment("");
-      patchSubmissionVerdict(verdict);
-      await refreshComments();
-      if (prLeftForProblem(submission.problem) === 0) {
-        setCelebrate(true);
-      } else if (nextSubmissionId) {
-        scrollToNext();
-      }
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) onUnauthorized();
       setActionError(err instanceof ApiError ? err.error : "Не удалось выставить вердикт");
@@ -418,7 +461,13 @@ export default function ReviewSubmissionPanel({
     ) : null;
 
   return (
-    <article id={panelId} className="review-detail review-detail--panel">
+    <article
+      id={panelId}
+      className={
+        "review-detail review-detail--panel" +
+        (isActive ? " review-detail--active" : "")
+      }
+    >
       <ReviewCelebrateOverlay
         open={celebrate}
         onClose={() => setCelebrate(false)}
@@ -440,7 +489,12 @@ export default function ReviewSubmissionPanel({
         </p>
       ) : null}
 
-      <div className="review-workspace">
+      <div
+        className={
+          "review-workspace" +
+          (!isLastInStack ? " review-workspace--anchor-section" : "")
+        }
+      >
         <div className="review-workspace__label-row">
           <h3 className="review-workspace__label">Код</h3>
           <div className="review-workspace__more code-pane-bar">
@@ -453,7 +507,7 @@ export default function ReviewSubmissionPanel({
         </div>
         <div className="review-workspace__label-spacer" aria-hidden />
 
-        <div className="review-workspace__code" aria-label="Исходный код">
+        <div className="review-workspace__code review-code" aria-label="Исходный код">
           {findingKey ? (
             <Link
               to={`${base}/findings?finding=${encodeURIComponent(findingKey)}`}
@@ -502,19 +556,30 @@ export default function ReviewSubmissionPanel({
           )}
         </div>
 
-        <div className="review-side-rail">
+        <aside className="review-side-rail">
           <div className="review-side-rail__track">
-            <div className="review-side-rail__panel-shell">
-              <aside className="review-side-panel">
-              {statementAvailable ? (
-                <button
-                  type="button"
-                  className="review-scroll-head__padding-zone"
-                  aria-label="Условие задачи"
-                  onClick={() => setStatementOpen(true)}
-                />
-              ) : null}
-              <div className="review-side-head">
+            <div className="review-side-rail__pane">
+              <ProblemStatementScrollZone
+              contestId={contestId}
+              contestName={contestName}
+              problemLabel={statementProblemLabel}
+              statementAvailable={statementAvailable}
+              open={statementOpen}
+              onOpen={() => setStatementOpen(true)}
+              onClose={() => setStatementOpen(false)}
+              />
+              <button
+                type="button"
+                className="review-side-rail__spacer review-side-rail__spacer--a"
+                aria-hidden
+                tabIndex={-1}
+                disabled={!statementAvailable}
+                onClick={() => {
+                  if (statementAvailable) setStatementOpen(true);
+                }}
+              />
+              <aside className="review-side-panel review-side-rail__body">
+                <div className="review-side-head">
                 <span className="review-side-head__name">{submission.participant}</span>
                 <span className={`review-verdict-chip review-verdict-chip--${verdictTone}`}>
                   {formatVerdictLabel(liveVerdict)}
@@ -581,13 +646,25 @@ export default function ReviewSubmissionPanel({
                   </button>
                 </div>
               </form>
-              {commentsSection}
+              <div ref={commentsScrollRef} className="review-side-panel__scroll">
+                {commentsSection}
+              </div>
             </aside>
-            </div>
-
+              <button
+                type="button"
+                className="review-side-rail__spacer review-side-rail__spacer--b"
+                aria-hidden
+                tabIndex={-1}
+                disabled={actionPending || !nextEnabled}
+                onClick={() => {
+                  if (!actionPending && nextEnabled) onManualNext();
+                }}
+              />
             {nextEnabled ? (
               showAllBesideNext ? (
-                <div className="review-side-rail__scroll review-side-rail__scroll--duo">
+                <div
+                  className="review-side-rail__zone--foot review-side-rail__slot--foot review-side-rail__scroll review-side-rail__scroll--duo review-side-rail__scroll--foot"
+                >
                   <div
                     className="review-scroll-duo__next"
                     role="button"
@@ -623,7 +700,7 @@ export default function ReviewSubmissionPanel({
                 </div>
               ) : (
                 <div
-                  className="review-side-rail__scroll"
+                  className="review-side-rail__zone--foot review-side-rail__slot--foot review-side-rail__scroll review-side-rail__scroll--foot"
                   role="button"
                   tabIndex={actionPending ? -1 : 0}
                   aria-disabled={actionPending}
@@ -654,17 +731,9 @@ export default function ReviewSubmissionPanel({
                 </div>
               )
             ) : null}
-            <ProblemStatementScrollZone
-              contestId={contestId}
-              contestName={contestName}
-              problemLabel={statementProblemLabel}
-              statementAvailable={statementAvailable}
-              open={statementOpen}
-              onOpen={() => setStatementOpen(true)}
-              onClose={() => setStatementOpen(false)}
-            />
+            </div>
           </div>
-        </div>
+        </aside>
       </div>
     </article>
   );

@@ -11,7 +11,7 @@ type Props = {
 export default function AppHeader({ actions, children }: Props) {
   return (
     <div className="app-shell">
-      <header className="app-topbar">
+      <header className="app-topbar" data-app-topbar>
         <Link to="/" className="logo-link" aria-label="На главную">
           <Logo />
         </Link>

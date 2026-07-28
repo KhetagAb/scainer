@@ -1,0 +1,64 @@
+/* Source code block and copy control in review workspace */
+
+.review-source__code {
+  margin: 0;
+  border: 1px solid var(--border);
+  background: var(--surface-2, #f6f5f2);
+}
+
+.review-source__code--ok {
+  border-color: #b5c7a8;
+  border-width: 3px;
+}
+
+.review-source__code--rj {
+  border-color: #d4b0ab;
+  border-width: 3px;
+}
+
+.review-source__code--attention {
+  border-color: color-mix(in srgb, var(--score-crit) 70%, #8a3030 30%);
+  border-width: 3px;
+}
+
+.source-code-copy {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-chip);
+  background: color-mix(in srgb, var(--surface-2, #f6f5f2) 88%, #fff 12%);
+  color: var(--text-faint);
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(55, 50, 45, 0.08);
+  transition:
+    color 0.14s ease,
+    background 0.14s ease,
+    border-color 0.14s ease;
+}
+
+.source-code-copy:hover,
+.source-code-copy:focus-visible {
+  color: var(--text-muted);
+  background: #fff;
+  border-color: var(--chip-border);
+  outline: none;
+}
+
+.source-code-copy--copied {
+  color: var(--text-muted);
+  background: #fff;
+  border-color: var(--chip-border);
+}
+
+.source-code-copy--with-findings {
+  top: calc(0.65rem + 3.85rem + 0.55rem);
+}

@@ -1,0 +1,96 @@
+/* «All reviewed» celebration overlay */
+
+.review-celebrate {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: color-mix(in srgb, #2a2824 42%, transparent);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  opacity: 0;
+  transition: opacity 0.1s ease;
+  cursor: pointer;
+}
+
+.review-celebrate--visible {
+  opacity: 1;
+}
+
+.review-celebrate__copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  max-width: min(36rem, 100%);
+  text-align: center;
+  pointer-events: none;
+  transform: translateY(0.3rem);
+  transition: transform 0.12s ease;
+}
+
+.review-celebrate--visible .review-celebrate__copy {
+  transform: none;
+}
+
+.review-celebrate__title {
+  margin: 0;
+  font-family: "Cormorant Garamond", var(--font-head);
+  font-size: clamp(2.75rem, 8vw, 4.75rem);
+  font-weight: 500;
+  font-style: italic;
+  line-height: 1.05;
+  color: #fffef8;
+  letter-spacing: 0.01em;
+  text-wrap: balance;
+}
+
+.review-celebrate__subtitle {
+  margin: 0;
+  max-width: 28rem;
+  font-family: var(--font-ui);
+  font-size: clamp(0.85rem, 2vw, 1.05rem);
+  font-weight: 500;
+  line-height: 1.4;
+  color: color-mix(in srgb, #fffef8 62%, transparent);
+  text-wrap: balance;
+}
+
+.review-celebrate__problem {
+  color: color-mix(in srgb, #fffef8 82%, transparent);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.review-celebrate__next {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin: 0.55rem auto 0;
+  padding: 0.55rem 1.15rem;
+  border: 1px solid color-mix(in srgb, #fffef8 35%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, #fffef8 12%, transparent);
+  color: #fffef8;
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  pointer-events: auto;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.review-celebrate__next:hover {
+  background: color-mix(in srgb, #fffef8 22%, transparent);
+  border-color: color-mix(in srgb, #fffef8 55%, transparent);
+  color: #fff;
+}

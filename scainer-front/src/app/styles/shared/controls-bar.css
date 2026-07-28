@@ -1,0 +1,83 @@
+/* shared/controls-bar.css — .controls-bar, .page-help-btn, .page-corner-actions */
+
+/*
+ * Поиск и группировка в одну строку; align-items: flex-start —
+ * поиск не «уплывает» при высокой колонке вкладок.
+ */
+.controls-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin: 0 0 1rem;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+
+.controls-bar__grouping {
+  margin-left: 0.85rem;
+  padding-left: 0;
+  border-left: none;
+}
+
+.page-corner-actions {
+  position: fixed;
+  right: var(--page-gutter);
+  bottom: 1.5rem;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.page-help-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text-faint);
+  cursor: pointer;
+  box-shadow: 0 0.2rem 0.75rem rgba(50, 44, 36, 0.08);
+}
+
+.page-help-btn:hover {
+  color: var(--text-muted);
+  border-color: var(--text-faint);
+}
+
+.page-help-btn:focus-visible {
+  outline: 2px solid var(--accent-violet);
+  outline-offset: 2px;
+}
+
+.page-help-btn__glyph {
+  display: block;
+  width: 1.1rem;
+  height: 1.1rem;
+  background: currentColor;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.control-group__label {
+  font-family: var(--font-ui);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  white-space: nowrap;
+  line-height: 1;
+  text-align: center;
+}

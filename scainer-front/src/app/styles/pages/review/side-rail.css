@@ -1,0 +1,230 @@
+/* Side rail: one sticky pane, five slots (head / spacer A / body / spacer B / foot).
+ * Sticky ancestors must not use overflow-y: hidden|auto|scroll. */
+
+.review-side-rail {
+  grid-column: 2;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  align-self: stretch;
+}
+
+.review-side-rail__track {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 100%;
+  min-width: 0;
+}
+
+.review-side-rail__pane {
+  position: sticky;
+  top: calc(var(--review-chrome-top) + var(--rail-gap-top));
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: var(--rail-pane-h);
+  max-height: var(--rail-pane-h);
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.review-side-rail__slot--head,
+.review-side-rail__slot--foot {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.review-side-rail__slot--foot {
+  min-height: 2.75rem;
+  box-sizing: border-box;
+}
+
+.review-side-panel {
+  min-width: 0;
+}
+
+.review-side-rail__spacer--a,
+.review-side-rail__spacer--b {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.review-side-rail__spacer--a:disabled,
+.review-side-rail__spacer--b:disabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+.review-side-rail__body {
+  flex: 0 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.review-side-rail__body > .review-side-head,
+.review-side-rail__body > .review-verdict {
+  flex: 0 0 auto;
+}
+
+.review-side-panel__scroll {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.review-side-panel__scroll::before,
+.review-side-panel__scroll::after {
+  content: "";
+  position: sticky;
+  left: 0;
+  display: block;
+  width: 100%;
+  height: 1.25rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 1;
+}
+
+.review-side-panel__scroll::before {
+  top: 0;
+  margin-bottom: -1.25rem;
+  background: linear-gradient(to bottom, var(--bg, #fff), transparent);
+}
+
+.review-side-panel__scroll::after {
+  bottom: 0;
+  margin-top: -1.25rem;
+  background: linear-gradient(to bottom, transparent, var(--bg, #fff));
+}
+
+.review-side-panel__scroll.is-scrollable.is-scrolled-top::before {
+  opacity: 1;
+}
+
+.review-side-panel__scroll.is-scrollable.is-scrolled-bottom::after {
+  opacity: 1;
+}
+
+.review-side-rail__pane:has(.review-side-rail__spacer--a:hover:not(:disabled))
+  .review-side-rail__slot--head
+  .review-scroll-hint__label,
+.review-side-rail__slot--head:hover .review-scroll-hint__label,
+.review-side-rail__slot--head:focus-visible .review-scroll-hint__label {
+  opacity: 1;
+  color: var(--text-muted);
+}
+
+.review-side-rail__pane:has(.review-side-rail__spacer--a:hover:not(:disabled))
+  .review-side-rail__slot--head
+  .review-scroll-hint
+  svg,
+.review-side-rail__slot--head:hover .review-scroll-hint svg,
+.review-side-rail__slot--head:focus-visible .review-scroll-hint svg {
+  opacity: 1;
+  color: var(--text-muted);
+  transform: translateY(-0.12rem);
+}
+
+.review-side-rail__pane:has(.review-side-rail__spacer--b:hover:not(:disabled))
+  .review-side-rail__slot--foot
+  .review-scroll-hint__label,
+.review-side-rail__slot--foot:hover .review-scroll-hint__label,
+.review-side-rail__slot--foot:focus-visible .review-scroll-hint__label {
+  opacity: 1;
+  color: var(--text-muted);
+}
+
+.review-side-rail__pane:has(.review-side-rail__spacer--b:hover:not(:disabled))
+  .review-side-rail__slot--foot
+  .review-scroll-hint
+  svg,
+.review-side-rail__slot--foot:hover .review-scroll-hint svg,
+.review-side-rail__slot--foot:focus-visible .review-scroll-hint svg {
+  opacity: 1;
+  color: var(--text-muted);
+  transform: translateY(0.12rem);
+}
+
+.review-side-rail__pane:has(.review-side-rail__spacer--b:hover:not(:disabled))
+  .review-side-rail__slot--foot
+  .review-scroll-hint--next-problem
+  svg,
+.review-side-rail__slot--foot:hover .review-scroll-hint--next-problem svg {
+  transform: translateX(0.12rem);
+}
+
+.review-detail--panel:not(.review-detail--active) .review-side-rail__pane {
+  opacity: 0.92;
+}
+
+.review-stack:not(:has(.review-detail--panel + .review-detail--panel))
+  .review-detail--panel
+  .review-side-rail__pane {
+  opacity: 1;
+}
+
+.review-side-rail--static .review-side-rail__pane {
+  position: static;
+  height: auto;
+  max-height: none;
+}
+
+.review-side-rail--static .review-side-rail__spacer--a,
+.review-side-rail--static .review-side-rail__spacer--b {
+  display: none;
+}
+
+.review-side-rail--static .review-side-rail__body {
+  overflow: visible;
+}
+
+.review-side-rail--static .review-side-panel__scroll {
+  overflow: visible;
+}
+
+.review-side-rail--static .review-side-panel__scroll::before,
+.review-side-rail--static .review-side-panel__scroll::after {
+  display: none;
+}
+
+@media (max-height: 600px) {
+  .review-side-rail__pane {
+    position: static;
+    height: auto;
+    max-height: none;
+  }
+
+  .review-side-rail__spacer--a,
+  .review-side-rail__spacer--b {
+    display: none;
+  }
+
+  .review-side-rail__body {
+    overflow: visible;
+  }
+
+  .review-side-panel__scroll {
+    overflow: visible;
+  }
+
+  .review-side-panel__scroll::before,
+  .review-side-panel__scroll::after {
+    display: none;
+  }
+}

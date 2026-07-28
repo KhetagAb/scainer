@@ -1,0 +1,62 @@
+/* Two-column review workspace: code + side rail */
+
+.review-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  grid-template-rows: auto minmax(0, auto);
+  column-gap: 1.5rem;
+  row-gap: 0.25rem;
+  align-items: start;
+  margin: 0 0 1.25rem;
+}
+
+/* Row 2 always stretches to code height so sticky track has room to slide. */
+.review-workspace__code,
+.review-side-rail {
+  align-self: stretch;
+  min-width: 0;
+}
+
+/* Non-last submissions: section at least as tall as the rail pane. */
+.review-workspace--anchor-section .review-workspace__code,
+.review-workspace--anchor-section .review-side-rail {
+  min-height: var(--rail-pane-h);
+}
+
+.review-workspace__label-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 1.375rem;
+}
+
+.review-workspace__more {
+  flex: 1;
+  min-width: 0;
+}
+
+.review-workspace__label {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  font-weight: 400;
+  line-height: 1.375rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.review-workspace__label-spacer {
+  grid-column: 2;
+  grid-row: 1;
+  min-height: 1.375rem;
+}
+
+.review-workspace__code {
+  position: relative;
+  grid-column: 1;
+  grid-row: 2;
+}

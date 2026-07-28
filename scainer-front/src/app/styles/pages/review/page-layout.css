@@ -1,6 +1,8 @@
 /* Submission stack and pagination on review page */
 
 .review-stack {
+  --review-panel-pad-tail: 1.5rem;
+  --review-stack-split-gap: 0.5rem;
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -12,7 +14,7 @@
   align-items: center;
   gap: 0.75rem;
   width: 100%;
-  margin: 0.75rem 0 0;
+  margin: 0;
   padding: 0.35rem 0;
   border: none;
   background: transparent;
@@ -53,9 +55,10 @@
 }
 
 .review-show-all--empty {
-  max-width: 36rem;
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
   padding: 0.75rem 0 1.5rem;
+  box-sizing: border-box;
 }
 
 .review-empty .review-show-all--empty {

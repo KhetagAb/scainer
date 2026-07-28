@@ -34,7 +34,7 @@ export default function ProblemStatementScrollZone({
     [onOpen, statementAvailable],
   );
 
-  const enabledLabel = "Условие задачи";
+  const enabledLabel = "Условие";
   const disabledLabel = "Невозможно получить условие";
 
   return (

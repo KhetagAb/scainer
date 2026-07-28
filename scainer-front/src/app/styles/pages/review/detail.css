@@ -1,14 +1,22 @@
 /* Single submission panel shell */
 
 .review-detail--panel {
+  --review-workspace-tail: 1.25rem;
+  --review-panel-pad-tail: 1.5rem;
+  --review-stack-split-gap: 0.5rem;
   scroll-margin-top: var(--review-sticky-scroll-offset);
-  padding-bottom: 1.5rem;
+  padding-bottom: var(--review-panel-pad-tail);
 }
 
-.review-detail--panel + .review-detail--panel {
-  margin-top: 0.5rem;
-  padding-top: 1.5rem;
+.review-detail--panel + .review-detail--panel,
+.review-show-all + .review-detail--panel {
+  margin-top: var(--review-stack-split-gap);
+  padding-top: var(--review-panel-pad-tail);
   border-top: 1px solid var(--border);
+}
+
+.review-detail--panel + .review-show-all:not(.review-show-all--empty) {
+  margin-top: var(--review-stack-split-gap);
 }
 
 .review-detail__warn {

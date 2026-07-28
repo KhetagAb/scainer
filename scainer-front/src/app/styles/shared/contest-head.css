@@ -116,19 +116,26 @@
 }
 
 .contest-head--review .review-picker__chip {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   padding: 0.1rem 0.38rem;
   white-space: nowrap;
+}
+
+.contest-head--review .review-picker__chip.is-statement {
+  padding: 0.34rem 0.36rem;
 }
 
 .contest-head--review .review-picker__chip.is-active {
   box-shadow: none;
 }
 
-.contest-head--review .review-picker__pr {
-  min-width: 0.9rem;
-  padding: 0 0.22rem;
-  font-size: 0.6rem;
+.contest-head--review .review-picker__chip-pr {
+  min-width: 1.1rem;
+  height: 1.1rem;
+  padding: 0 0.1rem;
+  font-size: 0.65rem;
+  font-weight: 500;
+  line-height: 1;
 }
 
 .contest-head--review .review-picker__filter {

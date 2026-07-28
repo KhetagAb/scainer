@@ -1,9 +1,8 @@
-import { FileText } from "lucide-react";
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
 import type { ProblemInfo, SubmissionListItem } from "@/client/types.gen";
 import { problemDisplay } from "@/features/findings/reportModel";
 import { prCountByProblem } from "@/features/review/reviewFindings";
+import ReviewProblemChip from "@/features/review/ReviewProblemChip";
 import ProblemStatementModal from "@/features/statements/ProblemStatementModal";
 
 type Props = {
@@ -28,6 +27,7 @@ export default function ReviewProblemPicker({
   onPrOnlyChange,
 }: Props) {
   const [statementOpen, setStatementOpen] = useState(false);
+  const [statementModalLabel, setStatementModalLabel] = useState<string | null>(null);
   const prCounts = prCountByProblem(submissions);
   const sorted = problems.slice().sort((a, b) => {
     const la = problemDisplay(a.id, a.name);
@@ -46,6 +46,16 @@ export default function ReviewProblemPicker({
 
   const base = `/contests/${encodeURIComponent(contestId)}`;
 
+  const openStatement = (label: string) => {
+    setStatementModalLabel(label);
+    setStatementOpen(true);
+  };
+
+  const closeStatement = () => {
+    setStatementOpen(false);
+    setStatementModalLabel(null);
+  };
+
   return (
     <>
       <div
@@ -59,41 +69,16 @@ export default function ReviewProblemPicker({
               const pr = prCounts.get(p.id) ?? 0;
               const active = activeProblemId === p.id;
               const label = problemDisplay(p.id, p.name);
-              const showStatement = active && statementAvailable;
               return (
                 <li key={p.id} className="review-picker__item">
-                  <NavLink
+                  <ReviewProblemChip
                     to={`${base}/review?problem=${encodeURIComponent(p.id)}`}
-                    className={
-                      "chip problem-chip review-picker__chip" +
-                      (active ? " is-active" : "") +
-                      (pr === 0 ? " is-empty" : "") +
-                      (showStatement ? " is-statement" : "")
-                    }
-                    title={showStatement ? `Условие задачи — ${label}` : label}
-                    aria-label={showStatement ? `Условие задачи — ${label}` : label}
-                    onClick={(e) => {
-                      if (showStatement) {
-                        e.preventDefault();
-                        setStatementOpen(true);
-                      }
-                    }}
-                  >
-                    <span className="review-picker__chip-main">
-                      <span className="review-picker__chip-label">{label}</span>
-                      {showStatement ? (
-                        <span className="review-picker__chip-statement" aria-hidden>
-                          <FileText size={14} strokeWidth={2} />
-                          <span className="review-picker__chip-statement-label">
-                            Условие задачи
-                          </span>
-                        </span>
-                      ) : null}
-                    </span>
-                    <span className="review-picker__pr" aria-label={`${pr} pending review`}>
-                      {pr}
-                    </span>
-                  </NavLink>
+                    label={label}
+                    pr={pr}
+                    active={active}
+                    statementAvailable={statementAvailable}
+                    onStatementOpen={openStatement}
+                  />
                 </li>
               );
             })}
@@ -116,8 +101,8 @@ export default function ReviewProblemPicker({
           open={statementOpen}
           contestId={contestId}
           title={contestName}
-          problemLabel={activeProblemLabel}
-          onClose={() => setStatementOpen(false)}
+          problemLabel={statementModalLabel ?? activeProblemLabel}
+          onClose={closeStatement}
         />
       ) : null}
     </>

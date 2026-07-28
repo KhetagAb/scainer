@@ -38,7 +38,6 @@ import SourceCode from "@/features/code/SourceCode";
 import SourceCodeCopyButton from "@/features/code/SourceCodeCopyButton";
 import UnifiedDiffView from "@/features/code/UnifiedDiffView";
 import ReviewCelebrateOverlay from "@/features/review/ReviewCelebrateOverlay";
-import ReviewShowAllSubmissions from "@/features/review/ReviewShowAllSubmissions";
 import SubmissionCompareInline from "@/features/review/SubmissionCompareInline";
 import {
   defaultCompareRunId,
@@ -96,8 +95,6 @@ type Props = {
   nextSubmissionId: string | null;
   nextProblemId: string | null;
   onUnauthorized: () => void;
-  showAllSubmissions?: boolean;
-  onShowAllSubmissions?: () => void;
   onGoToNextProblem?: () => void;
   problemTransitionPending?: boolean;
   isActive?: boolean;
@@ -112,8 +109,6 @@ export default function ReviewSubmissionPanel({
   nextSubmissionId,
   nextProblemId,
   onUnauthorized,
-  showAllSubmissions = false,
-  onShowAllSubmissions,
   onGoToNextProblem,
   problemTransitionPending = false,
   isActive = true,
@@ -664,9 +659,6 @@ export default function ReviewSubmissionPanel({
               onCiteLines={insertCite}
             />
           )}
-          {showAllSubmissions && onShowAllSubmissions ? (
-            <ReviewShowAllSubmissions onClick={onShowAllSubmissions} />
-          ) : null}
         </div>
 
         <div className="review-side-rail">

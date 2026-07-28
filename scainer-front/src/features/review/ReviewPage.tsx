@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQueryClient, type UseQueryResult } from "@tanstack/react-query";
 import type { ProblemInfo, ReportData, SubmissionListItem } from "@/client/types.gen";
@@ -218,23 +218,26 @@ export default function ReviewPage({
     <div className="review-stack">
       {queue.map((s, i) => {
         const isLast = i === queue.length - 1;
+        const showAllAfter = isLast && hasHiddenForProblem(problemId);
         return (
-          <ReviewSubmissionPanel
-            key={s.id}
-            contestId={contestId}
-            submission={s}
-            allSubmissions={items}
-            findingsReport={report}
-            problemLabel={problemLabel}
-            nextSubmissionId={queue[i + 1]?.id ?? null}
-            nextProblemId={nextProblemId}
-            onUnauthorized={onUnauthorized}
-            showAllSubmissions={isLast && hasHiddenForProblem(problemId)}
-            onShowAllSubmissions={showAllSubmissions}
-            onGoToNextProblem={goToNextProblem}
-            problemTransitionPending={isProblemTransitioning}
-            isActive={activePanelId === submissionPanelId(s.id)}
-          />
+          <Fragment key={s.id}>
+            <ReviewSubmissionPanel
+              contestId={contestId}
+              submission={s}
+              allSubmissions={items}
+              findingsReport={report}
+              problemLabel={problemLabel}
+              nextSubmissionId={queue[i + 1]?.id ?? null}
+              nextProblemId={nextProblemId}
+              onUnauthorized={onUnauthorized}
+              onGoToNextProblem={goToNextProblem}
+              problemTransitionPending={isProblemTransitioning}
+              isActive={activePanelId === submissionPanelId(s.id)}
+            />
+            {showAllAfter ? (
+              <ReviewShowAllSubmissions onClick={showAllSubmissions} />
+            ) : null}
+          </Fragment>
         );
       })}
     </div>

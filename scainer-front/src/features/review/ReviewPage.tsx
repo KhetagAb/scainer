@@ -12,6 +12,7 @@ import { isPendingReview } from "@/features/review/reviewVerdicts";
 import ReviewSubmissionPanel from "@/features/review/ReviewSubmissionPanel";
 import { submissionPanelId } from "@/features/review/reviewFindings";
 import { useReviewActivePanel } from "@/features/review/useReviewActivePanel";
+import { ReviewSideRailDebugGuides } from "@/features/review/sideRail/ReviewSideRailDebug";
 
 function ReviewShowAllSubmissions({
   onClick,
@@ -188,6 +189,7 @@ export default function ReviewPage({
 
   return (
     <div className="review-stack">
+      <ReviewSideRailDebugGuides />
       {queue.map((s, i) => {
         const isLast = i === queue.length - 1;
         return (

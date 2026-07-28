@@ -1,5 +1,5 @@
 import { Scroll } from "lucide-react";
-import { useCallback, type KeyboardEvent } from "react";
+import { useCallback, type KeyboardEvent, type Ref } from "react";
 import ProblemStatementModal from "@/features/statements/ProblemStatementModal";
 
 type Props = {
@@ -10,6 +10,7 @@ type Props = {
   open: boolean;
   onOpen: () => void;
   onClose: () => void;
+  headRef?: Ref<HTMLDivElement>;
 };
 
 export default function ProblemStatementScrollZone({
@@ -20,6 +21,7 @@ export default function ProblemStatementScrollZone({
   open,
   onOpen,
   onClose,
+  headRef,
 }: Props) {
   const onKeyDown = useCallback(
     (e: KeyboardEvent<HTMLDivElement>) => {
@@ -38,8 +40,9 @@ export default function ProblemStatementScrollZone({
   return (
     <>
       <div
+        ref={headRef}
         className={
-          "review-side-rail__zone--head review-side-rail__slot--head review-side-rail__scroll review-side-rail__scroll--head" +
+          "review-side-rail__head review-side-rail__scroll--head" +
           (statementAvailable ? "" : " review-side-rail__scroll--head-disabled")
         }
         role="button"

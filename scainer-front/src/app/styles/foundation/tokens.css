@@ -78,14 +78,7 @@
   --app-topbar-height: 3.1rem;
   --contest-review-head-height: 2.2rem;
   --review-chrome-top: calc(var(--app-topbar-height) + var(--contest-review-head-height));
-  --rail-gap-top: 0.35rem;
-  --rail-gap-bottom: 0.5rem;
-  --rail-pane-h: calc(
-    100dvh - var(--review-chrome-top) - var(--rail-gap-top) - var(--rail-gap-bottom)
-  );
-  --review-sticky-scroll-offset: calc(
-    var(--review-chrome-top) + var(--rail-gap-top) + 0.35rem
-  );
+  --review-sticky-scroll-offset: calc(var(--review-chrome-top) + 0.35rem);
   --logo-ai-gradient: linear-gradient(
     135deg,
     #c45c6a 0%,

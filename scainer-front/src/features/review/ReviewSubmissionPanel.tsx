@@ -39,6 +39,8 @@ import ReviewCelebrateOverlay from "@/features/review/ReviewCelebrateOverlay";
 import { EjudgeContestChip } from "@/features/ejudge/EjudgeContestChip";
 import ProblemStatementScrollZone from "@/features/statements/ProblemStatementScrollZone";
 import { RadarAttentionIcon } from "@/features/review/RadarAttentionIcon";
+import { useReviewSideRail } from "@/features/review/sideRail/useReviewSideRail";
+import { ReviewSideRailDebugHud } from "@/features/review/sideRail/ReviewSideRailDebug";
 
 function ChevronDownIcon({ size = 16 }: { size?: number }) {
   return (
@@ -127,16 +129,22 @@ export default function ReviewSubmissionPanel({
   onUnauthorized,
   showAllSubmissions = false,
   onShowAllSubmissions,
-  isLastInStack = false,
+  isLastInStack: _isLastInStack = false,
   isActive = true,
 }: Props) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const commentRef = useRef<HTMLTextAreaElement>(null);
   const commentsScrollRef = useRef<HTMLDivElement>(null);
+  const listContentRef = useRef<HTMLUListElement>(null);
+  const codeRef = useRef<HTMLDivElement>(null);
+  const headRef = useRef<HTMLDivElement>(null);
+  const footRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLElement>(null);
+  const metaRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const [comment, setComment] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
-  const [commentsOpen, setCommentsOpen] = useState(true);
   const [celebrate, setCelebrate] = useState(false);
   const [statementOpen, setStatementOpen] = useState(false);
 
@@ -150,7 +158,6 @@ export default function ReviewSubmissionPanel({
     showAllSubmissions && goNextProblem && Boolean(onShowAllSubmissions);
 
   useEffect(() => {
-    setCommentsOpen(true);
     setComment("");
     setActionError(null);
   }, [submissionId]);
@@ -238,8 +245,36 @@ export default function ReviewSubmissionPanel({
     if (lines.length === 1 && lines[0] === "(нет исходника)") return "";
     return lines.join("\n");
   }, [commentsQuery.data?.source]);
-  const commentsCollapsed = !commentsOpen && thread.length > 1;
   const base = `/contests/${encodeURIComponent(contestId)}`;
+
+  const sideRailContentKey = [
+    submissionId,
+    thread.length > 0 ? "comments" : "no-comments",
+    comment.length,
+    nextEnabled ? "next" : "no-next",
+    showAllBesideNext ? "all" : "no-all",
+  ].join("|");
+
+  const {
+    railRef,
+    ready: railReady,
+    mode: railMode,
+    scrollComments,
+    gapEff,
+    debugSnapshot,
+  } = useReviewSideRail({
+    codeRef,
+    headRef,
+    footRef,
+    bodyRef,
+    metaRef,
+    formRef,
+    listContentRef,
+    listScrollRef: commentsScrollRef,
+    contentKey: sideRailContentKey,
+  });
+
+  const gapsInteractive = railMode === "pinned" && gapEff > 0;
 
   useEffect(() => {
     const el = commentsScrollRef.current;
@@ -263,7 +298,7 @@ export default function ReviewSubmissionPanel({
       ro.disconnect();
       el.removeEventListener("scroll", syncScrollHint);
     };
-  }, [thread.length, commentsOpen, submissionId]);
+  }, [thread.length, submissionId]);
 
   const withCommentsScroll = async (fn: () => Promise<void>) => {
     const el = commentsScrollRef.current;
@@ -388,18 +423,8 @@ export default function ReviewSubmissionPanel({
     goNext();
   };
 
-  const expandComments = () => setCommentsOpen(true);
-
-  const onCommentsKeyDown = (e: KeyboardEvent<HTMLElement>) => {
-    if (!commentsCollapsed) return;
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      expandComments();
-    }
-  };
-
   const commentsList = (
-    <ul className="review-comments__list">
+    <ul ref={listContentRef} className="review-comments__list">
       {thread.map((c) => (
         <li key={c.id} className="review-comments__item">
           <div className="review-comments__meta">
@@ -430,35 +455,91 @@ export default function ReviewSubmissionPanel({
           Комментарии
           <span className="review-comments__count">{thread.length}</span>
         </h3>
-        {commentsCollapsed ? (
-          <div
-            className="review-comments__preview"
-            role="button"
-            tabIndex={0}
-            aria-expanded={false}
-            aria-label={`Показать все комментарии, ещё ${thread.length - 1}`}
-            onClick={expandComments}
-            onKeyDown={onCommentsKeyDown}
-          >
-            <div className="review-comments__clip">{commentsList}</div>
-            <span className="review-comments__more">
-              Ещё {thread.length - 1}
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
-                <path
-                  d="M2.5 4.5 6 8l3.5-3.5"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </span>
-          </div>
-        ) : (
-          commentsList
-        )}
+        <div
+          ref={commentsScrollRef}
+          className="review-side-rail__comments-viewport"
+        >
+          {commentsList}
+        </div>
       </section>
     ) : null;
+
+  const onGapAKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
+    if (!gapsInteractive || !statementAvailable) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      setStatementOpen(true);
+    }
+  };
+
+  const onGapBKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
+    if (!gapsInteractive || actionPending) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onManualNext();
+    }
+  };
+
+  const footNode = nextEnabled ? (
+    showAllBesideNext ? (
+      <div
+        ref={footRef}
+        className="review-side-rail__foot review-side-rail__scroll--duo"
+        role="button"
+        tabIndex={actionPending ? -1 : 0}
+        aria-disabled={actionPending}
+        aria-label="Следующая задача"
+        onClick={() => {
+          if (!actionPending) onManualNext();
+        }}
+        onKeyDown={onScrollZoneKeyDown}
+      >
+        <div className="review-scroll-duo__bar">
+          <button
+            type="button"
+            className="review-scroll-duo__show-all"
+            aria-label="Показать все посылки"
+            onClick={(e) => {
+              e.stopPropagation();
+              onShowAllSubmissions?.();
+            }}
+          >
+            Показать все посылки
+            <ChevronDownIcon size={22} />
+          </button>
+          <span className="review-scroll-duo__next-cluster" aria-hidden>
+            <span className="review-scroll-duo__next-label">Следующая задача</span>
+            <ChevronRightIcon size={22} />
+          </span>
+        </div>
+      </div>
+    ) : (
+      <div
+        ref={footRef}
+        className="review-side-rail__foot"
+        role="button"
+        tabIndex={actionPending ? -1 : 0}
+        aria-disabled={actionPending}
+        aria-label={goNextProblem ? "Следующая задача" : "Следующая посылка"}
+        onClick={() => {
+          if (!actionPending) onManualNext();
+        }}
+        onKeyDown={onScrollZoneKeyDown}
+      >
+        <span
+          className={
+            "review-scroll-hint" + (goNextProblem ? " review-scroll-hint--next-problem" : "")
+          }
+          aria-hidden
+        >
+          <span className="review-scroll-hint__label">
+            {goNextProblem ? "Следующая задача" : "Следующая посылка"}
+          </span>
+          {goNextProblem ? <ChevronRightIcon size={28} /> : <ChevronDownIcon size={28} />}
+        </span>
+      </div>
+    )
+  ) : null;
 
   return (
     <article
@@ -489,12 +570,7 @@ export default function ReviewSubmissionPanel({
         </p>
       ) : null}
 
-      <div
-        className={
-          "review-workspace" +
-          (!isLastInStack ? " review-workspace--anchor-section" : "")
-        }
-      >
+      <div className="review-workspace">
         <div className="review-workspace__label-row">
           <h3 className="review-workspace__label">Код</h3>
           <div className="review-workspace__more code-pane-bar">
@@ -507,7 +583,11 @@ export default function ReviewSubmissionPanel({
         </div>
         <div className="review-workspace__label-spacer" aria-hidden />
 
-        <div className="review-workspace__code review-code" aria-label="Исходный код">
+        <div
+          ref={codeRef}
+          className="review-workspace__code review-code"
+          aria-label="Исходный код"
+        >
           {findingKey ? (
             <Link
               to={`${base}/findings?finding=${encodeURIComponent(findingKey)}`}
@@ -557,9 +637,12 @@ export default function ReviewSubmissionPanel({
         </div>
 
         <aside className="review-side-rail">
-          <div className="review-side-rail__track">
-            <div className="review-side-rail__pane">
-              <ProblemStatementScrollZone
+          <div
+            ref={railRef}
+            className={"review-side-rail__rail" + (railReady ? " is-ready" : "")}
+          >
+            <ProblemStatementScrollZone
+              headRef={headRef}
               contestId={contestId}
               contestName={contestName}
               problemLabel={statementProblemLabel}
@@ -567,172 +650,120 @@ export default function ReviewSubmissionPanel({
               open={statementOpen}
               onOpen={() => setStatementOpen(true)}
               onClose={() => setStatementOpen(false)}
-              />
-              <button
-                type="button"
-                className="review-side-rail__spacer review-side-rail__spacer--a"
-                aria-hidden
-                tabIndex={-1}
-                disabled={!statementAvailable}
-                onClick={() => {
-                  if (statementAvailable) setStatementOpen(true);
-                }}
-              />
-              <aside className="review-side-panel review-side-rail__body">
-                <div className="review-side-head">
-                <span className="review-side-head__name">{submission.participant}</span>
-                <span className={`review-verdict-chip review-verdict-chip--${verdictTone}`}>
-                  {formatVerdictLabel(liveVerdict)}
-                </span>
-              </div>
-              <form
-                className="review-verdict"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                }}
+            />
+            <div className="review-side-rail__track">
+              <aside
+                ref={bodyRef}
+                className="review-side-panel review-side-rail__body"
+                data-scroll-comments={scrollComments ? "true" : "false"}
               >
-                <textarea
-                  ref={commentRef}
-                  id={commentFieldId}
-                  className="review-verdict__input"
-                  rows={5}
-                  placeholder="Комментарий"
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  disabled={actionPending}
-                  aria-label="Комментарий"
+                <button
+                  type="button"
+                  className="review-side-rail__gap review-side-rail__gap--a"
+                  aria-label="Открыть условие задачи"
+                  aria-disabled={!gapsInteractive || !statementAvailable}
+                  tabIndex={gapsInteractive && statementAvailable ? 0 : -1}
+                  onClick={(e) => {
+                    if (!gapsInteractive || e.detail > 1) return;
+                    if (statementAvailable) setStatementOpen(true);
+                  }}
+                  onKeyDown={onGapAKeyDown}
                 />
-                {actionError ? <p className="review-verdict__error">{actionError}</p> : null}
-                <div
-                  className={`review-verdict__actions${
-                    verdictReviewedFromPr ? " review-verdict__actions--reviewed" : ""
-                  }`}
-                >
-                  <div
-                    className={`review-verdict__ok-rj${
-                      pendingVerdictActions ? "" : " review-verdict__ok-rj--neutral"
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      className={`btn btn--icon${
-                        pendingVerdictActions ? " btn--ok" : ""
-                      }`}
-                      disabled={actionPending}
-                      aria-label="AC"
-                      onClick={() => void submitVerdict("OK")}
-                    >
-                      AC
-                    </button>
-                    <button
-                      type="button"
-                      className={`btn btn--icon${
-                        pendingVerdictActions ? " btn--rj" : ""
-                      }`}
-                      disabled={actionPending}
-                      aria-label="RJ"
-                      onClick={() => void submitVerdict("RJ")}
-                    >
-                      RJ
-                    </button>
+                <div className="review-side-rail__body-core">
+                  <div ref={metaRef} className="review-side-head">
+                    <span className="review-side-head__name">{submission.participant}</span>
+                    <span className={`review-verdict-chip review-verdict-chip--${verdictTone}`}>
+                      {formatVerdictLabel(liveVerdict)}
+                    </span>
                   </div>
-                  <button
-                    type="button"
-                    className={`btn btn--comment${!prVerdict ? " btn--comment--muted" : ""}`}
-                    disabled={actionPending || !commentText}
-                    onClick={() => void submitComment()}
-                  >
-                    Comment
-                  </button>
-                </div>
-              </form>
-              <div ref={commentsScrollRef} className="review-side-panel__scroll">
-                {commentsSection}
-              </div>
-            </aside>
-              <button
-                type="button"
-                className="review-side-rail__spacer review-side-rail__spacer--b"
-                aria-hidden
-                tabIndex={-1}
-                disabled={actionPending || !nextEnabled}
-                onClick={() => {
-                  if (!actionPending && nextEnabled) onManualNext();
-                }}
-              />
-            {nextEnabled ? (
-              showAllBesideNext ? (
-                <div
-                  className="review-side-rail__zone--foot review-side-rail__slot--foot review-side-rail__scroll review-side-rail__scroll--duo review-side-rail__scroll--foot"
-                >
-                  <div
-                    className="review-scroll-duo__next"
-                    role="button"
-                    tabIndex={actionPending ? -1 : 0}
-                    aria-disabled={actionPending}
-                    aria-label="Следующая задача"
-                    onClick={() => {
-                      if (!actionPending) onManualNext();
+                  <form
+                    ref={formRef}
+                    className="review-verdict"
+                    onSubmit={(e) => {
+                      e.preventDefault();
                     }}
-                    onKeyDown={onScrollZoneKeyDown}
                   >
-                    <div className="review-scroll-duo__bar">
+                    <textarea
+                      ref={commentRef}
+                      id={commentFieldId}
+                      className="review-verdict__input"
+                      rows={5}
+                      placeholder="Комментарий"
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      disabled={actionPending}
+                      aria-label="Комментарий"
+                    />
+                    {actionError ? <p className="review-verdict__error">{actionError}</p> : null}
+                    <div
+                      className={`review-verdict__actions${
+                        verdictReviewedFromPr ? " review-verdict__actions--reviewed" : ""
+                      }`}
+                    >
+                      <div
+                        className={`review-verdict__ok-rj${
+                          pendingVerdictActions ? "" : " review-verdict__ok-rj--neutral"
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          className={`btn btn--icon${
+                            pendingVerdictActions ? " btn--ok" : ""
+                          }`}
+                          disabled={actionPending}
+                          aria-label="AC"
+                          onClick={() => void submitVerdict("OK")}
+                        >
+                          AC
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn btn--icon${
+                            pendingVerdictActions ? " btn--rj" : ""
+                          }`}
+                          disabled={actionPending}
+                          aria-label="RJ"
+                          onClick={() => void submitVerdict("RJ")}
+                        >
+                          RJ
+                        </button>
+                      </div>
                       <button
                         type="button"
-                        className="review-scroll-duo__show-all"
-                        aria-label="Показать все посылки"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onShowAllSubmissions?.();
-                        }}
+                        className={`btn btn--comment${!prVerdict ? " btn--comment--muted" : ""}`}
+                        disabled={actionPending || !commentText}
+                        onClick={() => void submitComment()}
                       >
-                        Показать все посылки
-                        <ChevronDownIcon size={22} />
+                        Comment
                       </button>
-                      <span className="review-scroll-duo__next-cluster" aria-hidden>
-                        <span className="review-scroll-duo__next-label">
-                          Следующая задача
-                        </span>
-                        <ChevronRightIcon size={22} />
-                      </span>
                     </div>
-                  </div>
+                  </form>
+                  {commentsSection}
                 </div>
-              ) : (
-                <div
-                  className="review-side-rail__zone--foot review-side-rail__slot--foot review-side-rail__scroll review-side-rail__scroll--foot"
-                  role="button"
-                  tabIndex={actionPending ? -1 : 0}
-                  aria-disabled={actionPending}
+                <button
+                  type="button"
+                  className="review-side-rail__gap review-side-rail__gap--b"
                   aria-label={
                     goNextProblem ? "Следующая задача" : "Следующая посылка"
                   }
-                  onClick={() => {
-                    if (!actionPending) onManualNext();
+                  aria-disabled={!gapsInteractive || !nextEnabled}
+                  tabIndex={gapsInteractive && nextEnabled ? 0 : -1}
+                  onClick={(e) => {
+                    if (!gapsInteractive || actionPending || e.detail > 1) return;
+                    onManualNext();
                   }}
-                  onKeyDown={onScrollZoneKeyDown}
-                >
-                  <span
-                    className={
-                      "review-scroll-hint" +
-                      (goNextProblem ? " review-scroll-hint--next-problem" : "")
-                    }
-                    aria-hidden
-                  >
-                    <span className="review-scroll-hint__label">
-                      {goNextProblem ? "Следующая задача" : "Следующая посылка"}
-                    </span>
-                    {goNextProblem ? (
-                      <ChevronRightIcon size={28} />
-                    ) : (
-                      <ChevronDownIcon size={28} />
-                    )}
-                  </span>
-                </div>
-              )
-            ) : null}
+                  onKeyDown={onGapBKeyDown}
+                />
+              </aside>
             </div>
+            {footNode}
           </div>
+          {isActive ? (
+            <ReviewSideRailDebugHud
+              panelLabel={submission.participant}
+              snapshot={debugSnapshot}
+            />
+          ) : null}
         </aside>
       </div>
     </article>

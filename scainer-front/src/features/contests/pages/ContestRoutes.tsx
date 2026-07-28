@@ -35,8 +35,6 @@ export function ContestReviewRoute() {
     submissionsQuery,
     findingsQuery,
     problems,
-    contestName,
-    statementAvailable,
     onUnauthorized,
     reviewPrOnly,
     setReviewPrOnly,
@@ -46,8 +44,6 @@ export function ContestReviewRoute() {
       submissionsQuery={submissionsQuery}
       findingsQuery={findingsQuery}
       problems={problems}
-      contestName={contestName}
-      statementAvailable={statementAvailable}
       onUnauthorized={onUnauthorized}
       prOnly={reviewPrOnly}
       setReviewPrOnly={setReviewPrOnly}

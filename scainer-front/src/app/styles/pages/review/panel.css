@@ -138,6 +138,14 @@
 .review-comments {
   margin: 0.65rem 0 0;
   min-width: 0;
+  max-height: min(14rem, calc(100vh - 18rem));
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.review-comments::-webkit-scrollbar {
+  display: none;
 }
 
 .review-comments__title {

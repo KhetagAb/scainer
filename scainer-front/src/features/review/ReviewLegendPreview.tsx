@@ -79,6 +79,17 @@ export default function ReviewLegendPreview({ preview = true, className }: Props
       className={`review-legend-preview${className ? ` ${className}` : ""}`}
       aria-hidden={preview}
     >
+      <button
+        type="button"
+        className="review-legend-preview__statement-crumb"
+        data-legend-anchor="statement"
+        tabIndex={-1}
+        aria-hidden
+      >
+        <Scroll size={16} strokeWidth={2} aria-hidden />
+        <span>Условия задач</span>
+      </button>
+
       <div className="review-picker-row" data-legend-anchor="picker">
         <ul className="review-picker" aria-hidden>
           {REVIEW_LEGEND_DEMO_PROBLEMS.map((p) => (
@@ -126,99 +137,70 @@ export default function ReviewLegendPreview({ preview = true, className }: Props
             />
           </div>
 
-          <div className="review-side-rail review-side-rail--static">
+          <aside className="review-side-rail">
             <div className="review-side-rail__track">
-              <div className="review-side-rail__panel-shell">
               <aside className="review-side-panel">
-                <button
-                  type="button"
-                  className="review-scroll-head__padding-zone"
-                  aria-label="Условие задачи"
-                  tabIndex={-1}
-                  aria-hidden
-                />
-                <div className="review-side-panel__body">
-                <div className="review-side-head">
-                  <span className="review-side-head__name">Иванов</span>
-                  <span className="review-verdict-chip review-verdict-chip--pr">
-                    Pending Review
-                  </span>
-                </div>
-                <form
-                  className="review-verdict"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                  }}
-                >
-                  <textarea
-                    className="review-verdict__input"
-                    rows={5}
-                    readOnly
-                    tabIndex={-1}
-                    value="Строки 15–17: "
-                    aria-hidden
-                  />
-                  <div className="review-verdict__actions">
-                    <div className="review-verdict__ok-rj" data-legend-anchor="verdict">
-                      <span className="btn btn--icon btn--ok" aria-hidden>
-                        AC
-                      </span>
-                      <span className="btn btn--icon btn--rj" aria-hidden>
-                        RJ
-                      </span>
-                    </div>
-                    <span className="btn btn--comment" aria-hidden>
-                      Comment
+                  <div className="review-side-head">
+                    <span className="review-side-head__name">Иванов</span>
+                    <span className="review-verdict-chip review-verdict-chip--pr">
+                      Pending Review
                     </span>
                   </div>
-                </form>
-                <section className="review-comments" aria-hidden>
-                  <h3 className="review-comments__title">
-                    Комментарии
-                    <span className="review-comments__count">1</span>
-                  </h3>
-                  <ul className="review-comments__list">
-                    <li className="review-comments__item">
-                      <div className="review-comments__meta">
-                        <span className="review-comments__author">Хет:</span>
-                        <time className="review-comments__time">4:20</time>
+                  <form
+                    className="review-verdict"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                    }}
+                  >
+                    <textarea
+                      className="review-verdict__input"
+                      rows={5}
+                      readOnly
+                      tabIndex={-1}
+                      value="Строки 15–17: "
+                      aria-hidden
+                    />
+                    <div className="review-verdict__actions">
+                      <div className="review-verdict__ok-rj" data-legend-anchor="verdict">
+                        <span className="btn btn--icon btn--ok" aria-hidden>
+                          AC
+                        </span>
+                        <span className="btn btn--icon btn--rj" aria-hidden>
+                          RJ
+                        </span>
                       </div>
-                      <pre className="review-comments__text">
-                        Строки 15–17: проверьте релаксацию
-                      </pre>
-                    </li>
-                  </ul>
-                </section>
-                </div>
-              </aside>
-              </div>
+                      <span className="btn btn--comment" aria-hidden>
+                        Comment
+                      </span>
+                    </div>
+                  </form>
+                  <section className="review-comments" aria-hidden>
+                    <h3 className="review-comments__title">
+                      Комментарии
+                      <span className="review-comments__count">1</span>
+                    </h3>
+                    <ul className="review-comments__list">
+                      <li className="review-comments__item">
+                        <div className="review-comments__meta">
+                          <span className="review-comments__author">Хет:</span>
+                          <time className="review-comments__time">4:20</time>
+                        </div>
+                        <pre className="review-comments__text">
+                          Строки 15–17: проверьте релаксацию
+                        </pre>
+                      </li>
+                    </ul>
+                  </section>
+                </aside>
 
               <div className="review-side-rail__scroll" aria-hidden>
-                <span
-                  className="review-scroll-hint"
-                  data-legend-anchor="nav"
-                  aria-hidden
-                >
+                <span className="review-scroll-hint" data-legend-anchor="nav" aria-hidden>
                   <span className="review-scroll-hint__label">Следующая посылка</span>
                   <ChevronDownIcon />
                 </span>
               </div>
-
-              <div className="review-side-rail__scroll review-side-rail__scroll--head">
-                <div className="review-scroll-head__bar">
-                  <span
-                    className="review-scroll-hint review-scroll-hint--statement"
-                    data-legend-anchor="statement"
-                    aria-hidden
-                  >
-                    <Scroll size={28} strokeWidth={2} />
-                    <span className="review-scroll-hint__label">Условие задачи</span>
-                  </span>
-                </div>
-                <div className="review-scroll-head__hover-fill" aria-hidden />
-              </div>
             </div>
-          </div>
+          </aside>
         </div>
       </article>
     </div>

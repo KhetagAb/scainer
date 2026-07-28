@@ -7,5 +7,6 @@
 @import "./review/source-code.css";
 @import "./review/workspace.css";
 @import "./review/side-rail.css";
+@import "./review/scroll-nav.css";
 @import "./review/panel.css";
 @import "./review/verdict-buttons.css";

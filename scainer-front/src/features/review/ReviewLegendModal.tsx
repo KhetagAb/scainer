@@ -209,7 +209,8 @@ export default function ReviewLegendModal({ open, onClose }: Props) {
                     </span>
                     <div className="legend-callout__section-body">
                       <p lang="ru">
-                        <strong>Условие задачи</strong> — PDF с формулировкой задачи.
+                        <strong>Условие задачи</strong> — PDF с формулировкой; кнопка в верхней
+                        панели.
                       </p>
                     </div>
                   </li>

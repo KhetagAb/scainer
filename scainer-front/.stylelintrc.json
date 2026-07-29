@@ -1,0 +1,16 @@
+{
+  "rules": {
+    "color-no-hex": true,
+    "function-disallowed-list": ["rgb", "rgba", "hsl", "hsla"]
+  },
+  "ignoreFiles": ["**/node_modules/**", "**/dist/**"],
+  "overrides": [
+    {
+      "files": ["**/foundation/tokens.css"],
+      "rules": {
+        "color-no-hex": null,
+        "function-disallowed-list": null
+      }
+    }
+  ]
+}

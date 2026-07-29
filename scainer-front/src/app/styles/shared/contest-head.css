@@ -218,7 +218,7 @@
   padding: 0.1rem;
   height: 1.5rem;
   box-sizing: border-box;
-  background: #fff;
+  background: var(--bg-raised);
   border: 1px solid var(--border);
   border-radius: var(--radius-chip);
   vertical-align: middle;
@@ -263,30 +263,31 @@
   margin-left: auto;
   flex-shrink: 0;
   overflow: visible;
+  --contest-sync-action-size: var(--app-chrome-trailing-size);
 }
 
-.contest-head__actions {
-  --contest-sync-action-size: 1.55rem;
+.contest-head__actions .contest-head__job-actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  justify-content: flex-end;
+  align-items: center;
+  min-width: var(--app-chrome-trailing-size);
 }
 
-.contest-head__actions .contest-stats {
-  width: auto;
-  margin-top: 0;
-}
-
-.contest-head__actions .contest-stats__left {
-  gap: 0.4rem 0.5rem;
+.contest-head__actions .contest-head__job-actions:has(.contest-sync-action--running) {
+  width: max(7.5rem, 10vw);
+  max-width: 12rem;
 }
 
 .contest-head__actions .btn--icon {
-  width: 1.55rem;
-  height: 1.55rem;
+  width: var(--app-chrome-trailing-size);
+  height: var(--app-chrome-trailing-size);
   border-radius: var(--radius-chip);
 }
 
 .contest-head__actions .btn--icon__glyph {
-  width: 0.85rem;
-  height: 0.85rem;
+  width: var(--app-chrome-trailing-glyph);
+  height: var(--app-chrome-trailing-glyph);
 }
 
 .contest-head__sep {
@@ -305,11 +306,20 @@
   min-width: 0;
 }
 
+.contest-head__actions .contest-stats {
+  width: auto;
+  margin-top: 0;
+}
+
+.contest-head__actions .contest-stats__left {
+  gap: 0.4rem 0.5rem;
+}
+
 .contest-sync-action {
   flex-shrink: 0;
   max-width: 100%;
   margin: 0;
-  --contest-sync-action-size: 1.55rem;
+  --contest-sync-action-size: var(--app-chrome-trailing-size);
 }
 
 .contest-sync-action.btn.btn--primary {
@@ -333,8 +343,8 @@
 }
 
 .contest-sync-action__glyph {
-  width: 0.85rem;
-  height: 0.85rem;
+  width: var(--app-chrome-trailing-glyph);
+  height: var(--app-chrome-trailing-glyph);
   flex-shrink: 0;
 }
 
@@ -351,19 +361,15 @@
 .contest-sync-action--running {
   display: inline-flex;
   align-items: center;
+  justify-content: stretch;
+  box-sizing: border-box;
+  width: 100%;
   height: var(--contest-sync-action-size);
   min-height: var(--contest-sync-action-size);
   padding: 0;
   border: none;
   background: transparent;
   cursor: default;
-}
-
-.import-progress-bar--sync {
-  min-width: 7.5rem;
-  max-width: 12rem;
-  width: max(7.5rem, 10vw);
-  height: var(--contest-sync-action-size);
 }
 
 .contest-sync-action.btn.btn--primary.contest-sync-action--warn {
@@ -375,7 +381,7 @@
 
 .contest-sync-action.btn.btn--primary.contest-sync-action--warn:hover:not(:disabled) {
   background: var(--sync-warn-hover-bg);
-  border-color: color-mix(in srgb, var(--sync-warn-border) 88%, #c47a00);
+  border-color: color-mix(in srgb, var(--sync-warn-border) 88%, var(--warning-text));
   color: var(--sync-warn-text);
   animation: none;
 }
@@ -395,7 +401,7 @@
   }
   50% {
     background-color: var(--sync-warn-hover-bg);
-    border-color: color-mix(in srgb, var(--sync-warn-border) 82%, #e8a000);
+    border-color: color-mix(in srgb, var(--sync-warn-border) 82%, var(--warning-text));
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--sync-warn-border) 32%, transparent);
   }
 }
@@ -422,6 +428,25 @@
   flex-shrink: 0;
 }
 
+.import-progress-bar.import-progress-bar--sync {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 7.5rem;
+  max-width: 12rem;
+  height: var(--contest-sync-action-size);
+  border-radius: var(--radius-chip);
+  background: var(--accent-violet);
+  border: 1px solid var(--accent-violet);
+}
+
+.import-progress-bar.import-progress-bar--sync .import-progress-bar__fill {
+  background: color-mix(in srgb, var(--accent-on) 28%, var(--accent-violet));
+}
+
+.import-progress-bar.import-progress-bar--sync .import-progress-bar__label {
+  color: var(--accent-on);
+}
+
 .import-progress-bar--card {
   width: auto;
   max-width: none;
@@ -438,7 +463,11 @@
   top: 0;
   bottom: 0;
   border-radius: inherit;
-  background: linear-gradient(90deg, rgba(100, 102, 253, 0.35) 0%, rgba(123, 126, 248, 0.55) 100%);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent-violet) 35%, transparent) 0%,
+    color-mix(in srgb, var(--accent-violet) 55%, transparent) 100%
+  );
   transition: width 0.25s ease;
   pointer-events: none;
 }

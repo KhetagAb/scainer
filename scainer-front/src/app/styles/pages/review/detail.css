@@ -22,9 +22,9 @@
 .review-detail__warn {
   margin: 0 0 0.75rem;
   padding: 0.5rem 0.65rem;
-  background: #fff4e5;
+  background: var(--sync-warn-bg);
   border-radius: var(--radius-chip);
   font-family: var(--font-ui);
   font-size: 0.85rem;
-  color: #7a4a12;
+  color: var(--sync-warn-text);
 }

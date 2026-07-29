@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
 import confetti from "canvas-confetti";
+import { readConfettiColors } from "@/app/theme/confettiColors";
 
 const AUTO_CLOSE_MS = 2400;
 const AUTO_CLOSE_WITH_NEXT_MS = 3600;
@@ -34,9 +35,11 @@ function ArrowRightIcon() {
 }
 
 function fireBursts() {
+  const colors = readConfettiColors();
   const common = {
     disableForReducedMotion: true,
     zIndex: 10000,
+    colors: colors.length ? colors : undefined,
   } as const;
 
   void confetti({
@@ -44,14 +47,12 @@ function fireBursts() {
     particleCount: 90,
     spread: 70,
     origin: { x: 0.2, y: 0.65 },
-    colors: ["#e58995", "#7cb87a", "#ecc878", "#6466fd", "#e0c48a"],
   });
   void confetti({
     ...common,
     particleCount: 90,
     spread: 70,
     origin: { x: 0.8, y: 0.65 },
-    colors: ["#e58995", "#7cb87a", "#ecc878", "#6466fd", "#e0c48a"],
   });
   window.setTimeout(() => {
     void confetti({
@@ -60,7 +61,7 @@ function fireBursts() {
       spread: 100,
       startVelocity: 35,
       origin: { x: 0.5, y: 0.4 },
-      colors: ["#e58995", "#7cb87a", "#ecc878", "#5a9a58"],
+      colors: colors.length > 3 ? colors.slice(0, 4) : colors,
     });
   }, 90);
 }

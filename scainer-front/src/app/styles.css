@@ -10,12 +10,14 @@
 @import "./styles/foundation/fonts.css";
 @import "./styles/foundation/tokens.css";
 @import "./styles/foundation/base.css";
+@import "./styles/shared/theme-settings.css";
 @import "./styles/shared/layout.css";
 @import "./styles/shared/contest-head.css";
 @import "./styles/shared/controls-bar.css";
 @import "./styles/pages/sensitivity.css";
 @import "./styles/pages/findings.css";
 @import "./styles/shared/chips-badges.css";
+@import "./styles/shared/code-annotations.css";
 @import "./styles/shared/code-pane.css";
 @import "./styles/foundation/utilities.css";
 @import "./styles/shared/buttons.css";

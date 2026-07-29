@@ -174,7 +174,7 @@ a.parallel-card__chip:focus-visible {
 }
 
 .contest-card--stale:hover {
-  border-color: color-mix(in srgb, var(--sync-warn-border) 82%, #c47a00);
+  border-color: color-mix(in srgb, var(--sync-warn-border) 82%, var(--warning-text));
   animation: none;
 }
 
@@ -185,7 +185,7 @@ a.parallel-card__chip:focus-visible {
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--sync-warn-border) 28%, transparent);
   }
   50% {
-    border-color: color-mix(in srgb, var(--sync-warn-border) 72%, #e8a000);
+    border-color: color-mix(in srgb, var(--sync-warn-border) 72%, var(--warning-text));
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--sync-warn-border) 42%, transparent);
   }
 }
@@ -699,4 +699,15 @@ a.parallel-card__chip:focus-visible {
   text-align: center;
   color: var(--text-muted);
   padding: 2rem 0;
+}
+
+.import-dock {
+  position: fixed;
+  right: calc(var(--page-gutter) + var(--app-chrome-trailing-size));
+  bottom: var(--page-gutter);
+  z-index: 20;
+}
+
+.import-dock__btn {
+  box-shadow: var(--shadow-md);
 }

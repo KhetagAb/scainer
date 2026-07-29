@@ -28,7 +28,7 @@
   width: 0.9rem;
   height: 0.9rem;
   margin: 0;
-  accent-color: var(--accent, #c45c4a);
+  accent-color: var(--accent);
   cursor: pointer;
 }
 
@@ -105,14 +105,14 @@
 }
 
 .review-picker__chip.is-active {
-  border-color: var(--accent, #c45c4a);
-  box-shadow: 0 0 0 1px var(--accent, #c45c4a);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
   opacity: 1;
 }
 
 .review-picker__chip.is-active .review-picker__chip-pr {
-  background: var(--accent, #c45c4a);
-  color: #fff;
+  background: var(--accent);
+  color: var(--accent-on);
 }
 
 .review-picker__chip-statement {
@@ -178,7 +178,7 @@
 
 .review-picker__chip.is-active.is-statement .review-picker__chip-statement-label,
 .review-picker__chip.is-active.is-statement .review-picker__chip-statement svg {
-  color: var(--accent, #c45c4a);
+  color: var(--accent);
   transition: none;
 }
 
@@ -196,7 +196,7 @@
 
 .review-picker__chip.is-statement .review-picker__chip-statement-label:hover,
 .review-picker__chip.is-statement .review-picker__chip-statement-label:focus-visible {
-  color: var(--accent, #c45c4a);
+  color: var(--accent);
   outline: none;
 }
 
@@ -206,7 +206,7 @@
 .review-picker__chip.is-statement
   .review-picker__chip-statement:has(.review-picker__chip-statement-label:focus-visible)
   svg {
-  color: var(--accent, #c45c4a);
+  color: var(--accent);
 }
 
 .review-picker__empty,

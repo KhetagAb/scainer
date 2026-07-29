@@ -645,6 +645,8 @@ export default function ReviewSubmissionPanel({
               newLines={currentSourceLines}
               lang={submission.lang}
               className={sourceCodeClassName}
+              onLineNumberClick={(lineNo) => insertCite(lineNo, lineNo)}
+              onCiteLines={insertCite}
             />
           ) : (
             <SourceCode

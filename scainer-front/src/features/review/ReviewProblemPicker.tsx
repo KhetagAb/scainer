@@ -46,8 +46,8 @@ export default function ReviewProblemPicker({
 
   const base = `/contests/${encodeURIComponent(contestId)}`;
 
-  const openStatement = (label: string) => {
-    setStatementModalLabel(label);
+  const openStatement = (statementLabel: string) => {
+    setStatementModalLabel(statementLabel);
     setStatementOpen(true);
   };
 
@@ -74,6 +74,7 @@ export default function ReviewProblemPicker({
                   <ReviewProblemChip
                     to={`${base}/review?problem=${encodeURIComponent(p.id)}`}
                     label={label}
+                    statementLabel={p.name || p.id}
                     pr={pr}
                     active={active}
                     statementAvailable={statementAvailable}

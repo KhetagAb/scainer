@@ -6,30 +6,27 @@ import ImportContestsPanel from "@/features/contests/ui/ImportContestsPanel";
 import { SensitivityProvider } from "@/features/contests/shared/SensitivityContext";
 import AppHeader from "@/app/AppHeader";
 
-function HeaderActions() {
+export default function RootLayout() {
   const location = useLocation();
   const queryClient = useQueryClient();
   const showImport = location.pathname === "/";
 
-  if (!showImport) return null;
-
-  return (
-    <ImportContestsPanel
-      onSuccess={() => {
-        void queryClient.invalidateQueries({
-          queryKey: getContestsQueryKey({ headers: authHeaders() }),
-        });
-      }}
-    />
-  );
-}
-
-export default function RootLayout() {
   return (
     <SensitivityProvider>
-      <AppHeader actions={<HeaderActions />}>
+      <AppHeader>
         <Outlet />
       </AppHeader>
+      {showImport ? (
+        <div className="import-dock">
+          <ImportContestsPanel
+            onSuccess={() => {
+              void queryClient.invalidateQueries({
+                queryKey: getContestsQueryKey({ headers: authHeaders() }),
+              });
+            }}
+          />
+        </div>
+      ) : null}
     </SensitivityProvider>
   );
 }

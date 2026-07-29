@@ -1,0 +1,169 @@
+/* Palette preview — Arctic + Creme only */
+
+.theme-arctic {
+  --bg-canvas: oklch(0.985 0.006 255);
+  --bg-surface: oklch(0.97 0.006 255);
+  --bg-raised: oklch(1 0.004 255);
+  --bg-sunken: oklch(0.955 0.006 255);
+  --border: oklch(0.88 0.008 255);
+  --text: oklch(0.32 0.012 255);
+  --text-muted: oklch(0.58 0.008 255);
+  --accent: oklch(0.52 0.19 265);
+  --accent-on: oklch(0.99 0.01 265);
+  --score-crit-bg: oklch(0.94 0.04 25);
+  --score-crit-text: oklch(0.35 0.12 25);
+  --warn-bg: oklch(0.96 0.05 85);
+  --warn-border: oklch(0.78 0.12 80);
+  --warn-text: oklch(0.42 0.1 70);
+  --night-bg: oklch(0.2 0.04 265);
+  --night-text: oklch(0.93 0.02 265);
+  --jplag-bg: oklch(0.96 0.015 25);
+  --jplag-text: oklch(0.38 0.06 15);
+  --ok-bg: oklch(0.94 0.05 145);
+  --ok-text: oklch(0.35 0.1 145);
+
+  --code-bg: oklch(0.975 0.005 255);
+  --code-border: oklch(0.88 0.008 255);
+  --code-suspicion-bg: oklch(0.94 0.07 80);
+  --code-suspicion-mark: oklch(0.72 0.14 78);
+  --code-diff-add: oklch(0.94 0.05 145);
+  --code-diff-remove: oklch(0.94 0.04 25);
+  --code-diff-add-mark: oklch(0.78 0.06 145);
+  --code-diff-remove-mark: oklch(0.76 0.06 15);
+  --verdict-ok-bg: oklch(0.92 0.04 145);
+  --verdict-ok-border: oklch(0.78 0.06 145);
+  --verdict-ok-on: oklch(0.35 0.08 145);
+  --verdict-rj-bg: oklch(0.9 0.04 15);
+  --verdict-rj-border: oklch(0.76 0.06 15);
+  --verdict-rj-on: oklch(0.35 0.08 15);
+  --prism-keyword: oklch(0.45 0.14 265);
+  --prism-string: oklch(0.42 0.12 145);
+  --prism-function: oklch(0.48 0.12 265);
+  --prism-number: oklch(0.48 0.1 70);
+  --prism-comment: oklch(0.58 0.008 255);
+}
+
+.theme-arctic[data-theme="dark"] {
+  --bg-canvas: oklch(0.17 0.008 255);
+  --bg-surface: oklch(0.21 0.008 255);
+  --bg-raised: oklch(0.26 0.01 255);
+  --bg-sunken: oklch(0.14 0.007 255);
+  --border: oklch(0.36 0.01 255);
+  --text: oklch(0.94 0.008 255);
+  --text-muted: oklch(0.62 0.007 255);
+  --accent: oklch(0.66 0.15 265);
+  --accent-on: oklch(0.98 0.01 265);
+  --score-crit-bg: oklch(0.28 0.06 25);
+  --score-crit-text: oklch(0.88 0.06 25);
+  --warn-bg: oklch(0.28 0.05 80);
+  --warn-border: oklch(0.55 0.1 80);
+  --warn-text: oklch(0.88 0.06 80);
+  --code-bg: oklch(0.19 0.007 255);
+  --jplag-bg: oklch(0.25 0.04 15);
+  --jplag-text: oklch(0.88 0.04 15);
+  --ok-bg: oklch(0.28 0.05 145);
+  --ok-text: oklch(0.87 0.06 145);
+
+  --code-border: oklch(0.36 0.01 255);
+  --code-suspicion-bg: oklch(0.31 0.08 80);
+  --code-suspicion-mark: oklch(0.58 0.12 78);
+  --code-diff-add: oklch(0.28 0.05 145);
+  --code-diff-remove: oklch(0.28 0.05 25);
+  --code-diff-add-mark: oklch(0.48 0.09 145);
+  --code-diff-remove-mark: oklch(0.48 0.06 15);
+  --verdict-ok-bg: oklch(0.28 0.05 145);
+  --verdict-ok-border: oklch(0.48 0.09 145);
+  --verdict-ok-on: oklch(0.88 0.06 145);
+  --verdict-rj-bg: oklch(0.32 0.05 15);
+  --verdict-rj-border: oklch(0.48 0.06 15);
+  --verdict-rj-on: oklch(0.88 0.04 15);
+  --prism-keyword: oklch(0.78 0.12 265);
+  --prism-string: oklch(0.78 0.1 145);
+  --prism-function: oklch(0.8 0.1 265);
+  --prism-number: oklch(0.8 0.08 70);
+  --prism-comment: oklch(0.62 0.007 255);
+}
+
+.theme-creme {
+  --bg-canvas: oklch(0.982 0.01 85);
+  --bg-surface: oklch(0.982 0.01 85);
+  --bg-raised: oklch(1 0.004 85);
+  --bg-sunken: oklch(0.945 0.012 95);
+  --border: oklch(0.88 0.012 90);
+  --text: oklch(0.38 0.01 85);
+  --text-muted: oklch(0.58 0.01 85);
+  --accent: oklch(0.68 0.12 15);
+  --accent-on: oklch(0.99 0.01 15);
+  --score-crit-bg: oklch(0.62 0.14 25);
+  --score-crit-text: oklch(0.28 0.08 25);
+  --warn-bg: oklch(0.97 0.04 85);
+  --warn-border: oklch(0.8 0.12 80);
+  --warn-text: oklch(0.45 0.1 70);
+  --code-bg: oklch(0.97 0.008 90);
+  --night-bg: oklch(0.2 0.04 265);
+  --night-text: oklch(0.93 0.02 265);
+  --jplag-bg: oklch(0.96 0.015 25);
+  --jplag-text: oklch(0.38 0.06 15);
+  --ok-bg: oklch(0.92 0.04 145);
+  --ok-text: oklch(0.35 0.08 145);
+
+  --code-border: oklch(0.88 0.012 90);
+  --code-suspicion-bg: oklch(0.95 0.08 72);
+  --code-suspicion-mark: oklch(0.7 0.14 68);
+  --code-diff-add: oklch(0.94 0.05 145);
+  --code-diff-remove: oklch(0.94 0.04 25);
+  --code-diff-add-mark: oklch(0.7 0.07 125);
+  --code-diff-remove-mark: oklch(0.76 0.07 28);
+  --verdict-ok-bg: oklch(0.93 0.04 125);
+  --verdict-ok-border: oklch(0.7 0.07 125);
+  --verdict-ok-on: oklch(0.34 0.07 125);
+  --verdict-rj-bg: oklch(0.92 0.04 28);
+  --verdict-rj-border: oklch(0.76 0.07 28);
+  --verdict-rj-on: oklch(0.38 0.09 28);
+  --prism-keyword: oklch(0.5 0.16 15);
+  --prism-string: oklch(0.45 0.11 145);
+  --prism-function: oklch(0.48 0.14 265);
+  --prism-number: oklch(0.5 0.12 70);
+  --prism-comment: oklch(0.58 0.01 85);
+}
+
+.theme-creme[data-theme="dark"] {
+  --bg-canvas: oklch(0.18 0.012 55);
+  --bg-surface: oklch(0.22 0.012 55);
+  --bg-raised: oklch(0.27 0.014 55);
+  --bg-sunken: oklch(0.15 0.01 55);
+  --border: oklch(0.38 0.013 55);
+  --text: oklch(0.92 0.01 85);
+  --text-muted: oklch(0.6 0.01 85);
+  --accent: oklch(0.74 0.1 15);
+  --accent-on: oklch(0.98 0.01 15);
+  --score-crit-bg: oklch(0.42 0.1 25);
+  --score-crit-text: oklch(0.9 0.05 25);
+  --warn-bg: oklch(0.3 0.05 80);
+  --warn-border: oklch(0.55 0.1 80);
+  --warn-text: oklch(0.88 0.06 80);
+  --code-bg: oklch(0.2 0.01 55);
+  --jplag-bg: oklch(0.26 0.04 15);
+  --jplag-text: oklch(0.88 0.04 15);
+  --ok-bg: oklch(0.32 0.06 145);
+  --ok-text: oklch(0.88 0.06 145);
+
+  --code-border: oklch(0.38 0.013 55);
+  --code-suspicion-bg: oklch(0.32 0.09 70);
+  --code-suspicion-mark: oklch(0.6 0.12 68);
+  --code-diff-add: oklch(0.28 0.05 145);
+  --code-diff-remove: oklch(0.28 0.05 25);
+  --code-diff-add-mark: oklch(0.48 0.07 100);
+  --code-diff-remove-mark: oklch(0.48 0.06 15);
+  --verdict-ok-bg: oklch(0.3 0.05 100);
+  --verdict-ok-border: oklch(0.48 0.07 100);
+  --verdict-ok-on: oklch(0.88 0.05 100);
+  --verdict-rj-bg: oklch(0.32 0.05 15);
+  --verdict-rj-border: oklch(0.48 0.06 15);
+  --verdict-rj-on: oklch(0.88 0.04 15);
+  --prism-keyword: oklch(0.8 0.1 15);
+  --prism-string: oklch(0.78 0.09 145);
+  --prism-function: oklch(0.82 0.1 265);
+  --prism-number: oklch(0.82 0.08 70);
+  --prism-comment: oklch(0.6 0.01 85);
+}

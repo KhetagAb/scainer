@@ -1,47 +1,48 @@
 /* Verdict action button variants (review context) */
 
 .btn--ok {
-  background: #d4e2cc;
-  border-color: #a8b89c;
-  color: #3a5236;
+  background: var(--verdict-ok-bg);
+  border-color: var(--verdict-ok-border);
+  color: var(--verdict-ok-on);
 }
 
 .btn--ok:hover:not(:disabled) {
-  background: #c8d9bf;
-  border-color: #9aab8f;
+  background: var(--verdict-ok-hover-bg);
+  border-color: var(--verdict-ok-hover-border);
+  color: var(--verdict-ok-on);
 }
 
 .btn--rj {
   background: var(--verdict-rj-bg);
   border-color: var(--verdict-rj-border);
-  color: var(--verdict-rj-text);
+  color: var(--verdict-rj-on);
 }
 
 .btn--rj:hover:not(:disabled) {
-  background: #e5cbc8;
-  border-color: #c9a39e;
-  color: #5c3030;
+  background: var(--verdict-rj-hover-bg);
+  border-color: var(--verdict-rj-hover-border);
+  color: var(--verdict-rj-on);
 }
 
 .btn--comment {
-  background: #d8e0ea;
-  border-color: #aebdcf;
-  color: #3a4654;
+  background: var(--verdict-comment-bg);
+  border-color: var(--verdict-comment-border);
+  color: var(--verdict-comment-text);
 }
 
 .btn--comment:hover:not(:disabled) {
-  background: #ccd6e2;
-  border-color: #a0b0c3;
+  background: var(--verdict-comment-hover-bg);
+  border-color: var(--verdict-comment-hover-border);
 }
 
 .btn--comment.btn--comment--muted {
-  background: #e8e6e3;
-  border-color: #d4d2ce;
+  background: var(--verdict-muted-bg);
+  border-color: var(--verdict-muted-border);
   color: var(--text-muted);
 }
 
 .btn--comment.btn--comment--muted:hover:not(:disabled) {
-  background: #dedbd7;
-  border-color: #c8c5c0;
+  background: var(--verdict-muted-hover-bg);
+  border-color: var(--verdict-muted-hover-border);
   color: var(--text-muted);
 }

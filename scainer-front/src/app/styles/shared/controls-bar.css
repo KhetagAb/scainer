@@ -44,7 +44,7 @@
   background: var(--surface);
   color: var(--text-faint);
   cursor: pointer;
-  box-shadow: 0 0.2rem 0.75rem rgba(50, 44, 36, 0.08);
+  box-shadow: var(--shadow-sm);
 }
 
 .page-help-btn:hover {

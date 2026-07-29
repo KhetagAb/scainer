@@ -9,7 +9,7 @@
   align-items: flex-start;
   padding: 3.5rem var(--page-gutter) 1.5rem;
   overflow-y: auto;
-  background: rgba(22, 20, 18, 0);
+  background: transparent;
   -webkit-backdrop-filter: blur(0);
   backdrop-filter: blur(0);
   transition:
@@ -19,7 +19,7 @@
 }
 
 .problem-statement-overlay--visible {
-  background: rgba(22, 20, 18, 0.45);
+  background: var(--overlay);
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
 }
@@ -35,10 +35,10 @@
   width: 2.25rem;
   height: 2.25rem;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  border: 1px solid color-mix(in srgb, var(--text-inverse) 28%, transparent);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.9);
+  background: color-mix(in srgb, var(--text-inverse) 8%, transparent);
+  color: color-mix(in srgb, var(--text-inverse) 90%, transparent);
   cursor: pointer;
   transition:
     background 0.15s ease,
@@ -47,13 +47,13 @@
 }
 
 .problem-statement-overlay__close:hover {
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.45);
-  color: #fff;
+  background: color-mix(in srgb, var(--text-inverse) 14%, transparent);
+  border-color: color-mix(in srgb, var(--text-inverse) 45%, transparent);
+  color: var(--text-inverse);
 }
 
 .problem-statement-overlay__close:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.65);
+  outline: 2px solid color-mix(in srgb, var(--text-inverse) 65%, transparent);
   outline-offset: 2px;
 }
 
@@ -80,14 +80,14 @@
   margin: 1rem 0;
   font-family: var(--font-ui);
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.82);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  color: color-mix(in srgb, var(--text-inverse) 82%, transparent);
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--text-primary) 35%, transparent);
   text-align: center;
 }
 
 .problem-statement-panel__error,
 .problem-statement-viewer__error {
-  color: #ffb4ae;
+  color: var(--danger);
 }
 
 .problem-statement-viewer {
@@ -100,16 +100,17 @@
   display: flex;
   justify-content: center;
   min-height: 8rem;
-  background: #fff;
+  background: var(--bg-raised);
   border-radius: 0.25rem;
   padding: 0.35rem;
-  box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 0.22);
+  box-shadow: var(--shadow-lg);
 }
 
 .problem-statement-page__canvas {
   display: block;
   max-width: 100%;
   height: auto;
+  background: var(--pdf-canvas-bg);
 }
 
 @media (prefers-reduced-motion: reduce) {

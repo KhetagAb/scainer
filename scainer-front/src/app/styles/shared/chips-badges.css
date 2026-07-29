@@ -92,9 +92,9 @@
 }
 
 .contest-chip {
-  border-color: #9aa8b8;
-  background: #eef3f8;
-  color: #2c3e50;
+  border-color: var(--contest-chip-border);
+  background: var(--contest-chip-bg);
+  color: var(--contest-chip-text);
   font-family: var(--font-ui);
   font-size: 0.8rem;
   max-width: min(28rem, 70vw);
@@ -168,7 +168,7 @@
   height: 1.15rem;
   flex: 0 0 auto;
   object-fit: contain;
-  filter: drop-shadow(0 0 3px rgba(255, 248, 220, 0.45));
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--text-inverse) 45%, transparent));
 }
 
 .detectors .chip.detector-chip--jplag {
@@ -237,6 +237,10 @@ a.chip--link {
   text-decoration: none;
   color: var(--accent-violet);
   cursor: pointer;
+}
+
+a.chip--link:visited {
+  color: var(--accent-violet);
 }
 
 a.chip--link:hover {

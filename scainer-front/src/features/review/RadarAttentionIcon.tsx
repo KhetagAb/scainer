@@ -1,13 +1,11 @@
-import { DotLottieReact } from "@lottiefiles/dotlottie-react";
-import sonarRadarUrl from "@/assets/sonar-radar.lottie?url";
+import { Radar } from "lucide-react";
 
 export function RadarAttentionIcon() {
   return (
-    <DotLottieReact
-      src={sonarRadarUrl}
-      loop
-      autoplay
+    <Radar
       className="review-findings-link__icon"
+      size={40}
+      strokeWidth={2}
       aria-hidden
     />
   );

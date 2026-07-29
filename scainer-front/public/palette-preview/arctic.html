@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru" class="theme-arctic" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Arctic Slate — Scainer</title>
+    <link rel="stylesheet" href="./themes.css" />
+    <link rel="stylesheet" href="./preview.css" />
+  </head>
+  <body>
+    <header class="preview-header">
+      <h1>Arctic Slate</h1>
+      <nav class="preview-nav">
+        <a href="./index.html">Все</a>
+        <a href="./arctic.html">Arctic</a>
+        <a href="./creme.html">Creme</a>
+      </nav>
+      <div class="preview-controls">
+        <button type="button" data-theme-btn="light" class="active">Light</button>
+        <button type="button" data-theme-btn="dark">Dark</button>
+      </div>
+    </header>
+    <main class="preview-main">
+      <div class="mock">
+        <div class="mock-top">sc<span style="color: var(--accent)">AI</span>ner · Ревью</div>
+        <div class="mock-body">
+          <div class="warn">Данные устарели — нажмите «Обновить»</div>
+          <div class="card">
+            <div class="badges">
+              <span class="badge badge-crit">87</span>
+              <span class="badge badge-night">ночь</span>
+              <span class="badge badge-jplag">jplag</span>
+            </div>
+            <div class="code">if (n &lt; 0) return -1;</div>
+          </div>
+          <div class="actions">
+            <span class="btn btn-ok">OK</span>
+            <span class="btn btn-accent">Обновить</span>
+          </div>
+        </div>
+      </div>
+      <section class="code-section">
+        <h2>Code</h2>
+        <div class="code-preview">
+          <span class="code-preview__line"><span class="kw">int</span> solve(<span class="kw">int</span> n) {</span>
+          <span class="code-preview__line code-preview__line--suspicion">  <span class="kw">if</span> (n &lt; <span class="num">0</span>) <span class="kw">return</span> <span class="num">-1</span>; <span class="cmt">// подозрительно</span></span>
+          <span class="code-preview__line code-preview__line--remove">− <span class="kw">return</span> n * <span class="num">2</span>;</span>
+          <span class="code-preview__line code-preview__line--add">+ <span class="kw">return</span> n * n;</span>
+          <span class="code-preview__line">}</span>
+        </div>
+        <div class="verdict-preview">
+          <span class="btn-verdict btn-verdict--ok">AC</span>
+          <span class="btn-verdict btn-verdict--rj">RJ</span>
+        </div>
+      </section>
+      <h2 style="font-size: 1rem">Поверхности</h2>
+      <div class="swatches">
+        <div class="swatch"><div class="swatch-color" style="background: var(--bg-canvas)"></div><div class="swatch-label">canvas</div></div>
+        <div class="swatch"><div class="swatch-color" style="background: var(--bg-raised)"></div><div class="swatch-label">raised</div></div>
+        <div class="swatch"><div class="swatch-color" style="background: var(--bg-sunken)"></div><div class="swatch-label">sunken</div></div>
+        <div class="swatch"><div class="swatch-color" style="background: var(--accent)"></div><div class="swatch-label">accent</div></div>
+      </div>
+    </main>
+    <script src="./preview.js"></script>
+  </body>
+</html>

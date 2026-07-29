@@ -68,7 +68,7 @@ export default function ImportContestsPanel({ onSuccess }: Props) {
 
   if (!isOpen) {
     return (
-      <button type="button" className="btn" onClick={() => setIsOpen(true)}>
+      <button type="button" className="btn import-dock__btn" onClick={() => setIsOpen(true)}>
         Импорт
       </button>
     );

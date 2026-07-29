@@ -1,0 +1,63 @@
+/* shared/code-annotations.css — line marks in code blocks (suspicion, diff, flash) */
+
+.code-lines .line--suspicion,
+.code-lines .line.line-match {
+  background: var(--code-suspicion-bg);
+  box-shadow: inset 3px 0 0 var(--code-suspicion-mark);
+}
+
+.code-lines .line--diff-add,
+.code-lines .unified-diff__line--added {
+  background: var(--code-diff-add);
+  box-shadow: inset 3px 0 0 var(--code-diff-add-mark);
+}
+
+.code-lines .line--diff-remove,
+.code-lines .unified-diff__line--removed {
+  background: var(--code-diff-remove);
+  box-shadow: inset 3px 0 0 var(--code-diff-remove-mark);
+}
+
+.code-lines .line--diff-add .unified-diff__gutter--new,
+.code-lines .line--diff-add .unified-diff__sign,
+.code-lines .unified-diff__line--added .unified-diff__gutter--new,
+.code-lines .unified-diff__line--added .unified-diff__sign {
+  color: var(--verdict-ok-text);
+}
+
+.code-lines .line--diff-remove .unified-diff__gutter--old,
+.code-lines .line--diff-remove .unified-diff__sign,
+.code-lines .unified-diff__line--removed .unified-diff__gutter--old,
+.code-lines .unified-diff__line--removed .unified-diff__sign {
+  color: var(--verdict-rj-text);
+}
+
+.code-lines .line.line-cite-flash::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: var(--code-suspicion-flash);
+  opacity: 0;
+  animation: line-cite-flash-overlay 1s linear forwards;
+}
+
+@keyframes line-cite-flash-overlay {
+  0% {
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .code-lines .line.line-cite-flash::after {
+    animation: none;
+    opacity: 1;
+  }
+}

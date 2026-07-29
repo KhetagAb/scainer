@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import AppTopbarCrumb from "@/app/AppTopbarCrumb";
+import ThemeSettings from "@/app/theme/ThemeSettings";
 import { Logo } from "@/features/findings/FindingCard";
 
 type Props = {
@@ -18,6 +19,7 @@ export default function AppHeader({ actions, children }: Props) {
         <AppTopbarCrumb />
         <div className="app-topbar__toolbar">
           {actions ? <div className="header-actions">{actions}</div> : null}
+          <ThemeSettings />
         </div>
       </header>
       <main className="app-main">{children}</main>

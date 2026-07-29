@@ -22,7 +22,7 @@
   background: var(--surface);
   color: var(--text-faint);
   cursor: pointer;
-  box-shadow: 0 0.2rem 0.75rem rgba(50, 44, 36, 0.08);
+  box-shadow: var(--shadow-sm);
 }
 
 .sensitivity-root__btn:hover,
@@ -114,7 +114,7 @@
   border-radius: 0.3rem;
   background: var(--surface);
   border: 1px solid var(--border);
-  box-shadow: 0 0.12rem 0.4rem rgba(50, 44, 36, 0.08);
+  box-shadow: var(--shadow-sm);
   font-family: var(--font-ui);
   font-size: 0.68rem;
   font-weight: 600;
@@ -134,7 +134,7 @@
   border: 1px solid var(--border);
   border-radius: 50%;
   background: var(--surface);
-  box-shadow: 0 0.15rem 0.55rem rgba(50, 44, 36, 0.1);
+  box-shadow: var(--shadow-sm);
   color: inherit;
 }
 

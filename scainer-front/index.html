@@ -3,8 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f7f8fa" />
     <link rel="icon" href="/favicon.png" type="image/png" />
     <title>scAIner</title>
+    <script>
+      (function () {
+        var palette = localStorage.getItem("scainer-palette");
+        if (palette !== "creme") palette = "arctic";
+        var pref = localStorage.getItem("scainer-theme");
+        if (pref !== "light" && pref !== "dark" && pref !== "system") pref = "system";
+        var dark =
+          pref === "dark" ||
+          (pref === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        var root = document.documentElement;
+        root.dataset.palette = palette;
+        root.dataset.theme = dark ? "dark" : "light";
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

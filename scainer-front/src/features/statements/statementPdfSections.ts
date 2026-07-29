@@ -48,7 +48,14 @@ export function pagesForProblem(
   if (!trimmed) return null;
 
   const key = normalizeProblemLabel(trimmed);
-  const idx = sections.findIndex((section) => section.label === key);
+  let idx = sections.findIndex((section) => section.label === key);
+  if (idx < 0) {
+    const dashIdx = trimmed.indexOf(" - ");
+    if (dashIdx > 0) {
+      const shortKey = normalizeProblemLabel(trimmed.slice(0, dashIdx));
+      idx = sections.findIndex((section) => section.label === shortKey);
+    }
+  }
   if (idx < 0) return null;
 
   const start = sections[idx].startPage;

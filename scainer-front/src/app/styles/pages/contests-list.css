@@ -1,4 +1,102 @@
-/* pages/contests-list.css — .parallels-grid, .parallel-card*, .contest-grid, .contest-card*, .contest-row* */
+/* pages/contests-list.css — .home-summary, .parallels-grid, .parallel-card*, .contest-grid, .contest-card*, .contest-row* */
+
+.home-summary {
+  display: flex;
+  justify-content: center;
+  box-sizing: border-box;
+  margin-bottom: 0.85rem;
+  padding: 0.15rem 0 0.35rem;
+}
+
+.home-summary__metrics {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.35rem;
+  min-width: 0;
+}
+
+.home-summary__metric {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.home-summary__metric-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.home-summary__sigma {
+  position: relative;
+  flex-shrink: 0;
+  font-family: var(--font-head);
+  font-size: 1.65rem;
+  font-weight: 400;
+  line-height: 1;
+  background: var(--logo-ai-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.home-summary__sigma::before {
+  content: "";
+  position: absolute;
+  inset: -0.55rem;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--accent-violet) 22%, transparent) 0%,
+    transparent 72%
+  );
+  pointer-events: none;
+  z-index: -1;
+}
+
+.home-summary__value {
+  font-family: var(--font-head);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  background: var(--logo-ai-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.home-summary__label {
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--text-muted);
+}
+
+@media (max-width: 640px) {
+  .home-summary__metrics {
+    gap: 1rem;
+  }
+
+  .home-summary__sigma {
+    font-size: 1.4rem;
+  }
+
+  .home-summary__value {
+    font-size: 1.25rem;
+  }
+
+  .home-summary__label {
+    font-size: 0.72rem;
+  }
+}
 
 .contest-list {
   list-style: none;

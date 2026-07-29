@@ -150,6 +150,14 @@ export function findingsForSubmission(
   return report.findings.filter((f) => findingTouchesSubmission(f, submissionId));
 }
 
+export function findingsForSubmissionVisible(
+  report: ReportData | undefined,
+  submissionId: string,
+  threshold: number,
+): FindingView[] {
+  return findingsForSubmission(report, submissionId).filter((f) => f.score >= threshold);
+}
+
 export function findingsForProblem(
   report: ReportData | undefined,
   problemId: string,

@@ -16,8 +16,17 @@
   --app-chrome-trailing-size: 2.15rem;
   --app-chrome-trailing-glyph: 1.15rem;
   --contest-review-head-height: 3.5rem;
+  --contest-sensitivity-btn-width: 2.05rem;
+  --contest-sensitivity-width: calc(
+    var(--contest-sensitivity-btn-width) * 3 + 0.12rem * 2 + 0.15rem * 2
+  );
+  --contest-head-tools-min-width: calc(
+    var(--app-chrome-trailing-size) + 0.55rem + var(--contest-sensitivity-width) + 0.55rem
+  );
   --review-chrome-top: calc(var(--app-topbar-height) + var(--contest-review-head-height));
   --review-sticky-scroll-offset: calc(var(--review-chrome-top) + 0.35rem);
+  --review-workspace-gap: 1.5rem;
+  --review-workspace-cols: minmax(0, 3fr) minmax(0, 2fr);
 }
 
 /* ─── Arctic Slate · light (default) ─── */

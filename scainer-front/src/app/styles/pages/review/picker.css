@@ -7,35 +7,6 @@
   gap: 0.45rem;
 }
 
-.review-picker__filter {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin: 0;
-  padding-top: 0.15rem;
-  font-family: var(--font-ui);
-  font-size: 0.78rem;
-  line-height: 1.25;
-  color: var(--text-muted);
-  cursor: pointer;
-  user-select: none;
-  text-align: right;
-}
-
-.review-picker__filter-input {
-  flex-shrink: 0;
-  width: 0.9rem;
-  height: 0.9rem;
-  margin: 0;
-  accent-color: var(--accent);
-  cursor: pointer;
-}
-
-.review-picker__filter-label {
-  white-space: nowrap;
-}
-
 .review-picker {
   display: flex;
   flex-wrap: wrap;
@@ -100,13 +71,18 @@
   color: var(--text-muted);
 }
 
-.review-picker__chip.is-empty {
+.review-picker__chip.is-empty .review-picker__chip-title,
+.review-picker__chip.is-empty .review-picker__chip-pr {
   opacity: 0.55;
 }
 
 .review-picker__chip.is-active {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent);
+}
+
+.review-picker__chip.is-active .review-picker__chip-title,
+.review-picker__chip.is-active .review-picker__chip-pr {
   opacity: 1;
 }
 
@@ -182,16 +158,9 @@
   transition: none;
 }
 
-.review-picker__chip.is-statement:not(.is-active):hover:not(
-    :has(.review-picker__chip-statement-label:hover)
-  )
-  .review-picker__chip-statement-label,
-.review-picker__chip.is-statement:not(.is-active):hover:not(
-    :has(.review-picker__chip-statement-label:hover)
-  )
-  .review-picker__chip-statement
-  svg {
-  color: var(--text-faint);
+.review-picker__chip.is-statement:not(.is-active):hover .review-picker__chip-statement-label,
+.review-picker__chip.is-statement:not(.is-active):hover .review-picker__chip-statement svg {
+  color: var(--accent);
 }
 
 .review-picker__chip.is-statement .review-picker__chip-statement-label:hover,

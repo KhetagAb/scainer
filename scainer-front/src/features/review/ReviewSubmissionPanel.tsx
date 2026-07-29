@@ -19,9 +19,10 @@ import {
 } from "@/client/@tanstack/react-query.gen";
 import type { ProblemInfo, ReportData, SubmissionListItem } from "@/client/types.gen";
 import { authHeaders } from "@/features/auth/authStorage";
+import { useSensitivity } from "@/features/contests/shared/SensitivityContext";
 import { ApiError } from "@/lib/apiError";
 import {
-  findingsForSubmission,
+  findingsForSubmissionVisible,
   formatSubmittedAt,
   prCountByProblem,
   submissionPanelId,
@@ -116,6 +117,7 @@ export default function ReviewSubmissionPanel({
 }: Props) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { threshold } = useSensitivity();
   const commentRef = useRef<HTMLTextAreaElement>(null);
   const [comment, setComment] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
@@ -308,10 +310,10 @@ export default function ReviewSubmissionPanel({
   const actionPending =
     verdictMutation.isPending || commentMutation.isPending || problemTransitionPending;
 
-  const findingKey = useMemo(
-    () => topFindingKey(findingsForSubmission(findingsReport, submissionId)),
-    [findingsReport, submissionId],
-  );
+  const findingKey = useMemo(() => {
+    const visible = findingsForSubmissionVisible(findingsReport, submissionId, threshold);
+    return topFindingKey(visible);
+  }, [findingsReport, submissionId, threshold]);
 
   if (commentsQuery.isError) {
     if (commentsQuery.error instanceof ApiError && commentsQuery.error.status === 401) onUnauthorized();

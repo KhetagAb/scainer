@@ -122,7 +122,7 @@
   padding: 1.1rem var(--page-gutter) 2.75rem;
 }
 
-.app-main:has(> .contest-head--review) {
+.app-main:has(> .contest-head--chrome) {
   padding-top: 0;
 }
 

@@ -2,9 +2,9 @@
 
 .review-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  grid-template-columns: var(--review-workspace-cols);
   grid-template-rows: auto minmax(0, auto);
-  column-gap: 1.5rem;
+  column-gap: var(--review-workspace-gap);
   row-gap: 0.25rem;
   align-items: stretch;
   margin: 0 0 var(--review-workspace-tail);

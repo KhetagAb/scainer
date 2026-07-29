@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ProblemInfo, SubmissionListItem } from "@/client/types.gen";
 import { problemDisplay } from "@/features/findings/reportModel";
 import { prCountByProblem } from "@/features/review/reviewFindings";
@@ -12,8 +12,6 @@ type Props = {
   submissions: SubmissionListItem[];
   activeProblemId: string | null;
   statementAvailable: boolean;
-  prOnly: boolean;
-  onPrOnlyChange: (value: boolean) => void;
 };
 
 export default function ReviewProblemPicker({
@@ -23,11 +21,10 @@ export default function ReviewProblemPicker({
   submissions,
   activeProblemId,
   statementAvailable,
-  prOnly,
-  onPrOnlyChange,
 }: Props) {
   const [statementOpen, setStatementOpen] = useState(false);
   const [statementModalLabel, setStatementModalLabel] = useState<string | null>(null);
+  const pickerRef = useRef<HTMLUListElement>(null);
   const prCounts = prCountByProblem(submissions);
   const sorted = problems.slice().sort((a, b) => {
     const la = problemDisplay(a.id, a.name);
@@ -35,10 +32,30 @@ export default function ReviewProblemPicker({
     return la < lb ? -1 : la > lb ? 1 : 0;
   });
 
+  const activeIndex = activeProblemId
+    ? sorted.findIndex((p) => p.id === activeProblemId)
+    : -1;
+
   const activeProblem = activeProblemId
     ? sorted.find((p) => p.id === activeProblemId)
     : undefined;
   const activeProblemLabel = activeProblem?.name ?? activeProblemId ?? null;
+
+  useEffect(() => {
+    const el = pickerRef.current;
+    if (!el || activeIndex < 0) return;
+
+    const activeItem = el.querySelector<HTMLElement>(
+      ".review-picker__item:has(.review-picker__chip.is-active)",
+    );
+    if (!activeItem) return;
+
+    if (activeIndex === sorted.length - 1) {
+      activeItem.scrollIntoView({ inline: "end", block: "nearest", behavior: "smooth" });
+    } else {
+      activeItem.scrollIntoView({ inline: "start", block: "nearest", behavior: "smooth" });
+    }
+  }, [activeIndex, sorted.length]);
 
   if (!sorted.length) {
     return <p className="review-picker__empty">Задач пока нет</p>;
@@ -64,7 +81,7 @@ export default function ReviewProblemPicker({
         }
       >
         <div className="review-picker-scroll">
-          <ul className="review-picker" aria-label="Задачи для ревью">
+          <ul ref={pickerRef} className="review-picker" aria-label="Задачи для ревью">
             {sorted.map((p) => {
               const pr = prCounts.get(p.id) ?? 0;
               const active = activeProblemId === p.id;
@@ -85,16 +102,6 @@ export default function ReviewProblemPicker({
             })}
           </ul>
         </div>
-
-        <label className="review-picker__filter">
-          <input
-            type="checkbox"
-            className="review-picker__filter-input"
-            checked={prOnly}
-            onChange={(e) => onPrOnlyChange(e.target.checked)}
-          />
-          <span className="review-picker__filter-label">PR only</span>
-        </label>
       </div>
 
       {statementAvailable ? (

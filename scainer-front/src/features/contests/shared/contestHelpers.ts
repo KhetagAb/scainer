@@ -10,12 +10,16 @@ export function compactContestName(name: string): string {
   return parts[parts.length - 1];
 }
 
-export function contestsCountLabel(n: number): string {
+export function contestsCountWord(n: number): string {
   const mod10 = n % 10;
   const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return `${n} контест`;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return `${n} контеста`;
-  return `${n} контестов`;
+  if (mod10 === 1 && mod100 !== 11) return "контест";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return "контеста";
+  return "контестов";
+}
+
+export function contestsCountLabel(n: number): string {
+  return `${n} ${contestsCountWord(n)}`;
 }
 
 export type ContestStatsFields = {

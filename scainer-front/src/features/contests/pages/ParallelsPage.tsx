@@ -9,6 +9,7 @@ import {
   contestsCountLabel,
 } from "@/features/contests/shared/contestHelpers";
 import { DEFAULT_PARALLEL_IDS, parallelLabel } from "@/features/contests/shared/parallels";
+import HomeStatsBar from "@/features/contests/ui/HomeStatsBar";
 
 type Props = {
   onUnauthorized: () => void;
@@ -93,9 +94,13 @@ export default function ParallelsPage({ onUnauthorized }: Props) {
 
   const maxContests = Math.max(0, ...cards.map((c) => c.contests.length));
   const minRows = Math.max(1, Math.ceil(maxContests / 3));
+  const totalContests = contests.length;
+  const totalSubmissions = contests.reduce((s, c) => s + (c.submissionCount ?? 0), 0);
 
   return (
-    <ul
+    <>
+      <HomeStatsBar contestCount={totalContests} submissionCount={totalSubmissions} />
+      <ul
       className="parallels-grid"
       style={{ ["--parallels-min-rows" as string]: String(minRows) }}
     >
@@ -135,5 +140,6 @@ export default function ParallelsPage({ onUnauthorized }: Props) {
         );
       })}
     </ul>
+    </>
   );
 }

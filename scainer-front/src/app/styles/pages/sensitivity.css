@@ -1,179 +1,115 @@
-/* pages/sensitivity.css — .sensitivity-* speed dial */
+/* pages/sensitivity.css — segmented control чувствительности в toolbar */
 
-/* Чувствительность: speed dial над триггером */
-.sensitivity-root {
-  position: relative;
-  width: 2rem;
-  height: 2rem;
+.contest-head__group--sensitivity {
+  --contest-sensitivity-step: calc(var(--contest-sensitivity-btn-width) + 0.12rem);
+  margin-left: 0;
+  min-width: var(--contest-sensitivity-width);
+  height: var(--app-chrome-trailing-size);
+  padding: 0.15rem;
+  gap: 0.12rem;
 }
 
-.sensitivity-root__btn {
-  appearance: none;
-  position: relative;
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
+.contest-head__group--sensitivity .contest-head__group-btn {
+  flex: 0 0 var(--contest-sensitivity-btn-width);
+  width: var(--contest-sensitivity-btn-width);
+  min-width: var(--contest-sensitivity-btn-width);
+  height: calc(var(--app-chrome-trailing-size) - 0.3rem);
   padding: 0;
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  background: var(--surface);
-  color: var(--text-faint);
-  cursor: pointer;
-  box-shadow: var(--shadow-sm);
 }
 
-.sensitivity-root__btn:hover,
-.sensitivity-root__btn.is-open {
+.contest-head__group--sensitivity .sensitivity-btn {
+  position: relative;
+}
+
+.contest-head__group--sensitivity .contest-head__group-btn.is-active {
+  color: var(--accent-violet);
+  background: color-mix(in srgb, var(--accent-violet) 12%, var(--surface-head));
+  border-color: color-mix(in srgb, var(--accent-violet) 45%, var(--border));
+}
+
+.contest-head__group--sensitivity .contest-head__group-btn:hover:not(.is-active) {
   color: var(--text);
-  border-color: var(--text-faint);
 }
 
-.sensitivity-root__btn:focus-visible {
-  outline: 2px solid var(--accent-violet);
-  outline-offset: 2px;
-}
-
-.sensitivity-root__icon {
+.sensitivity-label {
   display: block;
-  width: 1.05rem;
-  height: 1.05rem;
   flex-shrink: 0;
-  background: currentColor;
-  -webkit-mask-position: center;
-  mask-position: center;
-  -webkit-mask-size: contain;
-  mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
+  font-family: var(--font-ui);
+  font-size: 0.62rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: -0.02em;
 }
 
-.sensitivity-dial {
+.sensitivity-tip {
   position: absolute;
+  top: calc(100% + 0.45rem);
   right: 0;
-  bottom: calc(100% + 0.4rem);
-  z-index: 3;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.4rem;
+  left: auto;
+  z-index: 60;
+  width: max-content;
+  max-width: min(13.5rem, calc(100vw - var(--page-gutter) - 0.5rem));
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius-card) - 0.05rem);
+  background: var(--bg-raised);
+  box-shadow: var(--shadow-lg);
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--text-muted);
+  text-align: left;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-0.2rem);
+  transition:
+    opacity 0.14s ease,
+    transform 0.14s ease,
+    visibility 0.14s;
 }
 
-.sensitivity-dial::after {
+.sensitivity-tip::after {
   content: "";
   position: absolute;
+  bottom: 100%;
+  left: auto;
+  border: 5px solid transparent;
+  filter: drop-shadow(0 -1px 0 var(--border));
+  border-bottom-color: var(--bg-raised);
+}
+
+/* Правый край тултипа — у правого края группы; стрелка — к центру своей кнопки. */
+.sensitivity-tip--0 {
+  right: calc(-2 * var(--contest-sensitivity-step));
+}
+
+.sensitivity-tip--0::after {
+  right: calc(2 * var(--contest-sensitivity-step) + var(--contest-sensitivity-btn-width) * 0.5 - 5px);
+}
+
+.sensitivity-tip--1 {
+  right: calc(-1 * var(--contest-sensitivity-step));
+}
+
+.sensitivity-tip--1::after {
+  right: calc(var(--contest-sensitivity-step) + var(--contest-sensitivity-btn-width) * 0.5 - 5px);
+}
+
+.sensitivity-tip--2 {
   right: 0;
-  width: 2rem;
-  top: 100%;
-  height: 0.45rem;
 }
 
-.sensitivity-dial__title {
-  display: block;
-  margin: 0;
-  padding-right: calc(2rem + 0.45rem);
-  box-sizing: border-box;
-  font-family: var(--font-ui);
-  font-size: 0.5rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-  line-height: 1.2;
-  text-align: center;
-  white-space: nowrap;
-  animation: sensitivity-dial-in 0.16s ease-out both;
-  animation-delay: 0.02s;
+.sensitivity-tip--2::after {
+  right: calc(var(--contest-sensitivity-btn-width) * 0.5 - 5px);
 }
 
-.sensitivity-dial__action {
-  --dial-i: 1;
-  appearance: none;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.45rem;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  font: inherit;
-  animation: sensitivity-dial-in 0.16s ease-out both;
-  animation-delay: calc(var(--dial-i) * 0.035s);
-}
-
-.sensitivity-dial__action-label {
-  flex: 1 1 auto;
-  min-width: 0;
-  padding: 0.2rem 0.4rem;
-  border-radius: 0.3rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-  font-family: var(--font-ui);
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: var(--text);
-  line-height: 1;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.sensitivity-dial__action-face {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  flex-shrink: 0;
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
-  color: inherit;
-}
-
-.sensitivity-dial__action:hover {
-  color: var(--text);
-}
-
-.sensitivity-dial__action:hover .sensitivity-dial__action-face {
-  border-color: var(--text-faint);
-}
-
-.sensitivity-dial__action.is-active {
-  color: var(--accent-violet);
-}
-
-.sensitivity-dial__action.is-active .sensitivity-dial__action-face {
-  border-color: color-mix(in srgb, var(--accent-violet) 55%, var(--border));
-}
-
-.sensitivity-dial__action.is-active .sensitivity-dial__action-label {
-  border-color: color-mix(in srgb, var(--accent-violet) 40%, var(--border));
-}
-
-.sensitivity-dial__action:focus-visible {
-  outline: none;
-}
-
-.sensitivity-dial__action:focus-visible .sensitivity-dial__action-face {
-  outline: 2px solid var(--accent-violet);
-  outline-offset: 2px;
-}
-
-@keyframes sensitivity-dial-in {
-  from {
-    opacity: 0;
-    transform: translateY(0.35rem) scale(0.85);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
+.contest-head__group--sensitivity .sensitivity-btn:hover .sensitivity-tip,
+.contest-head__group--sensitivity .sensitivity-btn:focus-visible .sensitivity-tip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
 }

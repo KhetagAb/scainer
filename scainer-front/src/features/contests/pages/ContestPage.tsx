@@ -1,10 +1,10 @@
 import { Outlet, useNavigate, useParams } from "react-router-dom";
 import type { ProblemInfo, SubmissionListItem } from "@/client/types.gen";
-import ContestStats from "@/features/contests/cards/ContestStats";
 import { useContestPageData } from "@/features/contests/pages/useContestPageData";
 import ContestSyncAction from "@/features/contests/sync/ContestSyncAction";
 import { useContestSync } from "@/features/contests/sync/useContestSync";
 import { useSensitivity } from "@/features/contests/shared/SensitivityContext";
+import ContestHeadToolbar from "@/features/contests/ui/ContestHeadToolbar";
 import FindingsGroupTabs from "@/features/findings/FindingsGroupTabs";
 import ReviewProblemPicker from "@/features/review/ReviewProblemPicker";
 import { useReviewPrOnlyFilter } from "@/features/review/useReviewPrOnlyFilter";
@@ -69,7 +69,9 @@ export default function ContestPage({ onUnauthorized }: Props) {
     <>
       <div
         className={
-          "contest-head" + (onReviewPage ? " contest-head--review" : "")
+          "contest-head" +
+          (onFindingsPage || onReviewPage ? " contest-head--chrome" : "") +
+          (onReviewPage ? " contest-head--review" : "")
         }
         {...(onReviewPage ? { "data-contest-head": true } : {})}
       >
@@ -88,18 +90,16 @@ export default function ContestPage({ onUnauthorized }: Props) {
               submissions={(submissionsQuery.data ?? []) as SubmissionListItem[]}
               activeProblemId={activeProblemId}
               statementAvailable={Boolean(contest.parallelId)}
-              prOnly={reviewPrOnly}
-              onPrOnlyChange={setReviewPrOnly}
             />
           </div>
         ) : null}
 
-        <div className="contest-head__actions">
-          {headerStats && <ContestStats stats={headerStats} />}
-          <span className="contest-head__sep" aria-hidden>
-            |
-          </span>
-          <div className="contest-head__job-actions">
+        <ContestHeadToolbar
+          submissionCount={headerStats?.submissionCount}
+          showSensitivity={onFindingsPage || onReviewPage}
+          prOnly={onReviewPage ? reviewPrOnly : undefined}
+          onPrOnlyChange={onReviewPage ? setReviewPrOnly : undefined}
+          sync={
             <ContestSyncAction
               model={syncAction}
               progress={progress ?? undefined}
@@ -107,8 +107,8 @@ export default function ContestPage({ onUnauthorized }: Props) {
               onClick={startSync}
               onResync={startResync}
             />
-          </div>
-        </div>
+          }
+        />
 
         {jobError && (
           <p className="contest-head__error">

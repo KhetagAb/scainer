@@ -10,7 +10,7 @@ import { useParallelPageData } from "@/features/contests/pages/useParallelPageDa
 import { UNGROUPED_PARALLEL } from "@/features/contests/shared/contestHelpers";
 import { useSensitivity } from "@/features/contests/shared/SensitivityContext";
 import AddContestForm from "@/features/contests/ui/AddContestForm";
-import SensitivitySlider from "@/features/contests/ui/SensitivitySlider";
+import ContestHeadToolbar from "@/features/contests/ui/ContestHeadToolbar";
 import { buildParallelSyncAction } from "@/features/contests/sync/contestDataStatus";
 import ContestSyncAction from "@/features/contests/sync/ContestSyncAction";
 import { useParallelSync } from "@/features/contests/sync/useParallelSync";
@@ -23,7 +23,7 @@ export default function ParallelPage({ onUnauthorized }: Props) {
   const { id: parallelIdParam } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const parallelId = parallelIdParam ? decodeURIComponent(parallelIdParam) : UNGROUPED_PARALLEL;
-  const { threshold, setThreshold } = useSensitivity();
+  const { threshold } = useSensitivity();
   const [legendOpen, setLegendOpen] = useState(() => !wasContestLegendSeen());
 
   const closeLegend = useCallback(() => {
@@ -58,15 +58,17 @@ export default function ParallelPage({ onUnauthorized }: Props) {
 
   return (
     <>
-      <div className="contest-head">
-        <div className="contest-head__actions">
-          <ContestSyncAction
-            model={syncAction}
-            batchProgress={syncJobs.batchProgress}
-            disabled={syncJobs.isBusy}
-            onClick={() => syncJobs.startAll()}
-          />
-        </div>
+      <div className="contest-head contest-head--chrome">
+        <ContestHeadToolbar
+          sync={
+            <ContestSyncAction
+              model={syncAction}
+              batchProgress={syncJobs.batchProgress}
+              disabled={syncJobs.isBusy}
+              onClick={() => syncJobs.startAll()}
+            />
+          }
+        />
 
         {syncJobs.error && (
           <p className="contest-head__error">
@@ -109,7 +111,6 @@ export default function ParallelPage({ onUnauthorized }: Props) {
       {rows.length === 0 && !canAdd && <p className="empty-state">Нет контестов</p>}
 
       <div className="page-corner-actions">
-        <SensitivitySlider threshold={threshold} onChange={setThreshold} />
         <button
           type="button"
           className="page-help-btn"

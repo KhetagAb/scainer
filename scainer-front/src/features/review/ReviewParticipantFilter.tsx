@@ -12,7 +12,8 @@ export default function ReviewParticipantFilter({ value, onChange }: Props) {
         className="contest-head__participant-filter-input"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="6B или /.*6B.*/"
+        placeholder="например, 6B"
+        title="Поиск по части логина. Регулярное выражение: оберните в /…/, например /^6B/"
         spellCheck={false}
         aria-label="Фильтр по участнику"
       />

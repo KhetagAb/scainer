@@ -1,141 +1,7 @@
-import type { FindingView, ReportData, SubmissionListItem } from "@/client/types.gen";
-import { problemDisplay } from "@/features/findings/reportModel";
-import {
-  matchesParticipantQuery,
-  matchesReviewFilters,
-  type ReviewFiltersInput,
-} from "@/features/review/reviewFilterUtils";
-import { isPendingReview } from "@/features/review/reviewVerdicts";
-
-export function prCountByProblem(
-  items: SubmissionListItem[],
-  participantQuery = "",
-): Map<string, number> {
-  const map = new Map<string, number>();
-  for (const item of items) {
-    if (item.verdict !== "PR") continue;
-    if (!matchesParticipantQuery(item.participant, participantQuery)) continue;
-    map.set(item.problem, (map.get(item.problem) ?? 0) + 1);
-  }
-  return map;
-}
-
-/** Первая задача в порядке чипов (A, B, …). */
-export function firstProblem(
-  problems: { id: string; name?: string | null }[],
-): string | null {
-  if (!problems.length) return null;
-  const sorted = problems.slice().sort((a, b) => {
-    const la = problemDisplay(a.id, a.name);
-    const lb = problemDisplay(b.id, b.name);
-    return la < lb ? -1 : la > lb ? 1 : 0;
-  });
-  return sorted[0].id;
-}
-
-/** Первая задача (в порядке чипов) с числом PR > 0. */
-export function firstProblemWithPr(
-  problems: { id: string; name?: string | null }[],
-  items: SubmissionListItem[],
-  participantQuery = "",
-): string | null {
-  const counts = prCountByProblem(items, participantQuery);
-  const sorted = problems.slice().sort((a, b) => {
-    const la = problemDisplay(a.id, a.name);
-    const lb = problemDisplay(b.id, b.name);
-    return la < lb ? -1 : la > lb ? 1 : 0;
-  });
-  for (const p of sorted) {
-    if ((counts.get(p.id) ?? 0) > 0) return p.id;
-  }
-  for (const [id, n] of counts) {
-    if (n > 0) return id;
-  }
-  return null;
-}
-
-/** Следующая задача с PR после current (порядок как у чипов). */
-export function nextProblemWithPr(
-  problems: { id: string; name?: string | null }[],
-  items: SubmissionListItem[],
-  currentProblemId: string,
-  participantQuery = "",
-): string | null {
-  const counts = prCountByProblem(items, participantQuery);
-  const sorted = problems.slice().sort((a, b) => {
-    const la = problemDisplay(a.id, a.name);
-    const lb = problemDisplay(b.id, b.name);
-    return la < lb ? -1 : la > lb ? 1 : 0;
-  });
-  const idx = sorted.findIndex((p) => p.id === currentProblemId);
-  const start = idx >= 0 ? idx + 1 : 0;
-  for (let i = start; i < sorted.length; i++) {
-    if ((counts.get(sorted[i].id) ?? 0) > 0) return sorted[i].id;
-  }
-  return null;
-}
-
-export function prQueueForProblem(
-  items: SubmissionListItem[],
-  problemId: string,
-): SubmissionListItem[] {
-  return items
-    .filter((s) => s.problem === problemId && s.verdict === "PR")
-    .slice()
-    .sort((a, b) => a.submitted_at.localeCompare(b.submitted_at));
-}
-
-/** Все посылки задачи для review: PR/PD первые, затем по времени. */
-export function submissionsForProblemReview(
-  items: SubmissionListItem[],
-  problemId: string,
-  filters: ReviewFiltersInput,
-): SubmissionListItem[] {
-  return items
-    .filter((s) => s.problem === problemId && matchesReviewFilters(s, filters))
-    .slice()
-    .sort((a, b) => {
-      const ap = isPendingReview(a.verdict);
-      const bp = isPendingReview(b.verdict);
-      if (ap !== bp) return ap ? -1 : 1;
-      return a.submitted_at.localeCompare(b.submitted_at);
-    });
-}
-
-/** Следующая PR после currentId в очереди (current исключается). */
-export function nextPrInQueue(
-  queue: SubmissionListItem[],
-  currentId: string,
-): SubmissionListItem | undefined {
-  const idx = queue.findIndex((s) => s.id === currentId);
-  if (idx >= 0) {
-    const after = queue.slice(idx + 1).find((s) => s.id !== currentId);
-    if (after) return after;
-  }
-  return queue.find((s) => s.id !== currentId);
-}
+import type { FindingView, ReportData } from "@/client/types.gen";
 
 export function submissionPanelId(submissionId: string): string {
   return `review-sub-${submissionId.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
-}
-
-export function submissionIdsInFindings(report: ReportData | undefined): Set<string> {
-  const ids = new Set<string>();
-  if (!report) return ids;
-  for (const id of Object.keys(report.submissions ?? {})) {
-    ids.add(id);
-  }
-  for (const finding of report.findings ?? []) {
-    if (finding.subject?.submission) ids.add(finding.subject.submission);
-    for (const signal of finding.signals ?? []) {
-      for (const evidence of signal.evidence ?? []) {
-        for (const span of evidence.spans ?? []) {
-          if (span.submission) ids.add(span.submission);
-        }
-      }
-    }
-  }
-  return ids;
 }
 
 function findingTouchesSubmission(finding: FindingView, submissionId: string): boolean {
@@ -150,7 +16,7 @@ function findingTouchesSubmission(finding: FindingView, submissionId: string): b
   return false;
 }
 
-export function findingsForSubmission(
+function findingsForSubmission(
   report: ReportData | undefined,
   submissionId: string,
 ): FindingView[] {
@@ -164,28 +30,6 @@ export function findingsForSubmissionVisible(
   threshold: number,
 ): FindingView[] {
   return findingsForSubmission(report, submissionId).filter((f) => f.score >= threshold);
-}
-
-export function findingsForProblem(
-  report: ReportData | undefined,
-  problemId: string,
-  submissionItems: SubmissionListItem[] = [],
-): FindingView[] {
-  if (!report?.findings) return [];
-  const problemSubIds = new Set<string>();
-  for (const s of submissionItems) {
-    if (s.problem === problemId) problemSubIds.add(s.id);
-  }
-  for (const [id, sub] of Object.entries(report.submissions ?? {})) {
-    if (sub.problem === problemId) problemSubIds.add(id);
-  }
-  return report.findings.filter((f) => {
-    if (f.subject?.problem === problemId) return true;
-    for (const id of problemSubIds) {
-      if (findingTouchesSubmission(f, id)) return true;
-    }
-    return false;
-  });
 }
 
 export function topFindingKey(findings: FindingView[]): string | undefined {

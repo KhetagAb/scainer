@@ -19,6 +19,21 @@
   margin-top: var(--review-stack-split-gap);
 }
 
+.review-detail--placeholder {
+  min-height: 6rem;
+}
+
+.review-detail__placeholder {
+  padding: 0.75rem 0;
+}
+
+.review-detail__placeholder-hint {
+  margin: 0.5rem 0 0;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
 .review-detail__warn {
   margin: 0 0 0.75rem;
   padding: 0.5rem 0.65rem;

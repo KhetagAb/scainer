@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { Outlet, useNavigate, useParams } from "react-router-dom";
 import type { ProblemInfo, SubmissionListItem } from "@/client/types.gen";
 import { useContestPageData } from "@/features/contests/pages/useContestPageData";
@@ -9,6 +9,7 @@ import ContestHeadToolbar from "@/features/contests/ui/ContestHeadToolbar";
 import FindingsGroupTabs from "@/features/findings/FindingsGroupTabs";
 import ReviewProblemPicker from "@/features/review/ReviewProblemPicker";
 import { useReviewFilters } from "@/features/review/useReviewFilters";
+import type { ReviewFiltersInput } from "@/features/review/reviewFilterUtils";
 
 type Props = {
   onUnauthorized: () => void;
@@ -19,7 +20,23 @@ export default function ContestPage({ onUnauthorized }: Props) {
   const navigate = useNavigate();
   const { onFindingsPage, groupBy, setGroupBy } = useSensitivity();
 
-  const pageData = useContestPageData({ contestId, onUnauthorized });
+  const {
+    verdictFilter,
+    setVerdictFilter,
+    participantQuery,
+    setParticipantQuery,
+  } = useReviewFilters(contestId);
+
+  const reviewFiltersForData = useMemo<ReviewFiltersInput>(
+    () => ({ verdictFilter, participantQuery }),
+    [verdictFilter, participantQuery],
+  );
+
+  const pageData = useContestPageData({
+    contestId,
+    onUnauthorized,
+    reviewFilters: reviewFiltersForData,
+  });
   const {
     contestsQuery,
     contest,
@@ -45,14 +62,13 @@ export default function ContestPage({ onUnauthorized }: Props) {
     onUnauthorized,
   });
 
-  const {
-    verdictFilter,
-    setVerdictFilter,
-    participantQuery,
-    setParticipantQuery,
-  } = useReviewFilters(contestId);
-
-  const effectiveParticipantQuery = jobBusy ? "" : participantQuery;
+  const reviewFiltersForUi = useMemo<ReviewFiltersInput>(
+    () => ({
+      verdictFilter,
+      participantQuery: jobBusy ? "" : participantQuery,
+    }),
+    [verdictFilter, participantQuery, jobBusy],
+  );
 
   const handleStartSync = useCallback(() => {
     setParticipantQuery("");
@@ -107,7 +123,7 @@ export default function ContestPage({ onUnauthorized }: Props) {
               submissions={(submissionsQuery.data ?? []) as SubmissionListItem[]}
               activeProblemId={activeProblemId}
               statementAvailable={Boolean(contest.parallelId)}
-              participantQuery={effectiveParticipantQuery}
+              reviewFilters={reviewFiltersForUi}
             />
           </div>
         ) : null}
@@ -147,7 +163,7 @@ export default function ContestPage({ onUnauthorized }: Props) {
           statementAvailable: Boolean(contest.parallelId),
           onUnauthorized,
           findingKey,
-          reviewFilters: { verdictFilter, participantQuery: effectiveParticipantQuery },
+          reviewFilters: reviewFiltersForUi,
           setVerdictFilter,
         }}
       />

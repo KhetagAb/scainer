@@ -168,6 +168,7 @@
   box-shadow: none;
 }
 
+.contest-head--review .review-picker__chip-count,
 .contest-head--review .review-picker__chip-pr {
   min-width: 1.1rem;
   height: 1.1rem;

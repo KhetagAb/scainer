@@ -6,7 +6,7 @@ type Props = {
   label: string;
   /** Буква задачи из ejudge (ProblemInfo.name) для фильтрации страниц PDF. */
   statementLabel: string;
-  pr: number;
+  count: number;
   active: boolean;
   statementAvailable: boolean;
   onStatementOpen: (statementLabel: string) => void;
@@ -16,7 +16,7 @@ export default function ReviewProblemChip({
   to,
   label,
   statementLabel,
-  pr,
+  count,
   active,
   statementAvailable,
   onStatementOpen,
@@ -27,7 +27,7 @@ export default function ReviewProblemChip({
       className={
         "chip problem-chip review-picker__chip" +
         (active ? " is-active" : "") +
-        (pr === 0 ? " is-empty" : "") +
+        (count === 0 ? " is-empty" : "") +
         (statementAvailable ? " is-statement" : "")
       }
       title={active && statementAvailable ? `Условие — ${label}` : label}
@@ -40,8 +40,8 @@ export default function ReviewProblemChip({
       }}
     >
       <span className="review-picker__chip-title">{label}</span>
-      <span className="review-picker__chip-pr" aria-label={`${pr} pending review`}>
-        {pr}
+      <span className="review-picker__chip-count" aria-label={`${count} посылок по фильтру`}>
+        {count}
       </span>
       {statementAvailable ? (
         <span className="review-picker__chip-statement">

@@ -49,6 +49,7 @@
   white-space: nowrap;
 }
 
+.review-picker__chip-count,
 .review-picker__chip-pr {
   grid-column: 2;
   grid-row: 1;
@@ -72,6 +73,7 @@
 }
 
 .review-picker__chip.is-empty .review-picker__chip-title,
+.review-picker__chip.is-empty .review-picker__chip-count,
 .review-picker__chip.is-empty .review-picker__chip-pr {
   opacity: 0.55;
 }
@@ -82,10 +84,12 @@
 }
 
 .review-picker__chip.is-active .review-picker__chip-title,
+.review-picker__chip.is-active .review-picker__chip-count,
 .review-picker__chip.is-active .review-picker__chip-pr {
   opacity: 1;
 }
 
+.review-picker__chip.is-active .review-picker__chip-count,
 .review-picker__chip.is-active .review-picker__chip-pr {
   background: var(--accent);
   color: var(--accent-on);

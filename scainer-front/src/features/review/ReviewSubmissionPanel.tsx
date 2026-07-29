@@ -23,15 +23,13 @@ import { useSensitivity } from "@/features/contests/shared/SensitivityContext";
 import { ApiError } from "@/lib/apiError";
 import {
   findingsForSubmissionVisible,
-  formatSubmittedAt,
-  prCountByProblem,
   submissionPanelId,
   topFindingKey,
 } from "@/features/review/reviewFindings";
+import { prCountForCelebrate } from "@/features/review/reviewModel";
 import { citeLinesLabel, tryMergeCiteAt } from "@/features/review/reviewCite";
 import { scrollToReviewPanel } from "@/features/review/reviewScroll";
 import {
-  formatVerdictLabel,
   isPendingReview,
   isPrVerdict,
   verdictChipTone,
@@ -40,6 +38,8 @@ import SourceCode from "@/features/code/SourceCode";
 import SourceCodeCopyButton from "@/features/code/SourceCodeCopyButton";
 import UnifiedDiffView from "@/features/code/UnifiedDiffView";
 import ReviewCelebrateOverlay from "@/features/review/ReviewCelebrateOverlay";
+import ReviewCommentsThread from "@/features/review/ReviewCommentsThread";
+import ReviewVerdictForm from "@/features/review/ReviewVerdictForm";
 import SubmissionCompareInline from "@/features/review/SubmissionCompareInline";
 import {
   defaultCompareRunId,
@@ -351,7 +351,6 @@ export default function ReviewSubmissionPanel({
     () => sourceLinesFromComments(commentsQuery.data?.source),
     [commentsQuery.data?.source],
   );
-  const commentsCollapsed = !commentsOpen && thread.length > 1;
   const base = `/contests/${encodeURIComponent(contestId)}`;
 
   const refreshComments = () =>
@@ -390,14 +389,16 @@ export default function ReviewSubmissionPanel({
     }
   };
 
-  const prLeftForProblem = (problemId: string) => {
+  const prLeftForProblem = (pid: string) => {
     const items = queryClient.getQueryData<SubmissionListItem[]>(
       getContestSubmissionsQueryKey({
         path: { id: contestId },
         headers: authHeaders(),
       }),
     );
-    return prCountByProblem(items ?? []).get(problemId) ?? 0;
+    const problemItems = (items ?? []).filter((s) => s.problem === pid);
+    // Celebrate: все PR задачи сняты — без учёта UI-фильтров участника/вердикта.
+    return prCountForCelebrate(problemItems);
   };
 
   const scrollToNext = () => {
@@ -470,11 +471,11 @@ export default function ReviewSubmissionPanel({
 
   const expandComments = () => setCommentsOpen(true);
 
-  const onCommentsKeyDown = (e: KeyboardEvent<HTMLElement>) => {
-    if (!commentsCollapsed) return;
+  const onScrollZoneKeyDown = (e: KeyboardEvent<HTMLElement>) => {
+    if (actionPending) return;
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      expandComments();
+      onManualNext();
     }
   };
 
@@ -497,68 +498,6 @@ export default function ReviewSubmissionPanel({
     !targetCommentsQuery.isFetching &&
     targetSourceLines.length > 0 &&
     currentSourceLines.length > 0;
-
-  const commentsList = (
-    <ul className="review-comments__list">
-      {thread.map((c) => (
-        <li key={c.id} className="review-comments__item">
-          <div className="review-comments__meta">
-            <span className="review-comments__author">{c.from}:</span>
-            <time className="review-comments__time" dateTime={c.time}>
-              {formatSubmittedAt(c.time)}
-            </time>
-          </div>
-          {c.subject ? <div className="review-comments__subject">{c.subject}</div> : null}
-          <pre className="review-comments__text">{c.text}</pre>
-        </li>
-      ))}
-    </ul>
-  );
-
-  const onScrollZoneKeyDown = (e: KeyboardEvent<HTMLElement>) => {
-    if (actionPending) return;
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      onManualNext();
-    }
-  };
-
-  const commentsSection =
-    thread.length > 0 ? (
-      <section className="review-comments" aria-label="Комментарии">
-        <h3 className="review-comments__title">
-          Комментарии
-          <span className="review-comments__count">{thread.length}</span>
-        </h3>
-        {commentsCollapsed ? (
-          <div
-            className="review-comments__preview"
-            role="button"
-            tabIndex={0}
-            aria-expanded={false}
-            aria-label={`Показать все комментарии, ещё ${thread.length - 1}`}
-            onClick={expandComments}
-            onKeyDown={onCommentsKeyDown}
-          >
-            <div className="review-comments__clip">{commentsList}</div>
-            <span className="review-comments__more">
-              Ещё {thread.length - 1}
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
-                <path
-                  d="M2.5 4.5 6 8l3.5-3.5"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </span>
-          </div>
-        ) : (
-          commentsList
-        )}
-      </section>
-    ) : null;
 
   return (
     <article
@@ -685,74 +624,28 @@ export default function ReviewSubmissionPanel({
         <div className="review-side-rail">
           <div className="review-side-rail__track">
             <aside className="review-side-panel">
-              <div className="review-side-head">
-                <span className="review-side-head__name">{submission.participant}</span>
-                <span className={`review-verdict-chip review-verdict-chip--${verdictTone}`}>
-                  {formatVerdictLabel(liveVerdict)}
-                </span>
-              </div>
-              <form
-                className="review-verdict"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                }}
-              >
-                <textarea
-                  ref={commentRef}
-                  id={commentFieldId}
-                  className="review-verdict__input"
-                  rows={5}
-                  placeholder="Комментарий"
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  disabled={actionPending}
-                  aria-label="Комментарий"
-                />
-                {actionError ? <p className="review-verdict__error">{actionError}</p> : null}
-                <div
-                  className={`review-verdict__actions${
-                    verdictReviewedFromPr ? " review-verdict__actions--reviewed" : ""
-                  }`}
-                >
-                  <div
-                    className={`review-verdict__ok-rj${
-                      pendingVerdictActions ? "" : " review-verdict__ok-rj--neutral"
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      className={`btn btn--icon${
-                        pendingVerdictActions ? " btn--ok" : ""
-                      }`}
-                      disabled={actionPending}
-                      aria-label="OK"
-                      onClick={() => void submitVerdict("OK")}
-                    >
-                      OK
-                    </button>
-                    <button
-                      type="button"
-                      className={`btn btn--icon${
-                        pendingVerdictActions ? " btn--rj" : ""
-                      }`}
-                      disabled={actionPending}
-                      aria-label="RJ"
-                      onClick={() => void submitVerdict("RJ")}
-                    >
-                      RJ
-                    </button>
-                  </div>
-                  <button
-                    type="button"
-                    className={`btn btn--comment${!prVerdict ? " btn--comment--muted" : ""}`}
-                    disabled={actionPending || !commentText}
-                    onClick={() => void submitComment()}
-                  >
-                    Comment
-                  </button>
-                </div>
-              </form>
-              {commentsSection}
+              <ReviewVerdictForm
+                participant={submission.participant}
+                liveVerdict={liveVerdict}
+                verdictTone={verdictTone}
+                commentRef={commentRef}
+                commentFieldId={commentFieldId}
+                comment={comment}
+                onCommentChange={setComment}
+                actionPending={actionPending}
+                actionError={actionError}
+                pendingVerdictActions={pendingVerdictActions}
+                verdictReviewedFromPr={verdictReviewedFromPr}
+                prVerdict={prVerdict}
+                commentText={commentText}
+                onSubmitVerdict={(verdict) => void submitVerdict(verdict)}
+                onSubmitComment={() => void submitComment()}
+              />
+              <ReviewCommentsThread
+                thread={thread}
+                commentsOpen={commentsOpen}
+                onExpand={expandComments}
+              />
             </aside>
 
             {nextEnabled ? (

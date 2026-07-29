@@ -7,21 +7,26 @@ import {
   getContestSubmissionsOptions,
   getContestsOptions,
 } from "@/client/@tanstack/react-query.gen";
-import type { ProblemInfo, SubmissionListItem } from "@/client/types.gen";
+import type { ProblemInfo } from "@/client/types.gen";
 import { authHeaders } from "@/features/auth/authStorage";
 import { problemSubmissionCountsMap } from "@/features/contests/shared/problemSignalStats";
 import {
-  nextProblemWithPr,
-  prQueueForProblem,
-} from "@/features/review/reviewFindings";
+  indexSubmissionsByProblem,
+  nextProblemWithMatches,
+  queueForProblem,
+} from "@/features/review/reviewModel";
+import type { ReviewFiltersInput } from "@/features/review/reviewFilterUtils";
 import { prefetchSubmissionComments } from "@/features/review/reviewPrefetch";
+
+const PREFETCH_QUEUE_LIMIT = 12;
 
 type Options = {
   contestId?: string;
   onUnauthorized: () => void;
+  reviewFilters?: ReviewFiltersInput;
 };
 
-export function useContestPageData({ contestId, onUnauthorized }: Options) {
+export function useContestPageData({ contestId, onUnauthorized, reviewFilters }: Options) {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -76,30 +81,31 @@ export function useContestPageData({ contestId, onUnauthorized }: Options) {
   }, [searchParams, location.pathname, submissionsQuery.data]);
 
   useEffect(() => {
-    if (!onReviewPage || !contestId || !submissionsQuery.data) return;
+    if (!onReviewPage || !contestId || !submissionsQuery.data || !reviewFilters) return;
 
     const items = submissionsQuery.data;
     const problems = (problemsQuery.data ?? []) as ProblemInfo[];
+    const itemsByProblem = indexSubmissionsByProblem(items);
     const activeProblem = searchParams.get("problem") ?? activeProblemId;
     const nextProblem =
       activeProblem && problems.length
-        ? nextProblemWithPr(problems, items, activeProblem)
+        ? nextProblemWithMatches(problems, items, activeProblem, reviewFilters)
         : null;
 
-    const prefetchSubmission = (s: SubmissionListItem) => {
-      if (s.verdict !== "PR") return;
-      prefetchSubmissionComments(queryClient, contestId, s.id);
+    const prefetchQueue = (problemId: string) => {
+      const problemItems = itemsByProblem.get(problemId) ?? [];
+      const queue = queueForProblem(problemItems, reviewFilters).slice(0, PREFETCH_QUEUE_LIMIT);
+      for (const s of queue) {
+        prefetchSubmissionComments(queryClient, contestId, s.id);
+      }
     };
 
     if (nextProblem) {
-      for (const s of prQueueForProblem(items, nextProblem)) {
-        prefetchSubmission(s);
-      }
+      prefetchQueue(nextProblem);
     }
 
-    for (const s of items) {
-      if (nextProblem && s.problem === nextProblem) continue;
-      prefetchSubmission(s);
+    if (activeProblem && activeProblem !== nextProblem) {
+      prefetchQueue(activeProblem);
     }
   }, [
     onReviewPage,
@@ -109,6 +115,7 @@ export function useContestPageData({ contestId, onUnauthorized }: Options) {
     queryClient,
     searchParams,
     activeProblemId,
+    reviewFilters,
   ]);
 
   const problemSubmissionCounts = useMemo(

@@ -1,28 +1,17 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Fragment, useEffect, useMemo } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useQueryClient, type UseQueryResult } from "@tanstack/react-query";
 import type { ProblemInfo, ReportData, SubmissionListItem } from "@/client/types.gen";
-import {
-  firstProblem,
-  firstProblemWithPr,
-  nextProblemWithPr,
-  submissionPanelId,
-  submissionsForProblemReview,
-} from "@/features/review/reviewFindings";
-import {
-  matchesParticipantQuery,
-  matchesVerdictFilter,
-  isPrOnlyVerdictFilter,
-  verdictFiltersEqual,
-  type ReviewFiltersInput,
-  type ReviewVerdictFilter,
-} from "@/features/review/reviewFilterUtils";
 import { problemDisplay } from "@/features/findings/reportModel";
-import { ensureProblemComments } from "@/features/review/reviewPrefetch";
+import { submissionPanelId } from "@/features/review/reviewFindings";
+import { indexSubmissionsByProblem } from "@/features/review/reviewModel";
+import type { ReviewFiltersInput, ReviewVerdictFilter } from "@/features/review/reviewFilterUtils";
 import { scrollToReviewPanel } from "@/features/review/reviewScroll";
-import ReviewSubmissionPanel from "@/features/review/ReviewSubmissionPanel";
+import ReviewSubmissionPanelGate from "@/features/review/ReviewSubmissionPanelGate";
 import ReviewShowAllSubmissions from "@/features/review/ReviewShowAllSubmissions";
 import { useReviewActivePanel } from "@/features/review/useReviewActivePanel";
+import { useReviewProblemNav } from "@/features/review/useReviewProblemNav";
+import { useReviewProblemQueue } from "@/features/review/useReviewProblemQueue";
 
 type Props = {
   submissionsQuery: UseQueryResult<SubmissionListItem[]>;
@@ -43,46 +32,39 @@ export default function ReviewPage({
 }: Props) {
   const { id: contestId } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const problemId = searchParams.get("problem");
 
   const items = submissionsQuery.data ?? [];
   const report = findingsQuery.data as ReportData | undefined;
 
-  /** Очередь задачи на сессию: OK/RJ не убирают посылку до перезагрузки / смены задачи. */
-  const [sessionProblemId, setSessionProblemId] = useState<string | null>(null);
-  const [sessionQueue, setSessionQueue] = useState<SubmissionListItem[]>([]);
-  const prevFiltersRef = useRef(reviewFilters);
+  const itemsByProblem = useMemo(() => indexSubmissionsByProblem(items), [items]);
+  const problemItems = useMemo(
+    () => (problemId ? itemsByProblem.get(problemId) ?? [] : []),
+    [problemId, itemsByProblem],
+  );
 
-  useEffect(() => {
-    if (!problemId) {
-      setSessionProblemId(null);
-      setSessionQueue([]);
-      return;
-    }
-    if (submissionsQuery.isLoading) return;
+  const { queue, hiddenOnProblem } = useReviewProblemQueue({
+    problemId,
+    problemItems,
+    reviewFilters,
+    isLoading: submissionsQuery.isLoading,
+  });
 
-    const problemChanged = sessionProblemId !== problemId;
-    const filtersChanged =
-      !verdictFiltersEqual(
-        prevFiltersRef.current.verdictFilter,
-        reviewFilters.verdictFilter,
-      ) ||
-      prevFiltersRef.current.participantQuery !== reviewFilters.participantQuery;
-    prevFiltersRef.current = reviewFilters;
-
-    if (!problemChanged && !filtersChanged && sessionProblemId === problemId) return;
-
-    setSessionQueue(submissionsForProblemReview(items, problemId, reviewFilters));
-    setSessionProblemId(problemId);
-  }, [problemId, sessionProblemId, items, submissionsQuery.isLoading, reviewFilters]);
-
-  const queue = useMemo(() => {
-    if (!problemId) return [];
-    if (sessionProblemId === problemId) return sessionQueue;
-    return submissionsForProblemReview(items, problemId, reviewFilters);
-  }, [problemId, sessionProblemId, sessionQueue, items, reviewFilters]);
+  const {
+    nextProblemId,
+    goToNextProblem,
+    isProblemTransitioning,
+    hasHiddenForProblem,
+  } = useReviewProblemNav({
+    contestId,
+    problemId,
+    problems,
+    items,
+    reviewFilters,
+    submissionsLoading: submissionsQuery.isLoading,
+    queryClient,
+  });
 
   const panelIds = useMemo(
     () => queue.map((s) => submissionPanelId(s.id)),
@@ -95,101 +77,8 @@ export default function ReviewPage({
     return problemDisplay(problemId, p?.name);
   }, [problemId, problems]);
 
-  const participantQuery = reviewFilters.participantQuery;
-
-  const nextProblemId = useMemo(
-    () =>
-      problemId ? nextProblemWithPr(problems, items, problemId, participantQuery) : null,
-    [problemId, problems, items, participantQuery],
-  );
-
-  const [isProblemTransitioning, setIsProblemTransitioning] = useState(false);
-
-  const goToNextProblem = useCallback(async () => {
-    if (!nextProblemId || !contestId || !problemId || isProblemTransitioning) return;
-
-    setIsProblemTransitioning(true);
-    try {
-      const targetQueue = submissionsForProblemReview(items, nextProblemId, reviewFilters);
-      await ensureProblemComments(queryClient, contestId, targetQueue);
-
-      navigate(
-        `/contests/${encodeURIComponent(contestId)}/review?problem=${encodeURIComponent(nextProblemId)}`,
-        { replace: true },
-      );
-      if (window.location.hash) {
-        window.history.replaceState(
-          null,
-          "",
-          window.location.pathname + window.location.search,
-        );
-      }
-      window.scrollTo(0, 0);
-    } finally {
-      setIsProblemTransitioning(false);
-    }
-  }, [
-    nextProblemId,
-    contestId,
-    problemId,
-    isProblemTransitioning,
-    items,
-    reviewFilters,
-    queryClient,
-    navigate,
-  ]);
-
-  const hasHiddenSubmissions = useMemo(() => {
-    if (!problemId || !reviewFilters.verdictFilter.active) return false;
-    return items.some(
-      (s) =>
-        s.problem === problemId &&
-        !matchesVerdictFilter(s.verdict, reviewFilters.verdictFilter) &&
-        matchesParticipantQuery(s.participant, reviewFilters.participantQuery),
-    );
-  }, [problemId, reviewFilters, items]);
-
-  const hasHiddenForProblem = (pid: string) => {
-    if (!reviewFilters.verdictFilter.active) return false;
-    return items.some(
-      (s) =>
-        s.problem === pid &&
-        !matchesVerdictFilter(s.verdict, reviewFilters.verdictFilter) &&
-        matchesParticipantQuery(s.participant, reviewFilters.participantQuery),
-    );
-  };
-
   const showAllSubmissions = () =>
     setVerdictFilter({ ...reviewFilters.verdictFilter, active: false });
-
-  useEffect(() => {
-    if (problemId) return;
-    if (submissionsQuery.isLoading) return;
-    if (!contestId || !problems.length) return;
-
-    const firstWithPr = firstProblemWithPr(problems, items, participantQuery);
-    const target = firstWithPr ?? firstProblem(problems);
-    if (!target) return;
-
-    if (!firstWithPr && isPrOnlyVerdictFilter(reviewFilters.verdictFilter)) {
-      setVerdictFilter({ ...reviewFilters.verdictFilter, active: false });
-    }
-
-    navigate(
-      `/contests/${encodeURIComponent(contestId)}/review?problem=${encodeURIComponent(target)}`,
-      { replace: true },
-    );
-  }, [
-    problemId,
-    submissionsQuery.isLoading,
-    problems,
-    items,
-    contestId,
-    navigate,
-    reviewFilters,
-    participantQuery,
-    setVerdictFilter,
-  ]);
 
   useEffect(() => {
     const hash = window.location.hash.replace(/^#/, "");
@@ -227,7 +116,7 @@ export default function ReviewPage({
   if (!queue.length) {
     return (
       <div className="review-empty">
-        {hasHiddenSubmissions ? (
+        {hiddenOnProblem ? (
           <ReviewShowAllSubmissions
             className="review-show-all--empty"
             onClick={showAllSubmissions}
@@ -253,7 +142,8 @@ export default function ReviewPage({
         const showAllAfter = isLast && hasHiddenForProblem(problemId);
         return (
           <Fragment key={s.id}>
-            <ReviewSubmissionPanel
+            <ReviewSubmissionPanelGate
+              index={i}
               contestId={contestId}
               submission={s}
               allSubmissions={items}

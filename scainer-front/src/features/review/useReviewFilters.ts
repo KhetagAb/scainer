@@ -1,8 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import {
-  DEFAULT_VERDICT_FILTER,
-  type ReviewVerdictFilter,
-} from "@/features/review/reviewFilterUtils";
+import { useCallback, useLayoutEffect, useState } from "react";
+import { DEFAULT_VERDICT_FILTER, type ReviewVerdictFilter } from "@/features/review/reviewTypes";
 
 const PARTICIPANT_STORAGE_KEY = "scainer.review.participantFilter";
 
@@ -19,7 +16,7 @@ export function useReviewFilters(contestId: string | undefined) {
   const [verdictFilter, setVerdictFilterState] = useState(DEFAULT_VERDICT_FILTER);
   const [participantQuery, setParticipantQueryState] = useState(readParticipantQuery);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setVerdictFilterState(DEFAULT_VERDICT_FILTER);
   }, [contestId]);
 

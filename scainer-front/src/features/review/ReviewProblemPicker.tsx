@@ -12,6 +12,7 @@ type Props = {
   submissions: SubmissionListItem[];
   activeProblemId: string | null;
   statementAvailable: boolean;
+  participantQuery?: string;
 };
 
 export default function ReviewProblemPicker({
@@ -21,11 +22,12 @@ export default function ReviewProblemPicker({
   submissions,
   activeProblemId,
   statementAvailable,
+  participantQuery = "",
 }: Props) {
   const [statementOpen, setStatementOpen] = useState(false);
   const [statementModalLabel, setStatementModalLabel] = useState<string | null>(null);
   const pickerRef = useRef<HTMLUListElement>(null);
-  const prCounts = prCountByProblem(submissions);
+  const prCounts = prCountByProblem(submissions, participantQuery);
   const sorted = problems.slice().sort((a, b) => {
     const la = problemDisplay(a.id, a.name);
     const lb = problemDisplay(b.id, b.name);

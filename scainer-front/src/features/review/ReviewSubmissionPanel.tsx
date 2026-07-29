@@ -331,7 +331,7 @@ export default function ReviewSubmissionPanel({
   const prVerdict = isPrVerdict(liveVerdict);
   const verdictReviewedFromPr = useMemo(() => {
     const v = liveVerdict.trim().toUpperCase();
-    const reviewed = v === "OK" || v === "AC" || v === "RJ";
+    const reviewed = v === "OK" || v === "RJ";
     return reviewed && isPendingReview(submission.verdict);
   }, [liveVerdict, submission.verdict]);
   const commentText = comment.trim();
@@ -725,10 +725,10 @@ export default function ReviewSubmissionPanel({
                         pendingVerdictActions ? " btn--ok" : ""
                       }`}
                       disabled={actionPending}
-                      aria-label="AC"
+                      aria-label="OK"
                       onClick={() => void submitVerdict("OK")}
                     >
-                      AC
+                      OK
                     </button>
                     <button
                       type="button"

@@ -1,27 +1,35 @@
 import type { ReactNode } from "react";
 import { useSensitivity } from "@/features/contests/shared/SensitivityContext";
 import SensitivitySlider from "@/features/contests/ui/SensitivitySlider";
-import ReviewPrOnlyFilter from "@/features/review/ReviewPrOnlyFilter";
+import ReviewParticipantFilter from "@/features/review/ReviewParticipantFilter";
+import ReviewVerdictFilterChip from "@/features/review/ReviewVerdictFilterChip";
+import type { ReviewVerdictFilter } from "@/features/review/reviewFilterUtils";
 
 type Props = {
   sync: ReactNode;
-  submissionCount?: number;
   showSensitivity?: boolean;
-  prOnly?: boolean;
-  onPrOnlyChange?: (value: boolean) => void;
+  verdictFilter?: ReviewVerdictFilter;
+  onVerdictFilterChange?: (value: ReviewVerdictFilter) => void;
+  participantQuery?: string;
+  onParticipantQueryChange?: (value: string) => void;
+  hideParticipantFilter?: boolean;
 };
 
 export default function ContestHeadToolbar({
   sync,
-  submissionCount,
   showSensitivity = true,
-  prOnly,
-  onPrOnlyChange,
+  verdictFilter,
+  onVerdictFilterChange,
+  participantQuery,
+  onParticipantQueryChange,
+  hideParticipantFilter = false,
 }: Props) {
   const { threshold, setThreshold } = useSensitivity();
-  const hasStat = submissionCount != null;
-  const showPrOnly = prOnly != null && onPrOnlyChange != null;
-  const hasMeta = showPrOnly || hasStat;
+  const showReviewFilters =
+    verdictFilter != null &&
+    onVerdictFilterChange != null &&
+    participantQuery != null &&
+    onParticipantQueryChange != null;
 
   return (
     <div
@@ -30,13 +38,20 @@ export default function ContestHeadToolbar({
         (showSensitivity ? "" : " contest-head__actions--compact")
       }
     >
-      {hasMeta ? (
+      {showReviewFilters ? (
         <div className="contest-head__meta">
-          {showPrOnly ? (
-            <ReviewPrOnlyFilter checked={prOnly} onChange={onPrOnlyChange} />
-          ) : null}
-          {hasStat ? (
-            <span className="contest-head__stat">{submissionCount} посылок</span>
+          <div className="contest-head__verdict-filter">
+            <span className="contest-head__filter-label">Статус</span>
+            <ReviewVerdictFilterChip
+              value={verdictFilter}
+              onChange={onVerdictFilterChange}
+            />
+          </div>
+          {!hideParticipantFilter ? (
+            <ReviewParticipantFilter
+              value={participantQuery}
+              onChange={onParticipantQueryChange}
+            />
           ) : null}
         </div>
       ) : null}

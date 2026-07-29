@@ -116,15 +116,6 @@ export function useContestPageData({ contestId, onUnauthorized }: Options) {
     [problemsQuery.data],
   );
 
-  const headerStats = useMemo(() => {
-    if (!contest) return null;
-    return {
-      id: contest.id,
-      submissionCount: contest.submissionCount ?? 0,
-      problemCount: contest.problemCount,
-    };
-  }, [contest]);
-
   const handleQueryError = useCallback(() => {
     if ((contestsQuery.error as { status?: number })?.status === 401) {
       onUnauthorized();
@@ -138,7 +129,6 @@ export function useContestPageData({ contestId, onUnauthorized }: Options) {
     problemsQuery,
     submissionsQuery,
     problemSubmissionCounts,
-    headerStats,
     activeProblemId,
     onReviewPage,
     findingKey: searchParams.get("finding"),

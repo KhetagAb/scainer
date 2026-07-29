@@ -1,11 +1,20 @@
 import type { FindingView, ReportData, SubmissionListItem } from "@/client/types.gen";
 import { problemDisplay } from "@/features/findings/reportModel";
+import {
+  matchesParticipantQuery,
+  matchesReviewFilters,
+  type ReviewFiltersInput,
+} from "@/features/review/reviewFilterUtils";
 import { isPendingReview } from "@/features/review/reviewVerdicts";
 
-export function prCountByProblem(items: SubmissionListItem[]): Map<string, number> {
+export function prCountByProblem(
+  items: SubmissionListItem[],
+  participantQuery = "",
+): Map<string, number> {
   const map = new Map<string, number>();
   for (const item of items) {
     if (item.verdict !== "PR") continue;
+    if (!matchesParticipantQuery(item.participant, participantQuery)) continue;
     map.set(item.problem, (map.get(item.problem) ?? 0) + 1);
   }
   return map;
@@ -28,8 +37,9 @@ export function firstProblem(
 export function firstProblemWithPr(
   problems: { id: string; name?: string | null }[],
   items: SubmissionListItem[],
+  participantQuery = "",
 ): string | null {
-  const counts = prCountByProblem(items);
+  const counts = prCountByProblem(items, participantQuery);
   const sorted = problems.slice().sort((a, b) => {
     const la = problemDisplay(a.id, a.name);
     const lb = problemDisplay(b.id, b.name);
@@ -49,8 +59,9 @@ export function nextProblemWithPr(
   problems: { id: string; name?: string | null }[],
   items: SubmissionListItem[],
   currentProblemId: string,
+  participantQuery = "",
 ): string | null {
-  const counts = prCountByProblem(items);
+  const counts = prCountByProblem(items, participantQuery);
   const sorted = problems.slice().sort((a, b) => {
     const la = problemDisplay(a.id, a.name);
     const lb = problemDisplay(b.id, b.name);
@@ -78,13 +89,10 @@ export function prQueueForProblem(
 export function submissionsForProblemReview(
   items: SubmissionListItem[],
   problemId: string,
-  prOnly = false,
+  filters: ReviewFiltersInput,
 ): SubmissionListItem[] {
   return items
-    .filter(
-      (s) =>
-        s.problem === problemId && (!prOnly || isPendingReview(s.verdict)),
-    )
+    .filter((s) => s.problem === problemId && matchesReviewFilters(s, filters))
     .slice()
     .sort((a, b) => {
       const ap = isPendingReview(a.verdict);

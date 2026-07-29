@@ -1,7 +1,8 @@
-import { RESYNC_CONFIRM, type SyncActionModel } from "@/features/contests/sync/contestDataStatus";
+import { RESYNC_CONFIRM, SYNC_WARN_LOAD_LABEL, type SyncActionModel } from "@/features/contests/sync/contestDataStatus";
 import { ContestSyncIcon } from "@/features/contests/sync/ContestSyncIcon";
 import {
   formatJobProgress,
+  SYNC_PROGRESS_SIZER_LABEL,
   type JobProgress,
 } from "@/features/contests/jobs/jobShared";
 import JobProgressBar from "@/features/contests/jobs/JobProgressBar";
@@ -17,6 +18,25 @@ type Props = {
 
 function isResyncClick(e: React.MouseEvent): boolean {
   return e.metaKey || e.ctrlKey;
+}
+
+function SyncActionSizer() {
+  return (
+    <div className="contest-sync-action-slot__sizer" aria-hidden="true">
+      <button
+        type="button"
+        className="btn btn--primary contest-sync-action contest-sync-action--labeled"
+        tabIndex={-1}
+        disabled
+      >
+        <ContestSyncIcon size={14} className="btn--icon__glyph contest-sync-action__glyph" />
+        <span className="contest-sync-action__label">{SYNC_WARN_LOAD_LABEL}</span>
+      </button>
+      <div className="import-progress-bar import-progress-bar--sync">
+        <span className="import-progress-bar__label">{SYNC_PROGRESS_SIZER_LABEL}</span>
+      </div>
+    </div>
+  );
 }
 
 export default function ContestSyncAction({
@@ -65,12 +85,15 @@ export default function ContestSyncAction({
       (barProgress ? formatJobProgress(barProgress) : "Обновляем…");
 
     return (
-      <div className="contest-sync-action contest-sync-action--running">
-        <JobProgressBar
-          progress={barProgress ?? { phase: "importing", done: 0, total: 0 }}
-          label={text}
-          className="import-progress-bar--sync"
-        />
+      <div className="contest-sync-action-slot">
+        <SyncActionSizer />
+        <div className="contest-sync-action contest-sync-action--running">
+          <JobProgressBar
+            progress={barProgress ?? { phase: "importing", done: 0, total: 0 }}
+            label={text}
+            className="import-progress-bar--sync"
+          />
+        </div>
       </div>
     );
   }

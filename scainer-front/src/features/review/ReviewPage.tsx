@@ -9,8 +9,15 @@ import {
   submissionPanelId,
   submissionsForProblemReview,
 } from "@/features/review/reviewFindings";
+import {
+  matchesParticipantQuery,
+  matchesVerdictFilter,
+  isPrOnlyVerdictFilter,
+  verdictFiltersEqual,
+  type ReviewFiltersInput,
+  type ReviewVerdictFilter,
+} from "@/features/review/reviewFilterUtils";
 import { problemDisplay } from "@/features/findings/reportModel";
-import { isPendingReview } from "@/features/review/reviewVerdicts";
 import { ensureProblemComments } from "@/features/review/reviewPrefetch";
 import { scrollToReviewPanel } from "@/features/review/reviewScroll";
 import ReviewSubmissionPanel from "@/features/review/ReviewSubmissionPanel";
@@ -22,8 +29,8 @@ type Props = {
   findingsQuery: UseQueryResult<unknown>;
   problems: ProblemInfo[];
   onUnauthorized: () => void;
-  prOnly: boolean;
-  setReviewPrOnly: (value: boolean) => void;
+  reviewFilters: ReviewFiltersInput;
+  setVerdictFilter: (value: ReviewVerdictFilter) => void;
 };
 
 export default function ReviewPage({
@@ -31,8 +38,8 @@ export default function ReviewPage({
   findingsQuery,
   problems,
   onUnauthorized,
-  prOnly,
-  setReviewPrOnly,
+  reviewFilters,
+  setVerdictFilter,
 }: Props) {
   const { id: contestId } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
@@ -46,7 +53,7 @@ export default function ReviewPage({
   /** Очередь задачи на сессию: OK/RJ не убирают посылку до перезагрузки / смены задачи. */
   const [sessionProblemId, setSessionProblemId] = useState<string | null>(null);
   const [sessionQueue, setSessionQueue] = useState<SubmissionListItem[]>([]);
-  const prevPrOnlyRef = useRef(prOnly);
+  const prevFiltersRef = useRef(reviewFilters);
 
   useEffect(() => {
     if (!problemId) {
@@ -57,20 +64,25 @@ export default function ReviewPage({
     if (submissionsQuery.isLoading) return;
 
     const problemChanged = sessionProblemId !== problemId;
-    const prOnlyChanged = prevPrOnlyRef.current !== prOnly;
-    prevPrOnlyRef.current = prOnly;
+    const filtersChanged =
+      !verdictFiltersEqual(
+        prevFiltersRef.current.verdictFilter,
+        reviewFilters.verdictFilter,
+      ) ||
+      prevFiltersRef.current.participantQuery !== reviewFilters.participantQuery;
+    prevFiltersRef.current = reviewFilters;
 
-    if (!problemChanged && !prOnlyChanged && sessionProblemId === problemId) return;
+    if (!problemChanged && !filtersChanged && sessionProblemId === problemId) return;
 
-    setSessionQueue(submissionsForProblemReview(items, problemId, prOnly));
+    setSessionQueue(submissionsForProblemReview(items, problemId, reviewFilters));
     setSessionProblemId(problemId);
-  }, [problemId, sessionProblemId, items, submissionsQuery.isLoading, prOnly]);
+  }, [problemId, sessionProblemId, items, submissionsQuery.isLoading, reviewFilters]);
 
   const queue = useMemo(() => {
     if (!problemId) return [];
     if (sessionProblemId === problemId) return sessionQueue;
-    return submissionsForProblemReview(items, problemId, prOnly);
-  }, [problemId, sessionProblemId, sessionQueue, items, prOnly]);
+    return submissionsForProblemReview(items, problemId, reviewFilters);
+  }, [problemId, sessionProblemId, sessionQueue, items, reviewFilters]);
 
   const panelIds = useMemo(
     () => queue.map((s) => submissionPanelId(s.id)),
@@ -83,9 +95,12 @@ export default function ReviewPage({
     return problemDisplay(problemId, p?.name);
   }, [problemId, problems]);
 
+  const participantQuery = reviewFilters.participantQuery;
+
   const nextProblemId = useMemo(
-    () => (problemId ? nextProblemWithPr(problems, items, problemId) : null),
-    [problemId, problems, items],
+    () =>
+      problemId ? nextProblemWithPr(problems, items, problemId, participantQuery) : null,
+    [problemId, problems, items, participantQuery],
   );
 
   const [isProblemTransitioning, setIsProblemTransitioning] = useState(false);
@@ -95,7 +110,7 @@ export default function ReviewPage({
 
     setIsProblemTransitioning(true);
     try {
-      const targetQueue = submissionsForProblemReview(items, nextProblemId, prOnly);
+      const targetQueue = submissionsForProblemReview(items, nextProblemId, reviewFilters);
       await ensureProblemComments(queryClient, contestId, targetQueue);
 
       navigate(
@@ -119,36 +134,45 @@ export default function ReviewPage({
     problemId,
     isProblemTransitioning,
     items,
-    prOnly,
+    reviewFilters,
     queryClient,
     navigate,
   ]);
 
   const hasHiddenSubmissions = useMemo(() => {
-    if (!problemId || !prOnly) return false;
+    if (!problemId || !reviewFilters.verdictFilter.active) return false;
     return items.some(
-      (s) => s.problem === problemId && !isPendingReview(s.verdict),
+      (s) =>
+        s.problem === problemId &&
+        !matchesVerdictFilter(s.verdict, reviewFilters.verdictFilter) &&
+        matchesParticipantQuery(s.participant, reviewFilters.participantQuery),
     );
-  }, [problemId, prOnly, items]);
+  }, [problemId, reviewFilters, items]);
 
   const hasHiddenForProblem = (pid: string) => {
-    if (!prOnly) return false;
-    return items.some((s) => s.problem === pid && !isPendingReview(s.verdict));
+    if (!reviewFilters.verdictFilter.active) return false;
+    return items.some(
+      (s) =>
+        s.problem === pid &&
+        !matchesVerdictFilter(s.verdict, reviewFilters.verdictFilter) &&
+        matchesParticipantQuery(s.participant, reviewFilters.participantQuery),
+    );
   };
 
-  const showAllSubmissions = () => setReviewPrOnly(false);
+  const showAllSubmissions = () =>
+    setVerdictFilter({ ...reviewFilters.verdictFilter, active: false });
 
   useEffect(() => {
     if (problemId) return;
     if (submissionsQuery.isLoading) return;
     if (!contestId || !problems.length) return;
 
-    const firstWithPr = firstProblemWithPr(problems, items);
+    const firstWithPr = firstProblemWithPr(problems, items, participantQuery);
     const target = firstWithPr ?? firstProblem(problems);
     if (!target) return;
 
-    if (!firstWithPr && prOnly) {
-      setReviewPrOnly(false);
+    if (!firstWithPr && isPrOnlyVerdictFilter(reviewFilters.verdictFilter)) {
+      setVerdictFilter({ ...reviewFilters.verdictFilter, active: false });
     }
 
     navigate(
@@ -162,8 +186,9 @@ export default function ReviewPage({
     items,
     contestId,
     navigate,
-    prOnly,
-    setReviewPrOnly,
+    reviewFilters,
+    participantQuery,
+    setVerdictFilter,
   ]);
 
   useEffect(() => {
@@ -175,6 +200,8 @@ export default function ReviewPage({
     }, 80);
     return () => window.clearTimeout(t);
   }, [queue, problemId]);
+
+  const participantFilterActive = reviewFilters.participantQuery.trim().length > 0;
 
   if (submissionsQuery.isLoading) {
     return <div className="page-center">Загрузка посылок…</div>;
@@ -205,6 +232,11 @@ export default function ReviewPage({
             className="review-show-all--empty"
             onClick={showAllSubmissions}
           />
+        ) : participantFilterActive ? (
+          <p>
+            По задаче <strong>{problemId}</strong> нет посылок для участника «
+            {reviewFilters.participantQuery.trim()}».
+          </p>
         ) : (
           <p>
             По задаче <strong>{problemId}</strong> нет посылок.

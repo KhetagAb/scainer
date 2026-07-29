@@ -69,13 +69,13 @@ export default function ParallelPage({ onUnauthorized }: Props) {
             />
           }
         />
-
-        {syncJobs.error && (
-          <p className="contest-head__error">
-            Не удалось обновить: {syncJobs.error}
-          </p>
-        )}
       </div>
+
+      {syncJobs.error && (
+        <p className="contest-head-error">
+          Не удалось обновить: {syncJobs.error}
+        </p>
+      )}
 
       <ul className="contest-grid">
         {rows.map((c) => (

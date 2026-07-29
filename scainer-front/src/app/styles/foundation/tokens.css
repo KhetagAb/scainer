@@ -23,6 +23,7 @@
   --contest-head-tools-min-width: calc(
     var(--app-chrome-trailing-size) + 0.55rem + var(--contest-sensitivity-width) + 0.55rem
   );
+  --contest-head-error-max-height: 12rem;
   --review-chrome-top: calc(var(--app-topbar-height) + var(--contest-review-head-height));
   --review-sticky-scroll-offset: calc(var(--review-chrome-top) + 0.35rem);
   --review-workspace-gap: 1.5rem;

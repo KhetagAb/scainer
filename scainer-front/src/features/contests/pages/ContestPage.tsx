@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { Outlet, useNavigate, useParams } from "react-router-dom";
 import type { ProblemInfo, SubmissionListItem } from "@/client/types.gen";
 import { useContestPageData } from "@/features/contests/pages/useContestPageData";
@@ -7,7 +8,7 @@ import { useSensitivity } from "@/features/contests/shared/SensitivityContext";
 import ContestHeadToolbar from "@/features/contests/ui/ContestHeadToolbar";
 import FindingsGroupTabs from "@/features/findings/FindingsGroupTabs";
 import ReviewProblemPicker from "@/features/review/ReviewProblemPicker";
-import { useReviewPrOnlyFilter } from "@/features/review/useReviewPrOnlyFilter";
+import { useReviewFilters } from "@/features/review/useReviewFilters";
 
 type Props = {
   onUnauthorized: () => void;
@@ -26,7 +27,6 @@ export default function ContestPage({ onUnauthorized }: Props) {
     problemsQuery,
     submissionsQuery,
     problemSubmissionCounts,
-    headerStats,
     activeProblemId,
     onReviewPage,
     findingKey,
@@ -45,7 +45,24 @@ export default function ContestPage({ onUnauthorized }: Props) {
     onUnauthorized,
   });
 
-  const { prOnly: reviewPrOnly, setPrOnly: setReviewPrOnly } = useReviewPrOnlyFilter();
+  const {
+    verdictFilter,
+    setVerdictFilter,
+    participantQuery,
+    setParticipantQuery,
+  } = useReviewFilters(contestId);
+
+  const effectiveParticipantQuery = jobBusy ? "" : participantQuery;
+
+  const handleStartSync = useCallback(() => {
+    setParticipantQuery("");
+    startSync();
+  }, [setParticipantQuery, startSync]);
+
+  const handleStartResync = useCallback(() => {
+    setParticipantQuery("");
+    startResync();
+  }, [setParticipantQuery, startResync]);
 
   if (!contestId) {
     navigate("/", { replace: true });
@@ -90,32 +107,35 @@ export default function ContestPage({ onUnauthorized }: Props) {
               submissions={(submissionsQuery.data ?? []) as SubmissionListItem[]}
               activeProblemId={activeProblemId}
               statementAvailable={Boolean(contest.parallelId)}
+              participantQuery={effectiveParticipantQuery}
             />
           </div>
         ) : null}
 
         <ContestHeadToolbar
-          submissionCount={headerStats?.submissionCount}
           showSensitivity={onFindingsPage || onReviewPage}
-          prOnly={onReviewPage ? reviewPrOnly : undefined}
-          onPrOnlyChange={onReviewPage ? setReviewPrOnly : undefined}
+          verdictFilter={onReviewPage ? verdictFilter : undefined}
+          onVerdictFilterChange={onReviewPage ? setVerdictFilter : undefined}
+          participantQuery={onReviewPage ? participantQuery : undefined}
+          onParticipantQueryChange={onReviewPage ? setParticipantQuery : undefined}
+          hideParticipantFilter={onReviewPage && jobBusy}
           sync={
             <ContestSyncAction
               model={syncAction}
               progress={progress ?? undefined}
               disabled={jobBusy}
-              onClick={startSync}
-              onResync={startResync}
+              onClick={handleStartSync}
+              onResync={handleStartResync}
             />
           }
         />
-
-        {jobError && (
-          <p className="contest-head__error">
-            Не удалось обновить: {jobError}
-          </p>
-        )}
       </div>
+
+      {jobError && (
+        <p className="contest-head-error">
+          Не удалось обновить: {jobError}
+        </p>
+      )}
 
       <Outlet
         context={{
@@ -127,8 +147,8 @@ export default function ContestPage({ onUnauthorized }: Props) {
           statementAvailable: Boolean(contest.parallelId),
           onUnauthorized,
           findingKey,
-          reviewPrOnly,
-          setReviewPrOnly,
+          reviewFilters: { verdictFilter, participantQuery: effectiveParticipantQuery },
+          setVerdictFilter,
         }}
       />
     </>

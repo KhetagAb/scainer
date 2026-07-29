@@ -70,6 +70,8 @@ export function isAbortError(e: unknown): boolean {
 
 export const SYNC_JOB_FAIL_MESSAGE = "обновление завершилось с ошибкой";
 
+export const SYNC_PROGRESS_SIZER_LABEL = "Анализируем: 9999/9999";
+
 export function jobFailureMessage(
   state: JobState,
   fallback = SYNC_JOB_FAIL_MESSAGE,

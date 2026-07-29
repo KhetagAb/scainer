@@ -1,6 +1,7 @@
 import { useOutletContext } from "react-router-dom";
 import type { UseQueryResult } from "@tanstack/react-query";
 import type { ProblemInfo, SubmissionListItem } from "@/client/types.gen";
+import type { ReviewFiltersInput, ReviewVerdictFilter } from "@/features/review/reviewFilterUtils";
 import FindingsPage from "@/features/findings/FindingsPage";
 import ReviewPage from "@/features/review/ReviewPage";
 import ReviewSubmissionPage from "@/features/review/ReviewSubmissionPage";
@@ -14,8 +15,8 @@ export type ContestOutletContext = {
   statementAvailable: boolean;
   onUnauthorized: () => void;
   findingKey: string | null;
-  reviewPrOnly: boolean;
-  setReviewPrOnly: (value: boolean) => void;
+  reviewFilters: ReviewFiltersInput;
+  setVerdictFilter: (value: ReviewVerdictFilter) => void;
 };
 
 export function ContestFindingsRoute() {
@@ -36,8 +37,8 @@ export function ContestReviewRoute() {
     findingsQuery,
     problems,
     onUnauthorized,
-    reviewPrOnly,
-    setReviewPrOnly,
+    reviewFilters,
+    setVerdictFilter,
   } = useOutletContext<ContestOutletContext>();
   return (
     <ReviewPage
@@ -45,8 +46,8 @@ export function ContestReviewRoute() {
       findingsQuery={findingsQuery}
       problems={problems}
       onUnauthorized={onUnauthorized}
-      prOnly={reviewPrOnly}
-      setReviewPrOnly={setReviewPrOnly}
+      reviewFilters={reviewFilters}
+      setVerdictFilter={setVerdictFilter}
     />
   );
 }

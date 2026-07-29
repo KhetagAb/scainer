@@ -12,25 +12,26 @@ const VERDICT_LABELS: Record<string, string> = {
   WA: "Wrong answer",
   TL: "Time limit",
   ML: "Memory limit",
-  CF: "Compile error",
+  CF: "Check failed",
   DQ: "Disqualified",
 };
 
 export function formatVerdictLabel(verdict: string): string {
   const v = verdict.trim().toUpperCase();
   if (v === "PR" || v === "PD") return "Pending Review";
-  if (v === "OK" || v === "AC") return "Accepted";
+  if (v === "OK") return "Accepted";
   if (v === "RJ") return "Rejected";
   if (VERDICT_LABELS[v]) return VERDICT_LABELS[v];
   if (verdict.trim().toLowerCase() === "compilation error") return "Compilation error";
   return verdict.trim() || "—";
 }
 
-export function verdictChipTone(verdict: string): "ok" | "pr" | "fail" | "neutral" {
+export function verdictChipTone(verdict: string): "ok" | "pr" | "fail" | "neutral" | "dq" {
   const v = verdict.trim().toUpperCase();
   if (!v || v === "—" || v === "-") return "neutral";
-  if (v === "OK" || v === "AC") return "ok";
+  if (v === "OK") return "ok";
   if (v === "PR" || v === "PD") return "pr";
-  if (v === "CE") return "neutral";
+  if (v === "CE" || v === "CF") return "neutral";
+  if (v === "DQ") return "dq";
   return "fail";
 }

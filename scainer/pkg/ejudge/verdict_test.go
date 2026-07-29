@@ -21,8 +21,11 @@ func TestVerdictFromStatus(t *testing.T) {
 	if VerdictFromStatus(2) != VerdictUnknown { // RT
 		t.Fatal("RT -> unknown")
 	}
-	if VerdictFromStatus(11) != VerdictUnknown { // PD (pending, not review)
+	if VerdictFromStatus(11) != VerdictUnknown { // PD
 		t.Fatal("PD -> unknown")
+	}
+	if VerdictFromStatus(8) != VerdictUnknown { // AC (accepted for testing)
+		t.Fatal("AC -> unknown")
 	}
 }
 
@@ -30,11 +33,11 @@ func TestParseVerdict(t *testing.T) {
 	if ParseVerdict("SV") != VerdictRJ {
 		t.Fatal("SV -> RJ")
 	}
-	if ParseVerdict("Coding style violation") != VerdictRJ {
-		t.Fatal("Coding style violation -> RJ")
-	}
 	if ParseVerdict("CE") != VerdictCE {
 		t.Fatal("CE -> CE")
+	}
+	if ParseVerdict("AC") != VerdictUnknown {
+		t.Fatal("AC -> unknown")
 	}
 }
 

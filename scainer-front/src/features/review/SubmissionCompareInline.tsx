@@ -1,5 +1,5 @@
 import { FileDiff, X } from "lucide-react";
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 type Props = {
   currentRunId: string | null;
@@ -33,8 +33,6 @@ export default function SubmissionCompareInline({
   const [draftRunId, setDraftRunId] = useState(targetRunId);
   const runIdRef = useRef<HTMLInputElement>(null);
 
-  const showIcon = !open;
-  const iconViolet = hasDefaultTarget && !open;
   const showDefaultChip =
     hasDefaultTarget && open && !manualEntry && Boolean(defaultTargetRunId);
   const showManualChip = open && (!hasDefaultTarget || manualEntry);
@@ -51,25 +49,33 @@ export default function SubmissionCompareInline({
     return () => window.cancelAnimationFrame(id);
   }, [showManualChip, targetRunId, loading]);
 
-  useEffect(() => {
-    if (!showManualChip) return;
-    const t = window.setTimeout(() => {
-      if (draftRunId !== targetRunId) onTargetRunIdChange(draftRunId);
-    }, 300);
-    return () => window.clearTimeout(t);
-  }, [draftRunId, targetRunId, onTargetRunIdChange, showManualChip]);
+  const submitRunId = () => {
+    const trimmed = draftRunId.trim();
+    if (trimmed === targetRunId.trim()) return;
+    onTargetRunIdChange(draftRunId);
+  };
 
-  const onRunIdKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      onTargetRunIdChange(draftRunId);
-    }
+  const onRunIdSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    submitRunId();
   };
 
   const onIconClick = () => {
     if (hasDefaultTarget) onOpenDefault();
     else onStartManual();
   };
+
+  const compareTitle = loading
+    ? "Загрузка посылки…"
+    : hasDefaultTarget
+      ? "Сравнить с предыдущей посылкой"
+      : "Сравнить с другой посылкой";
+
+  const compareAriaLabel = loading
+    ? "Загрузка посылки"
+    : hasDefaultTarget
+      ? "Сравнить с предыдущей посылкой"
+      : "Сравнить с другой посылкой";
 
   return (
     <div
@@ -79,37 +85,6 @@ export default function SubmissionCompareInline({
         (loading ? " submission-compare-inline--loading" : "")
       }
     >
-      {showIcon ? (
-        <button
-          type="button"
-          className={
-            "submission-compare-inline__toggle" +
-            (loading ? " submission-compare-inline__toggle--loading" : "") +
-            (iconViolet ? " submission-compare-inline__toggle--has-default" : "")
-          }
-          onClick={onIconClick}
-          disabled={loading}
-          title={
-            loading
-              ? "Загрузка посылки…"
-              : hasDefaultTarget
-                ? "Сравнить с предыдущей посылкой"
-                : "Сравнить с другой посылкой"
-          }
-          aria-label={
-            loading
-              ? "Загрузка посылки"
-              : hasDefaultTarget
-                ? "Сравнить с предыдущей посылкой"
-                : "Сравнить с другой посылкой"
-          }
-          aria-expanded={open}
-          aria-busy={loading}
-        >
-          <FileDiff size={14} aria-hidden />
-        </button>
-      ) : null}
-
       {showDefaultChip ? (
         <div className="submission-compare-inline__chip">
           <span className="submission-compare-inline__label" aria-hidden>
@@ -141,7 +116,7 @@ export default function SubmissionCompareInline({
       ) : null}
 
       {showManualChip ? (
-        <div className="submission-compare-inline__chip">
+        <form className="submission-compare-inline__chip" onSubmit={onRunIdSubmit}>
           <span className="submission-compare-inline__label" aria-hidden>
             {currentRunId ?? "?"} ↔
           </span>
@@ -152,7 +127,6 @@ export default function SubmissionCompareInline({
             className="submission-compare-inline__run-id"
             value={draftRunId}
             onChange={(e) => setDraftRunId(e.target.value)}
-            onKeyDown={onRunIdKeyDown}
             disabled={loading}
             size={3}
             maxLength={6}
@@ -171,7 +145,25 @@ export default function SubmissionCompareInline({
           >
             <X size={14} aria-hidden />
           </button>
-        </div>
+        </form>
+      ) : null}
+
+      {!open ? (
+        <button
+          type="button"
+          className={
+            "submission-compare-inline__toggle" +
+            (loading ? " submission-compare-inline__toggle--loading" : "")
+          }
+          onClick={onIconClick}
+          disabled={loading}
+          title={compareTitle}
+          aria-label={compareAriaLabel}
+          aria-expanded={false}
+          aria-busy={loading}
+        >
+          <FileDiff size={14} aria-hidden />
+        </button>
       ) : null}
     </div>
   );

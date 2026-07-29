@@ -7,6 +7,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Info } from "lucide-react";
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import {
   getSubmissionCommentsOptions,
@@ -124,6 +125,7 @@ export default function ReviewSubmissionPanel({
   const [compareRunId, setCompareRunId] = useState("");
   const [compareManualEntry, setCompareManualEntry] = useState(false);
   const [comparePrefetching, setComparePrefetching] = useState(false);
+  const [prevSubmissionHintDismissed, setPrevSubmissionHintDismissed] = useState(false);
 
   const submissionId = submission.id;
   const currentRunId = parseRunId(submissionId);
@@ -140,6 +142,7 @@ export default function ReviewSubmissionPanel({
     setCompareRunId("");
     setCompareManualEntry(false);
     setComparePrefetching(false);
+    setPrevSubmissionHintDismissed(false);
   }, [submissionId]);
 
   const defaultCompareRun = useMemo(
@@ -205,6 +208,7 @@ export default function ReviewSubmissionPanel({
 
   const openDefaultCompare = useCallback(async () => {
     if (!defaultCompareRun) return;
+    setPrevSubmissionHintDismissed(true);
     setCompareManualEntry(false);
     setComparePrefetching(true);
     try {
@@ -592,6 +596,19 @@ export default function ReviewSubmissionPanel({
                 {submissionId}
               </EjudgeContestChip>
             </div>
+            {defaultCompareRun && !prevSubmissionHintDismissed ? (
+              <button
+                type="button"
+                className="review-prev-submission-chip"
+                onClick={() => void openDefaultCompare()}
+                disabled={comparePrefetching}
+                title="Сравнить с предыдущей посылкой"
+                aria-label="Сравнить с предыдущей посылкой"
+              >
+                <Info size={12} aria-hidden />
+                Есть предыдущая посылка
+              </button>
+            ) : null}
           </div>
         </div>
         <div className="review-workspace__label-spacer" aria-hidden />

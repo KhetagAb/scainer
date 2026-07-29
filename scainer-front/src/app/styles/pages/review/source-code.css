@@ -124,19 +124,6 @@
   cursor: wait;
 }
 
-.submission-compare-inline__toggle--has-default {
-  color: var(--accent-violet);
-  border-color: color-mix(in srgb, var(--accent-violet) 45%, var(--border-soft));
-  background: color-mix(in srgb, var(--accent-violet) 10%, var(--surface-2) 90%);
-}
-
-.submission-compare-inline__toggle--has-default:hover,
-.submission-compare-inline__toggle--has-default:focus-visible {
-  color: color-mix(in srgb, var(--accent-violet) 85%, var(--text-primary) 15%);
-  border-color: color-mix(in srgb, var(--accent-violet) 55%, var(--chip-border));
-  background: color-mix(in srgb, var(--accent-violet) 14%, var(--bg-raised) 86%);
-}
-
 .submission-compare-inline--loading {
   opacity: 0.85;
 }
@@ -151,6 +138,7 @@
   align-items: center;
   gap: 0.35rem;
   height: var(--compare-control-h);
+  margin: 0;
   padding: 0 0.2rem 0 0.45rem;
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-chip);
@@ -158,6 +146,14 @@
   box-shadow: var(--shadow-sm);
   box-sizing: border-box;
   flex: 0 0 auto;
+}
+
+.submission-compare-inline--open .submission-compare-inline__chip {
+  border-color: color-mix(in srgb, var(--accent-violet) 55%, var(--chip-border));
+  background: color-mix(in srgb, var(--accent-violet) 8%, var(--surface-2) 92%);
+  box-shadow:
+    var(--shadow-sm),
+    0 0 0 1px color-mix(in srgb, var(--accent-violet) 22%, transparent);
 }
 
 .submission-compare-inline__default-link {
@@ -203,14 +199,15 @@
 }
 
 .submission-compare-inline__run-id {
-  width: 2.75rem;
-  min-width: 0;
+  width: 3ch;
+  min-width: 3ch;
+  max-width: 3ch;
   height: 1.25rem;
   margin: 0;
-  padding: 0 0.2rem;
-  border: 1px solid var(--border-soft);
-  border-radius: calc(var(--radius-chip) - 2px);
-  background: var(--bg-raised);
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
   box-sizing: border-box;
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 0.75rem;
@@ -220,9 +217,9 @@
   flex: 0 0 auto;
 }
 
+.submission-compare-inline__run-id:focus,
 .submission-compare-inline__run-id:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--text-muted) 35%, transparent);
-  outline-offset: 1px;
+  outline: none;
 }
 
 .submission-compare-inline__warn {

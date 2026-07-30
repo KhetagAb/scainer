@@ -15,9 +15,23 @@ import (
 	"scainer/internal/services/analyze/detect"
 	"scainer/internal/services/importer"
 	"scainer/internal/services/scoring"
+	"scainer/internal/services/statements"
 	"scainer/pkg/jobs"
 	"scainer/pkg/store"
 )
+
+func newTestAnalyzeSvc(
+	t *testing.T,
+	reg contests.ContestRegistry,
+	st contests.SubmissionStore,
+	ar contests.AnalysisRepository,
+	orch *analyze.Orchestrator,
+) *analyze.Service {
+	t.Helper()
+	runner := analyze.NewRunner(reg, st, ar, orch)
+	stmt := statements.NewService(reg, nil, statements.NewProblemStore(t.TempDir()))
+	return analyze.New(jobs.NewPool(4), analyze.NewRefreshOrchestrator(runner, stmt), reg)
+}
 
 func testOrchestrator(dets ...detect.Detector[domain.ProblemUnit]) *analyze.Orchestrator {
 	r := analyze.NewRegistry(detect.NewLimiter(4))
@@ -167,7 +181,7 @@ func registerWithSubs(t *testing.T, subs []domain.Submission) (*contests.Contest
 
 	svc := contests.NewService(reg, repo, "stub")
 	reader := contests.NewContestReader(reg, st, repo, scorer)
-	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, repo, orch))
+	analyzeSvc := newTestAnalyzeSvc(t, reg, st, repo, orch)
 
 	if _, err := svc.Register(ctx, contests.Registration{
 		ID:     "contest01",
@@ -270,10 +284,7 @@ func TestSyncManual_AsyncJobFlow(t *testing.T) {
 
 func TestSyncManual_UnknownContest(t *testing.T) {
 	ctx := context.Background()
-	analyzeSvc := analyze.New(
-		jobs.NewPool(4),
-		analyze.NewRunner(newFakeRegistry(), store.NewMem(), newFakeAnalysisRepository(), testOrchestrator()),
-	)
+	analyzeSvc := newTestAnalyzeSvc(t, newFakeRegistry(), store.NewMem(), newFakeAnalysisRepository(), testOrchestrator())
 
 	if _, err := analyzeSvc.SyncManual(ctx, "missing"); !errors.Is(err, contests.ErrContestNotFound) {
 		t.Fatalf("got %v want ErrContestNotFound", err)
@@ -387,7 +398,7 @@ func TestJobConflict(t *testing.T) {
 	reg := newFakeRegistry()
 	fs := newFakeAnalysisRepository()
 	st := store.NewMem()
-	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, testOrchestrator()))
+	analyzeSvc := newTestAnalyzeSvc(t, reg, st, fs, testOrchestrator())
 
 	svc := contests.NewService(reg, fs, "blocking")
 	if _, err := svc.Register(ctx, contests.Registration{

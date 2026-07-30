@@ -321,6 +321,49 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorResponse'
 
+  /api/contests/{id}/problems/{problemId}/statement:
+    get:
+      operationId: getContestProblemStatement
+      summary: Структурированное условие задачи
+      parameters:
+        - $ref: '#/components/parameters/ContestID'
+        - $ref: '#/components/parameters/ProblemID'
+      responses:
+        '200':
+          description: Условие задачи
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemStatementView'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/contests/{id}/problems/{problemId}/statement/pdf:
+    get:
+      operationId: getContestProblemStatementPdf
+      summary: PDF условия задачи (обрезанный)
+      parameters:
+        - $ref: '#/components/parameters/ContestID'
+        - $ref: '#/components/parameters/ProblemID'
+      responses:
+        '200':
+          description: PDF условия задачи
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
   /api/contests/{id}/submissions:
     get:
       operationId: getContestSubmissions
@@ -431,6 +474,13 @@ components:
 
     SubmissionID:
       name: submissionId
+      in: path
+      required: true
+      schema:
+        type: string
+
+    ProblemID:
+      name: problemId
       in: path
       required: true
       schema:
@@ -718,6 +768,31 @@ components:
         pendingCount:
           type: integer
           description: Число посылок со статусом PR (pending review) по этой задаче
+
+    ProblemStatementView:
+      type: object
+      required: [problem, title, statement]
+      properties:
+        problem:
+          type: string
+        title:
+          type: string
+        statement:
+          type: string
+          description: Условие задачи, включая форматы ввода/вывода и замечания
+        examples:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProblemExampleView'
+
+    ProblemExampleView:
+      type: object
+      required: [input, output]
+      properties:
+        input:
+          type: string
+        output:
+          type: string
 
     SubmissionListItem:
       type: object

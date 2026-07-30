@@ -33,9 +33,6 @@ services:
     expose:
       - "8080"
     restart: unless-stopped
-    networks:
-      - default
-      - monitoring
 
   nginx:
     build:
@@ -54,6 +51,3 @@ volumes:
 networks:
   default:
     name: scainer_default
-  monitoring:
-    external: true
-    name: monitoring_default

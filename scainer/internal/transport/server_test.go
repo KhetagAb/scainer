@@ -30,6 +30,19 @@ func emptyOrchestrator() *analyze.Orchestrator {
 	return analyze.NewOrchestrator(analyze.NewRegistry(detect.NewLimiter(4)))
 }
 
+func testAnalyzeSvc(
+	t *testing.T,
+	reg contests.ContestRegistry,
+	st contests.SubmissionStore,
+	ar contests.AnalysisRepository,
+	orch *analyze.Orchestrator,
+) *analyze.Service {
+	t.Helper()
+	runner := analyze.NewRunner(reg, st, ar, orch)
+	stmt := statements.NewService(reg, nil, statements.NewProblemStore(t.TempDir()))
+	return analyze.New(jobs.NewPool(4), analyze.NewRefreshOrchestrator(runner, stmt), reg)
+}
+
 type stubImporter struct{}
 
 func (stubImporter) Name() string { return "stub" }
@@ -135,7 +148,7 @@ func TestPostContestImportNotFound(t *testing.T) {
 	orch := emptyOrchestrator()
 	svc := contests.NewService(reg, fs, "stub")
 	reader := contests.NewContestReader(reg, st, fs, scoring.NewWeighted())
-	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, orch))
+	analyzeSvc := testAnalyzeSvc(t, reg, st, fs, orch)
 
 	if _, err := svc.Register(context.Background(), contests.Registration{
 		ID:     "contest01",
@@ -176,7 +189,7 @@ func TestPostContestImportSubmitsJob(t *testing.T) {
 	orch := emptyOrchestrator()
 	svc := contests.NewService(reg, fs, "stub")
 	reader := contests.NewContestReader(reg, st, fs, scoring.NewWeighted())
-	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, orch))
+	analyzeSvc := testAnalyzeSvc(t, reg, st, fs, orch)
 
 	if _, err := svc.Register(context.Background(), contests.Registration{
 		ID:     "contest01",
@@ -247,7 +260,7 @@ func TestPostContestSync(t *testing.T) {
 	orch := emptyOrchestrator()
 	svc := contests.NewService(reg, fs, "stub")
 	reader := contests.NewContestReader(reg, st, fs, scoring.NewWeighted())
-	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, orch))
+	analyzeSvc := testAnalyzeSvc(t, reg, st, fs, orch)
 
 	if _, err := svc.Register(context.Background(), contests.Registration{
 		ID:     "contest01",
@@ -318,7 +331,7 @@ func TestPostContestAnalyzeWithoutImport(t *testing.T) {
 	orch := emptyOrchestrator()
 	svc := contests.NewService(reg, fs, "stub")
 	reader := contests.NewContestReader(reg, st, fs, scoring.NewWeighted())
-	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, orch))
+	analyzeSvc := testAnalyzeSvc(t, reg, st, fs, orch)
 
 	if _, err := svc.Register(context.Background(), contests.Registration{
 		ID:     "contest01",
@@ -352,7 +365,7 @@ func TestPostContestAnalyzeSubmitsJob(t *testing.T) {
 	orch := emptyOrchestrator()
 	svc := contests.NewService(reg, fs, "stub")
 	reader := contests.NewContestReader(reg, st, fs, scoring.NewWeighted())
-	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, orch))
+	analyzeSvc := testAnalyzeSvc(t, reg, st, fs, orch)
 
 	ctx := context.Background()
 	if _, err := svc.Register(ctx, contests.Registration{
@@ -406,7 +419,7 @@ func TestGetJobNotFound(t *testing.T) {
 	e := transport.New(
 		contests.NewService(reg, fs, "stub"),
 		contests.NewContestReader(reg, st, fs, scoring.NewWeighted()),
-		analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, orch)),
+		testAnalyzeSvc(t, reg, st, fs, orch),
 		nil,
 		testTeachers(),
 		authSvc,
@@ -464,7 +477,7 @@ func TestGetContestSubmissions(t *testing.T) {
 	svc := contests.NewService(reg, fs, "stub")
 	reader := contests.NewContestReader(reg, st, fs, scoring.NewWeighted())
 	orch := emptyOrchestrator()
-	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, orch))
+	analyzeSvc := testAnalyzeSvc(t, reg, st, fs, orch)
 	reviewSvc := review.New(st, &fakeReviewComments{}, fakeReviewStatus{})
 
 	if _, err := svc.Register(context.Background(), contests.Registration{
@@ -507,7 +520,7 @@ func TestGetSubmissionComments(t *testing.T) {
 	svc := contests.NewService(reg, fs, "stub")
 	reader := contests.NewContestReader(reg, st, fs, scoring.NewWeighted())
 	orch := emptyOrchestrator()
-	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, orch))
+	analyzeSvc := testAnalyzeSvc(t, reg, st, fs, orch)
 	reviewSvc := review.New(st, &fakeReviewComments{list: []review.Comment{{ID: "9", Text: "hi", Time: time.Unix(1, 0)}}}, fakeReviewStatus{})
 
 	if _, err := svc.Register(context.Background(), contests.Registration{
@@ -569,7 +582,7 @@ func TestGetAuthMe_UsernameOnly(t *testing.T) {
 	orch := emptyOrchestrator()
 	svc := contests.NewService(reg, fs, "stub")
 	reader := contests.NewContestReader(reg, st, fs, scoring.NewWeighted())
-	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, orch))
+	analyzeSvc := testAnalyzeSvc(t, reg, st, fs, orch)
 	e := transport.New(svc, reader, analyzeSvc, nil, testTeachers(), authSvc, nil, nil).Echo()
 
 	req := httptest.NewRequest(http.MethodGet, "/api/auth/me", nil)
@@ -604,7 +617,7 @@ func TestGetContestEjudgeLogin_OK(t *testing.T) {
 	orch := emptyOrchestrator()
 	svc := contests.NewService(reg, fs, "stub")
 	reader := contests.NewContestReader(reg, st, fs, scoring.NewWeighted())
-	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, orch))
+	analyzeSvc := testAnalyzeSvc(t, reg, st, fs, orch)
 	e := transport.New(svc, reader, analyzeSvc, nil, testTeachers(), authSvc, stubEjudgeGateway{
 		browserLogin: gateway.BrowserLogin{
 			BaseURL:   "https://ejudge.example",
@@ -647,10 +660,10 @@ func TestGetContestStatement_notAvailable(t *testing.T) {
 	orch := emptyOrchestrator()
 	svc := contests.NewService(reg, fs, "stub")
 	reader := contests.NewContestReader(reg, st, fs, scoring.NewWeighted())
-	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, orch))
+	analyzeSvc := testAnalyzeSvc(t, reg, st, fs, orch)
 	statementsSvc := statements.NewService(reg, map[string]statements.Provider{
 		statements.SourceLksh: &statementStubProvider{},
-	})
+	}, nil)
 
 	if _, err := svc.Register(context.Background(), contests.Registration{
 		ID:     "50501",
@@ -675,4 +688,39 @@ func (statementStubProvider) SourceType() string { return statements.SourceLksh 
 
 func (statementStubProvider) Fetch(context.Context, statements.Contest) (statements.Document, error) {
 	return statements.Document{}, statements.ErrNotAvailable
+}
+
+func TestGetContestProblemStatement_notFound(t *testing.T) {
+	authSvc := testAuth()
+	token, _, err := authSvc.IssueToken("admin")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reg := newFakeRegistry()
+	fs := newFakeAnalysisRepository()
+	st := store.NewMem()
+	orch := emptyOrchestrator()
+	svc := contests.NewService(reg, fs, "stub")
+	reader := contests.NewContestReader(reg, st, fs, scoring.NewWeighted())
+	analyzeSvc := testAnalyzeSvc(t, reg, st, fs, orch)
+	statementsSvc := statements.NewService(reg, map[string]statements.Provider{
+		statements.SourceLksh: &statementStubProvider{},
+	}, statements.NewProblemStore(t.TempDir()))
+
+	if _, err := svc.Register(context.Background(), contests.Registration{
+		ID:     "50501",
+		Source: &contests.SourceSpec{Type: "stub"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	e := transport.New(svc, reader, analyzeSvc, nil, testTeachers(), authSvc, nil, statementsSvc).Echo()
+	req := httptest.NewRequest(http.MethodGet, "/api/contests/50501/problems/G/statement", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
 }

@@ -27,7 +27,7 @@ func TestServiceFetch_noParallel(t *testing.T) {
 	}
 	svc := statements.NewService(reg, map[string]statements.Provider{
 		statements.SourceLksh: stubProvider{t: t},
-	})
+	}, nil)
 	_, err := svc.Fetch(context.Background(), domain.ContestID("50152"))
 	if err != statements.ErrNotAvailable {
 		t.Fatalf("err = %v want ErrNotAvailable", err)

@@ -1,6 +1,11 @@
 # Прод: только nginx на loopback. MongoDB и API — внутри compose-сети.
 # Reverse proxy с TLS → http://127.0.0.1:8088
 services:
+  scainer:
+    networks:
+      - default
+      - monitoring
+
   nginx:
     ports:
       - "127.0.0.1:8088:80"
@@ -10,5 +15,8 @@ services:
     environment:
       - VIRTUAL_HOST=scainer.d.lksh.ru
 networks:
+  monitoring:
+    external: true
+    name: monitoring_default
   proxy:
     external: true

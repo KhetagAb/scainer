@@ -117,7 +117,7 @@ func TestProblemsPendingCount(t *testing.T) {
 	}
 }
 
-func TestProblemsIncludesCatalogWithoutSubmissions(t *testing.T) {
+func TestProblemsOnlyFromSubmissions(t *testing.T) {
 	ctx := context.Background()
 	st := store.NewMem()
 	reg := newFakeRegistry()
@@ -133,7 +133,7 @@ func TestProblemsIncludesCatalogWithoutSubmissions(t *testing.T) {
 		Source: contests.SourceSpec{Type: "stub"},
 	}
 	if err := st.Put(ctx, []domain.Submission{
-		{ID: "1", Contest: "contest01", Problem: "A", Participant: "alice", Lang: domain.LangCPP, Source: []byte("a"), Verdict: domain.VerdictOK},
+		{ID: "1", Contest: "contest01", Problem: "A", Participant: "alice", Lang: domain.LangCPP, Source: []byte("a"), Verdict: domain.VerdictOK, Meta: map[string]any{"problem_name": "A"}},
 	}); err != nil {
 		t.Fatalf("Put: %v", err)
 	}
@@ -142,15 +142,49 @@ func TestProblemsIncludesCatalogWithoutSubmissions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Problems: %v", err)
 	}
-	if len(problems) != 3 {
-		t.Fatalf("len: got %d want 3", len(problems))
+	if len(problems) != 1 {
+		t.Fatalf("len: got %d want 1", len(problems))
+	}
+	if problems[0].ID != "A" || problems[0].Name != "A" || problems[0].SubmissionCount != 1 {
+		t.Fatalf("A: %+v", problems[0])
+	}
+}
+
+func TestProblemsDerivedFromSubmissions(t *testing.T) {
+	ctx := context.Background()
+	st := store.NewMem()
+	reg := newFakeRegistry()
+	repo := newFakeAnalysisRepository()
+	reader := newReader(reg, st, repo)
+
+	reg.byID["contest01"] = contests.ContestRecord{
+		Contest: contests.Contest{ID: "contest01"},
+		Source:  contests.SourceSpec{Type: "stub"},
+	}
+	if err := st.Put(ctx, []domain.Submission{
+		{ID: "1", Contest: "contest01", Problem: "find-cycle", Participant: "alice", Lang: domain.LangCPP, Source: []byte("a"), Verdict: domain.VerdictOK, Meta: map[string]any{"problem_name": "A"}},
+		{ID: "2", Contest: "contest01", Problem: "find-cycle", Participant: "bob", Lang: domain.LangCPP, Source: []byte("b"), Verdict: domain.VerdictOK, Meta: map[string]any{"problem_name": "A"}},
+		{ID: "3", Contest: "contest01", Problem: "other-task", Participant: "alice", Lang: domain.LangCPP, Source: []byte("c"), Verdict: domain.VerdictOK, Meta: map[string]any{"problem_name": "B"}},
+	}); err != nil {
+		t.Fatalf("Put: %v", err)
+	}
+
+	problems, err := reader.Problems(ctx, "contest01")
+	if err != nil {
+		t.Fatalf("Problems: %v", err)
+	}
+	if len(problems) != 2 {
+		t.Fatalf("len: got %d want 2", len(problems))
 	}
 	byID := map[domain.ProblemID]contests.ProblemInfo{}
 	for _, p := range problems {
 		byID[p.ID] = p
 	}
-	if byID["C"].SubmissionCount != 0 || byID["C"].PendingCount != 0 {
-		t.Fatalf("C without submissions: %+v", byID["C"])
+	if byID["find-cycle"].Name != "A" || byID["find-cycle"].SubmissionCount != 2 {
+		t.Fatalf("find-cycle: %+v", byID["find-cycle"])
+	}
+	if byID["other-task"].Name != "B" || byID["other-task"].SubmissionCount != 1 {
+		t.Fatalf("other-task: %+v", byID["other-task"])
 	}
 }
 

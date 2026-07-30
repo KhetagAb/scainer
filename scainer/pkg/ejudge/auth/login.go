@@ -34,6 +34,15 @@ type Session struct {
 
 // MasterSessionLogin — серверный логин в new-master (contest 90000) для создания API key.
 func MasterSessionLogin(ctx context.Context, baseURL, login, password string) (Session, error) {
+	return sessionLogin(ctx, baseURL, login, password, MasterLoginContestID)
+}
+
+// ContestSessionLogin — логин в конкретный контест (для contest-status с каталогом задач).
+func ContestSessionLogin(ctx context.Context, baseURL, login, password string, contestID int) (Session, error) {
+	return sessionLogin(ctx, baseURL, login, password, contestID)
+}
+
+func sessionLogin(ctx context.Context, baseURL, login, password string, contestID int) (Session, error) {
 	baseURL = strings.TrimRight(baseURL, "/")
 	jar, err := cookiejar.New(nil)
 	if err != nil {
@@ -44,7 +53,7 @@ func MasterSessionLogin(ctx context.Context, baseURL, login, password string) (S
 	form := url.Values{}
 	form.Set("login", login)
 	form.Set("password", password)
-	form.Set("contest_id", strconv.Itoa(MasterLoginContestID))
+	form.Set("contest_id", strconv.Itoa(contestID))
 	form.Set("role", roleAdmin)
 	form.Set("action_2", "Submit")
 

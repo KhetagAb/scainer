@@ -76,7 +76,7 @@ func (r *ContestReader) buildSummary(ctx context.Context, contest Contest) (Cont
 		return ContestSummary{}, err
 	}
 
-	problems := buildProblemInfos(contest, byProblem)
+	problems := buildProblemInfos(byProblem)
 
 	return ContestSummary{
 		ID:              contest.ID,
@@ -102,8 +102,7 @@ func (r *ContestReader) computedAt(ctx context.Context, id domain.ContestID) (*t
 }
 
 func (r *ContestReader) Problems(ctx context.Context, id domain.ContestID) ([]ProblemInfo, error) {
-	record, err := get(ctx, r.registry, id)
-	if err != nil {
+	if _, err := get(ctx, r.registry, id); err != nil {
 		return nil, err
 	}
 
@@ -112,27 +111,7 @@ func (r *ContestReader) Problems(ctx context.Context, id domain.ContestID) ([]Pr
 		return nil, fmt.Errorf("get problems: %w", err)
 	}
 
-	return buildProblemInfos(record.Contest, byProblem), nil
-}
-
-func buildProblemInfos(contest Contest, byProblem map[domain.ProblemID][]domain.Submission) []ProblemInfo {
-	out := make([]ProblemInfo, 0, len(contest.Problems))
-	for _, problem := range contest.Problems {
-		submissions := byProblem[problem.ID]
-		pending := 0
-		for _, sub := range submissions {
-			if sub.Verdict == domain.VerdictPR {
-				pending++
-			}
-		}
-		out = append(out, ProblemInfo{
-			ID:              problem.ID,
-			Name:            problem.Name,
-			SubmissionCount: len(submissions),
-			PendingCount:    pending,
-		})
-	}
-	return out
+	return buildProblemInfos(byProblem), nil
 }
 
 func (r *ContestReader) GetFindings(ctx context.Context, id domain.ContestID) ([]domain.Finding, map[domain.SubmissionID]domain.Submission, error) {

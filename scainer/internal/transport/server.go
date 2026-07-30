@@ -178,6 +178,56 @@ func statementHTTPError(c echo.Context, err error) error {
 	}
 }
 
+func (s *Server) GetContestProblemStatement(c echo.Context, id server.ContestID, problemId server.ProblemID) error {
+	if s.statements == nil {
+		return c.JSON(http.StatusInternalServerError, server.Error{Error: "statements service is not configured"})
+	}
+	ps, err := s.statements.GetProblemStatement(c.Request().Context(), domain.ContestID(id), domain.ProblemID(problemId))
+	if err != nil {
+		return problemStatementHTTPError(c, err)
+	}
+	return c.JSON(http.StatusOK, toProblemStatementView(ps))
+}
+
+func (s *Server) GetContestProblemStatementPdf(c echo.Context, id server.ContestID, problemId server.ProblemID) error {
+	if s.statements == nil {
+		return c.JSON(http.StatusInternalServerError, server.Error{Error: "statements service is not configured"})
+	}
+	body, err := s.statements.OpenProblemStatementPDF(c.Request().Context(), domain.ContestID(id), domain.ProblemID(problemId))
+	if err != nil {
+		return problemStatementHTTPError(c, err)
+	}
+	defer body.Close()
+	c.Response().Header().Set("Content-Type", "application/pdf")
+	c.Response().Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%q", problemId+".pdf"))
+	if _, err := io.Copy(c.Response().Writer, body); err != nil {
+		return c.JSON(http.StatusInternalServerError, server.Error{Error: "failed to stream statement pdf"})
+	}
+	return nil
+}
+
+func problemStatementHTTPError(c echo.Context, err error) error {
+	switch {
+	case errors.Is(err, contests.ErrContestNotFound), errors.Is(err, statements.ErrProblemStatementNotFound), errors.Is(err, statements.ErrNotAvailable):
+		return c.JSON(http.StatusNotFound, server.Error{Error: "problem statement not found"})
+	default:
+		return c.JSON(http.StatusInternalServerError, server.Error{Error: "failed to load problem statement"})
+	}
+}
+
+func toProblemStatementView(ps domain.ProblemStatement) server.ProblemStatementView {
+	ex := make([]server.ProblemExampleView, 0, len(ps.Examples))
+	for _, e := range ps.Examples {
+		ex = append(ex, server.ProblemExampleView{Input: e.Input, Output: e.Output})
+	}
+	return server.ProblemStatementView{
+		Problem:   string(ps.Problem),
+		Title:     ps.Title,
+		Statement: ps.Statement,
+		Examples:  &ex,
+	}
+}
+
 func (s *Server) GetContests(c echo.Context) error {
 	list, err := s.reader.List(c.Request().Context())
 	if err != nil {

@@ -23,6 +23,7 @@ import (
 	"scainer/internal/services/ejudge"
 	ejgateway "scainer/internal/services/ejudge/gateway"
 	"scainer/internal/services/importer"
+	"scainer/internal/services/refresh"
 	"scainer/internal/services/review"
 	"scainer/internal/services/scoring"
 	"scainer/internal/services/statements"
@@ -89,7 +90,10 @@ func run(cfg *configs.Config) error {
 		return err
 	}
 
-	svcs := wireServices(cfg, store, mongo, ejGateway, teachersSvc, orchestrator, pool)
+	runner := analyze.NewRunner(mongo.registry, store, mongo.analysisRepo, orchestrator)
+	statementsSvc := wireStatements(cfg, mongo.registry)
+	refreshOrch := analyze.NewRefreshOrchestrator(runner, statementsSvc)
+	svcs := wireServices(cfg, store, mongo, ejGateway, teachersSvc, refreshOrch, pool)
 
 	cronCtx, stopCron := context.WithCancel(context.Background())
 	defer stopCron()
@@ -114,7 +118,6 @@ func run(cfg *configs.Config) error {
 	if cfg.Ejudge.Enabled() {
 		ejudgeGw = ejGateway
 	}
-	statementsSvc := wireStatements(cfg, mongo.registry)
 	e := transport.New(svcs.contests, svcs.reader, svcs.analyze, svcs.review, svcs.teachers, svcs.auth, ejudgeGw, statementsSvc).Echo()
 	return serveHTTP(cfg.HTTP, e)
 }
@@ -187,7 +190,7 @@ func wireServices(
 	mongo mongoDeps,
 	ejGateway *ejgateway.Gateway,
 	teachersSvc *teachers.Service,
-	orchestrator *analyze.Orchestrator,
+	refreshOrch *refresh.Orchestrator,
 	pool *jobs.Pool,
 ) appServices {
 	scorer := scoring.NewWeighted()
@@ -202,7 +205,7 @@ func wireServices(
 	return appServices{
 		contests: contests.NewService(mongo.registry, mongo.analysisRepo, defaultJudgeSystem),
 		reader:   contests.NewContestReader(mongo.registry, store, mongo.analysisRepo, scorer),
-		analyze:  analyze.New(pool, analyze.NewRunner(mongo.registry, store, mongo.analysisRepo, orchestrator)),
+		analyze:  analyze.New(pool, refreshOrch, mongo.registry),
 		review:   review.New(store, comments, status),
 		teachers: teachersSvc,
 		auth:     auth.New(cfg.Admin.JWTSecret, cfg.Admin.JWTTTL),
@@ -214,7 +217,7 @@ func wireStatements(cfg *configs.Config, registry contests.ContestRegistry) *sta
 	providers := map[string]statements.Provider{
 		statements.SourceLksh: ejudge.NewLkshStatementProvider(lkshClient),
 	}
-	return statements.NewService(registry, providers)
+	return statements.NewService(registry, providers, statements.NewProblemStore(cfg.Store.Dir))
 }
 
 func serveHTTP(hc configs.HTTPConfig, e *echo.Echo) error {

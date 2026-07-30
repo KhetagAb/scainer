@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"scainer/internal/domain"
+	"scainer/internal/services/contests"
+	"scainer/internal/services/refresh"
 	"scainer/pkg/auth"
 	"scainer/pkg/jobs"
 )
@@ -14,63 +16,53 @@ import (
 const pendingJobID = "__pending__"
 
 type Service struct {
-	pool    *jobs.Pool
-	runner  *Runner
-	mu      sync.Mutex
-	running map[domain.ContestID]string
+	pool     *jobs.Pool
+	refresh  *refresh.Orchestrator
+	registry contests.ContestRegistry
+	mu       sync.Mutex
+	running  map[domain.ContestID]string
 }
 
-func New(pool *jobs.Pool, runner *Runner) *Service {
+func New(pool *jobs.Pool, refreshOrch *refresh.Orchestrator, registry contests.ContestRegistry) *Service {
 	return &Service{
-		pool:    pool,
-		runner:  runner,
-		running: make(map[domain.ContestID]string),
+		pool:     pool,
+		refresh:  refreshOrch,
+		registry: registry,
+		running:  make(map[domain.ContestID]string),
 	}
 }
 
 func (s *Service) Import(ctx context.Context, id domain.ContestID) (string, error) {
 	return s.enqueue(ctx, id, func(jobCtx context.Context) error {
-		_, err := s.runner.Import(jobCtx, id)
+		_, err := s.refresh.Import(jobCtx, id)
 		return err
 	})
 }
 
 func (s *Service) Analyze(ctx context.Context, id domain.ContestID) (string, error) {
-	if err := s.runner.requireImported(ctx, id); err != nil {
+	if err := RequireImported(ctx, s.registry, id); err != nil {
 		return "", err
 	}
 	return s.enqueue(ctx, id, func(jobCtx context.Context) error {
-		return s.runner.Analyze(WithManual(jobCtx), id)
+		return s.refresh.Analyze(WithManual(jobCtx), id)
 	})
 }
 
 func (s *Service) Sync(ctx context.Context, id domain.ContestID) (string, error) {
 	return s.enqueue(ctx, id, func(jobCtx context.Context) error {
-		if _, err := s.runner.Import(jobCtx, id); err != nil {
-			return err
-		}
-		return s.runner.Analyze(jobCtx, id)
+		return s.refresh.Sync(jobCtx, id)
 	})
 }
 
 func (s *Service) SyncManual(ctx context.Context, id domain.ContestID) (string, error) {
 	return s.enqueue(ctx, id, func(jobCtx context.Context) error {
-		if _, err := s.runner.Import(jobCtx, id); err != nil {
-			return err
-		}
-		return s.runner.Analyze(WithManual(jobCtx), id)
+		return s.refresh.Sync(WithManual(jobCtx), id)
 	})
 }
 
 func (s *Service) ResyncManual(ctx context.Context, id domain.ContestID) (string, error) {
 	return s.enqueue(ctx, id, func(jobCtx context.Context) error {
-		if err := s.runner.ResetContestData(jobCtx, id); err != nil {
-			return err
-		}
-		if _, err := s.runner.Import(jobCtx, id); err != nil {
-			return err
-		}
-		return s.runner.Analyze(WithManual(jobCtx), id)
+		return s.refresh.Resync(WithManual(jobCtx), id)
 	})
 }
 
@@ -79,7 +71,7 @@ func (s *Service) enqueue(
 	id domain.ContestID,
 	run func(context.Context) error,
 ) (string, error) {
-	if _, err := lookup(ctx, s.runner.registry, id); err != nil {
+	if _, err := lookup(ctx, s.registry, id); err != nil {
 		return "", err
 	}
 

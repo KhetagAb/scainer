@@ -15,14 +15,15 @@ type contestRegistry interface {
 type Service struct {
 	registry  contestRegistry
 	providers map[string]Provider
+	problems  *ProblemStore
 }
 
-func NewService(registry contestRegistry, providers map[string]Provider) *Service {
+func NewService(registry contestRegistry, providers map[string]Provider, problems *ProblemStore) *Service {
 	cp := make(map[string]Provider, len(providers))
 	for k, v := range providers {
 		cp[k] = v
 	}
-	return &Service{registry: registry, providers: cp}
+	return &Service{registry: registry, providers: cp, problems: problems}
 }
 
 func (s *Service) Fetch(ctx context.Context, contestID domain.ContestID) (Document, error) {

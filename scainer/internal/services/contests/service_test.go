@@ -15,6 +15,7 @@ import (
 	"scainer/internal/services/contests"
 	"scainer/internal/services/importer"
 	"scainer/internal/services/scoring"
+	"scainer/internal/services/statements"
 	"scainer/pkg/jobs"
 	"scainer/pkg/store"
 )
@@ -25,6 +26,19 @@ func testOrchestrator(dets ...detect.Detector[domain.ProblemUnit]) *analyze.Orch
 		analyze.Register(r, det, analyze.EveryRun[domain.ProblemUnit]{Key: analyze.ScopeKeyProblem}, selectors.Problems)
 	}
 	return analyze.NewOrchestrator(r)
+}
+
+func newTestAnalyzeSvc(
+	t *testing.T,
+	reg contests.ContestRegistry,
+	st contests.SubmissionStore,
+	ar contests.AnalysisRepository,
+	orch *analyze.Orchestrator,
+) *analyze.Service {
+	t.Helper()
+	runner := analyze.NewRunner(reg, st, ar, orch)
+	stmt := statements.NewService(reg, nil, statements.NewProblemStore(t.TempDir()))
+	return analyze.New(jobs.NewPool(4), analyze.NewRefreshOrchestrator(runner, stmt), reg)
 }
 
 func waitForJob(t *testing.T, svc *analyze.Service, jobID string) error {
@@ -179,7 +193,7 @@ func registerWithSubs(t *testing.T, subs []domain.Submission) (*contests.Service
 
 	svc := contests.NewService(reg, fs, "stub")
 	reader := contests.NewContestReader(reg, st, fs, scoring.NewWeighted())
-	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, fs, orch))
+	analyzeSvc := newTestAnalyzeSvc(t, reg, st, fs, orch)
 
 	if _, err := svc.Register(ctx, contests.Registration{
 		ID:     "contest01",

@@ -16,6 +16,7 @@ type Store interface {
 
 type Result struct {
 	ContestName string
+	Problems    []domain.ContestProblem
 	Submissions []domain.Submission
 }
 

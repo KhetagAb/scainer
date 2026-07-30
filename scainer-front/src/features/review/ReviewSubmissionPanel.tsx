@@ -12,12 +12,12 @@ import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tansta
 import {
   getSubmissionCommentsOptions,
   getSubmissionCommentsQueryKey,
-  getContestProblemsQueryKey,
   getContestSubmissionsQueryKey,
+  getContestsQueryKey,
   postSubmissionCommentMutation,
   postSubmissionVerdictMutation,
 } from "@/client/@tanstack/react-query.gen";
-import type { ProblemInfo, ReportData, SubmissionListItem } from "@/client/types.gen";
+import type { ContestInfo, ReportData, SubmissionListItem } from "@/client/types.gen";
 import { authHeaders } from "@/features/auth/authStorage";
 import { useSensitivity } from "@/features/contests/shared/SensitivityContext";
 import { ApiError } from "@/lib/apiError";
@@ -374,16 +374,20 @@ export default function ReviewSubmissionPanel({
     );
 
     if (wasPr) {
-      queryClient.setQueryData<ProblemInfo[]>(
-        getContestProblemsQueryKey({
-          path: { id: contestId },
-          headers: authHeaders(),
-        }),
-        (problems) =>
-          problems?.map((p) =>
-            p.id === submission.problem
-              ? { ...p, pendingCount: Math.max(0, (p.pendingCount ?? 0) - 1) }
-              : p,
+      queryClient.setQueryData<ContestInfo[]>(
+        getContestsQueryKey({ headers: authHeaders() }),
+        (contests) =>
+          contests?.map((c) =>
+            c.id !== contestId
+              ? c
+              : {
+                  ...c,
+                  problems: (c.problems ?? []).map((p) =>
+                    p.id === submission.problem
+                      ? { ...p, pendingCount: Math.max(0, (p.pendingCount ?? 0) - 1) }
+                      : p,
+                  ),
+                },
           ),
       );
     }

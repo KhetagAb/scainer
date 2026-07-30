@@ -54,6 +54,7 @@ func (r *Runner) Import(ctx context.Context, id domain.ContestID) (Result, error
 	contest := record.Contest
 	contest.LastImportedAt = &now
 	contest.Name = imported.ContestName
+	contest.Problems = imported.Problems
 	if err := r.registry.Put(ctx, contests.ContestRecord{Contest: contest, Source: record.Source}); err != nil {
 		return Result{}, fmt.Errorf("persist lastImportedAt: %w", err)
 	}

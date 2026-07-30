@@ -25,7 +25,6 @@ export function contestsCountLabel(n: number): string {
 export type ContestStatsFields = {
   id?: string;
   submissionCount?: number | null;
-  problemCount?: number | null;
 };
 
 export function formatSuspicionPercent(value?: number | null): string {

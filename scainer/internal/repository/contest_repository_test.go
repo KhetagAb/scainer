@@ -6,9 +6,9 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"scainer/internal/services/contests"
 	"scainer/internal/domain"
 	"scainer/internal/repository"
+	"scainer/internal/services/contests"
 )
 
 func TestContestRepository_PutGetListDelete(t *testing.T) {
@@ -23,10 +23,13 @@ func TestContestRepository_PutGetListDelete(t *testing.T) {
 
 	rec := contests.ContestRecord{
 		Contest: contests.Contest{
-			ID:               "contest01",
-			Name:             "Тестовый контест",
-			ParallelID:       "par1",
-				ExcludedProblems: []domain.ProblemID{"Z"},
+			ID:         "contest01",
+			Name:       "Тестовый контест",
+			ParallelID: "par1",
+			Problems: []domain.ContestProblem{
+				{ID: "A", Name: "A"},
+				{ID: "B", Name: "B"},
+			},
 		},
 		Source: contests.SourceSpec{Type: "ejudge", Config: cfg},
 	}
@@ -45,8 +48,8 @@ func TestContestRepository_PutGetListDelete(t *testing.T) {
 	if got.Contest.ParallelID != "par1" {
 		t.Fatalf("Contest: %+v", got.Contest)
 	}
-	if len(got.Contest.ExcludedProblems) != 1 || got.Contest.ExcludedProblems[0] != "Z" {
-		t.Fatalf("ExcludedProblems: %+v", got.Contest.ExcludedProblems)
+	if len(got.Contest.Problems) != 2 || got.Contest.Problems[0].ID != "A" {
+		t.Fatalf("Problems: %+v", got.Contest.Problems)
 	}
 	if got.Source.Type != "ejudge" {
 		t.Fatalf("Source.Type: %q", got.Source.Type)

@@ -67,6 +67,10 @@ func TestImport_FullThenIncremental(t *testing.T) {
 				"ok": true,
 				"result": map[string]any{
 					"contest": map[string]any{"id": 50501, "name": "Тестовый контест"},
+					"problems": []map[string]any{
+						{"id": 1, "short_name": "A", "internal_name": "find-cycle", "name": "Find cycle"},
+						{"id": 2, "short_name": "B", "internal_name": "other-task", "name": "Other"},
+					},
 				},
 			})
 
@@ -122,6 +126,12 @@ func TestImport_FullThenIncremental(t *testing.T) {
 	}
 	if res.Submissions[0].Meta["problem_name"] != "A" {
 		t.Fatalf("problem_name = %#v", res.Submissions[0].Meta["problem_name"])
+	}
+	if len(res.Problems) != 2 || res.Problems[0].ID != "find-cycle" || res.Problems[0].Name != "A" {
+		t.Fatalf("problems = %+v", res.Problems)
+	}
+	if res.ContestName != "Тестовый контест" {
+		t.Fatalf("contest name = %q", res.ContestName)
 	}
 	cur, ok, err := st.GetCursor(ctx, ImportCursorKey(50501))
 	if err != nil || !ok || cur != "2" {

@@ -1,7 +1,6 @@
 import type { QueryClient, UseQueryResult } from "@tanstack/react-query";
 import {
   getContestFindingsQueryKey,
-  getContestProblemsQueryKey,
   getContestSubmissionsQueryKey,
 } from "@/client/@tanstack/react-query.gen";
 import { authHeaders } from "@/features/auth/authStorage";
@@ -18,12 +17,6 @@ export async function invalidateContestQueries(
   const tasks = [
     queryClient.invalidateQueries({
       queryKey: getContestFindingsQueryKey({
-        path: { id: contestId },
-        headers: authHeaders(),
-      }),
-    }),
-    queryClient.invalidateQueries({
-      queryKey: getContestProblemsQueryKey({
         path: { id: contestId },
         headers: authHeaders(),
       }),

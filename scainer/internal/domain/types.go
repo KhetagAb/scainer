@@ -25,6 +25,11 @@ type Submission struct {
 	Meta        map[string]any
 }
 
+type ContestProblem struct {
+	ID   ProblemID `bson:"id"`
+	Name string    `bson:"name"`
+}
+
 // Evidence — человекочитаемое доказательство к Signal (инвариант «Объяснимость»).
 type Evidence struct {
 	Kind        string `json:"kind" bson:"kind"` // напр. "jplag_match", "ai_rationale"

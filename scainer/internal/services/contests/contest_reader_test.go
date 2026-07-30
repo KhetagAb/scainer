@@ -14,6 +14,10 @@ func newReader(reg *fakeRegistry, st *store.Mem, repo *fakeAnalysisRepository) *
 	return contests.NewContestReader(reg, st, repo, scoring.NewWeighted())
 }
 
+func contestWithProblems(id domain.ContestID, problems []domain.ContestProblem) contests.Contest {
+	return contests.Contest{ID: id, Problems: problems}
+}
+
 func TestListSortsByContestID(t *testing.T) {
 	ctx := context.Background()
 	reg := newFakeRegistry()
@@ -67,8 +71,8 @@ func TestListStatsZeroBeforeImport(t *testing.T) {
 		t.Fatalf("len: got %d", len(list))
 	}
 	got := list[0]
-	if got.SubmissionCount != 0 || got.ProblemCount != 0 {
-		t.Fatalf("counts: got subs=%d problems=%d", got.SubmissionCount, got.ProblemCount)
+	if got.SubmissionCount != 0 || len(got.Problems) != 0 {
+		t.Fatalf("counts: got subs=%d problems=%d", got.SubmissionCount, len(got.Problems))
 	}
 }
 
@@ -77,14 +81,14 @@ func TestProblemsPendingCount(t *testing.T) {
 	st := store.NewMem()
 	reg := newFakeRegistry()
 	repo := newFakeAnalysisRepository()
-	svc := contests.NewService(reg, repo, "stub")
 	reader := newReader(reg, st, repo)
 
-	if _, err := svc.Register(ctx, contests.Registration{
-		ID:     "contest01",
-		Source: &contests.SourceSpec{Type: "stub"},
-	}); err != nil {
-		t.Fatalf("Register: %v", err)
+	reg.byID["contest01"] = contests.ContestRecord{
+		Contest: contestWithProblems("contest01", []domain.ContestProblem{
+			{ID: "A", Name: "A"},
+			{ID: "B", Name: "B"},
+		}),
+		Source: contests.SourceSpec{Type: "stub"},
 	}
 	if err := st.Put(ctx, []domain.Submission{
 		{ID: "1", Contest: "contest01", Problem: "A", Participant: "alice", Lang: domain.LangCPP, Source: []byte("a"), Verdict: domain.VerdictPR},
@@ -113,19 +117,56 @@ func TestProblemsPendingCount(t *testing.T) {
 	}
 }
 
+func TestProblemsIncludesCatalogWithoutSubmissions(t *testing.T) {
+	ctx := context.Background()
+	st := store.NewMem()
+	reg := newFakeRegistry()
+	repo := newFakeAnalysisRepository()
+	reader := newReader(reg, st, repo)
+
+	reg.byID["contest01"] = contests.ContestRecord{
+		Contest: contestWithProblems("contest01", []domain.ContestProblem{
+			{ID: "A", Name: "A"},
+			{ID: "B", Name: "B"},
+			{ID: "C", Name: "C"},
+		}),
+		Source: contests.SourceSpec{Type: "stub"},
+	}
+	if err := st.Put(ctx, []domain.Submission{
+		{ID: "1", Contest: "contest01", Problem: "A", Participant: "alice", Lang: domain.LangCPP, Source: []byte("a"), Verdict: domain.VerdictOK},
+	}); err != nil {
+		t.Fatalf("Put: %v", err)
+	}
+
+	problems, err := reader.Problems(ctx, "contest01")
+	if err != nil {
+		t.Fatalf("Problems: %v", err)
+	}
+	if len(problems) != 3 {
+		t.Fatalf("len: got %d want 3", len(problems))
+	}
+	byID := map[domain.ProblemID]contests.ProblemInfo{}
+	for _, p := range problems {
+		byID[p.ID] = p
+	}
+	if byID["C"].SubmissionCount != 0 || byID["C"].PendingCount != 0 {
+		t.Fatalf("C without submissions: %+v", byID["C"])
+	}
+}
+
 func TestListEnrichStats(t *testing.T) {
 	ctx := context.Background()
 	st := store.NewMem()
 	reg := newFakeRegistry()
 	repo := newFakeAnalysisRepository()
-	svc := contests.NewService(reg, repo, "stub")
 	reader := newReader(reg, st, repo)
 
-	if _, err := svc.Register(ctx, contests.Registration{
-		ID:     "contest01",
-		Source: &contests.SourceSpec{Type: "stub"},
-	}); err != nil {
-		t.Fatalf("Register: %v", err)
+	reg.byID["contest01"] = contests.ContestRecord{
+		Contest: contestWithProblems("contest01", []domain.ContestProblem{
+			{ID: "A", Name: "A"},
+			{ID: "B", Name: "B"},
+		}),
+		Source: contests.SourceSpec{Type: "stub"},
 	}
 	if err := st.Put(ctx, []domain.Submission{
 		{ID: "1", Contest: "contest01", Problem: "A", Participant: "alice", Lang: domain.LangCPP, Source: []byte("a"), Verdict: domain.VerdictOK},
@@ -143,8 +184,8 @@ func TestListEnrichStats(t *testing.T) {
 	if got.SubmissionCount != 3 {
 		t.Fatalf("SubmissionCount: got %d want 3", got.SubmissionCount)
 	}
-	if got.ProblemCount != 2 {
-		t.Fatalf("ProblemCount: got %d want 2", got.ProblemCount)
+	if len(got.Problems) != 2 {
+		t.Fatalf("Problems: got %d want 2", len(got.Problems))
 	}
 }
 

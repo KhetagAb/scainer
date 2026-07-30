@@ -253,31 +253,11 @@ func (s *Server) GetContestProblems(c echo.Context, id server.ContestID) error {
 		out = append(out, server.ProblemInfo{
 			Id:              string(p.ID),
 			Name:            p.Name,
-			Excluded:        p.Excluded,
 			SubmissionCount: p.SubmissionCount,
 			PendingCount:    p.PendingCount,
 		})
 	}
 	return c.JSON(http.StatusOK, out)
-}
-
-func (s *Server) PutExcludedProblems(c echo.Context, id server.ContestID) error {
-	var req server.ExcludedProblemsRequest
-	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, server.Error{Error: "invalid request body"})
-	}
-
-	problems := make([]domain.ProblemID, 0, len(req.Problems))
-	for _, p := range req.Problems {
-		problems = append(problems, domain.ProblemID(p))
-	}
-
-	err := s.contests.SetExcludedProblems(c.Request().Context(), domain.ContestID(id), problems)
-	if err != nil {
-		return mapContestErr(c, err)
-	}
-
-	return c.NoContent(http.StatusNoContent)
 }
 
 func (s *Server) GetContestSubmissions(c echo.Context, id server.ContestID) error {
@@ -560,6 +540,15 @@ func mapReviewErr(c echo.Context, err error) error {
 }
 
 func toContestInfo(summary contests.ContestSummary) server.ContestInfo {
+	problems := make([]server.ProblemInfo, 0, len(summary.Problems))
+	for _, p := range summary.Problems {
+		problems = append(problems, server.ProblemInfo{
+			Id:              string(p.ID),
+			Name:            p.Name,
+			SubmissionCount: p.SubmissionCount,
+			PendingCount:    p.PendingCount,
+		})
+	}
 	return server.ContestInfo{
 		Id:              string(summary.ID),
 		Name:            summary.Name,
@@ -567,7 +556,7 @@ func toContestInfo(summary contests.ContestSummary) server.ContestInfo {
 		LastImportedAt:  summary.LastImportedAt,
 		ComputedAt:      summary.ComputedAt,
 		SubmissionCount: intPtr(summary.SubmissionCount),
-		ProblemCount:    intPtr(summary.ProblemCount),
+		Problems:        &problems,
 	}
 }
 

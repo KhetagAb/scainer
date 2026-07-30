@@ -147,7 +147,26 @@ func (i *Importer) Import(ctx context.Context, store importer.Store) (importer.R
 	}
 	subs = append(subs, refreshed...)
 
-	return importer.Result{Submissions: subs, ContestName: contestName}, nil
+	return importer.Result{
+		Submissions: subs,
+		ContestName: contestName,
+		Problems:    catalogProblemsFromStatus(info.Problems),
+	}, nil
+}
+
+func catalogProblemsFromStatus(problems []ejudgeapi.ProblemBrief) []domain.ContestProblem {
+	out := make([]domain.ContestProblem, 0, len(problems))
+	for _, p := range problems {
+		key := p.ProblemKey()
+		if key == "" {
+			continue
+		}
+		out = append(out, domain.ContestProblem{
+			ID:   domain.ProblemID(key),
+			Name: p.DisplayName(),
+		})
+	}
+	return out
 }
 
 func countContestSubmissions(ctx context.Context, store importer.Store, contest domain.ContestID) int {

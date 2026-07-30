@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { Outlet, useNavigate, useParams } from "react-router-dom";
-import type { ProblemInfo, SubmissionListItem } from "@/client/types.gen";
+import type { SubmissionListItem } from "@/client/types.gen";
 import { useContestPageData } from "@/features/contests/pages/useContestPageData";
 import ContestSyncAction from "@/features/contests/sync/ContestSyncAction";
 import { useContestSync } from "@/features/contests/sync/useContestSync";
@@ -41,7 +41,7 @@ export default function ContestPage({ onUnauthorized }: Props) {
     contestsQuery,
     contest,
     findingsQuery,
-    problemsQuery,
+    problems,
     submissionsQuery,
     problemSubmissionCounts,
     activeProblemId,
@@ -119,7 +119,7 @@ export default function ContestPage({ onUnauthorized }: Props) {
             <ReviewProblemPicker
               contestId={contestId}
               contestName={contest.name}
-              problems={(problemsQuery.data ?? []) as ProblemInfo[]}
+              problems={problems}
               submissions={(submissionsQuery.data ?? []) as SubmissionListItem[]}
               activeProblemId={activeProblemId}
               statementAvailable={Boolean(contest.parallelId)}
@@ -157,7 +157,7 @@ export default function ContestPage({ onUnauthorized }: Props) {
         context={{
           findingsQuery,
           submissionsQuery,
-          problems: (problemsQuery.data ?? []) as ProblemInfo[],
+          problems,
           problemSubmissionCounts,
           contestName: contest.name,
           statementAvailable: Boolean(contest.parallelId),

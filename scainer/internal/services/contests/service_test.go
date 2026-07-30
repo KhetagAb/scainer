@@ -200,9 +200,8 @@ func TestRegisterSuccess(t *testing.T) {
 	svc := contests.NewService(newFakeRegistry(), newFakeAnalysisRepository(), "stub")
 
 	decl := contests.Registration{
-		ID:               "contest01",
-		ParallelID:       "par1",
-		ExcludedProblems: []domain.ProblemID{"Z"},
+		ID:         "contest01",
+		ParallelID: "par1",
 		Source: &contests.SourceSpec{
 			Type: "stub",
 		},
@@ -218,9 +217,6 @@ func TestRegisterSuccess(t *testing.T) {
 	}
 	if info.ParallelID != "par1" {
 		t.Fatalf("ParallelID: got %v want par1", info.ParallelID)
-	}
-	if len(info.ExcludedProblems) != 1 || info.ExcludedProblems[0] != "Z" {
-		t.Fatalf("ExcludedProblems: got %v want [Z]", info.ExcludedProblems)
 	}
 }
 
@@ -252,10 +248,9 @@ func TestRegistryIsSourceOfTruthAcrossServiceRestart(t *testing.T) {
 	svc1 := contests.NewService(registry, fs, "stub")
 
 	decl := contests.Registration{
-		ID:               "contest01",
-		ParallelID:       "par1",
-		ExcludedProblems: []domain.ProblemID{"A", "B"},
-		Source:           &contests.SourceSpec{Type: "stub"},
+		ID:         "contest01",
+		ParallelID: "par1",
+		Source:     &contests.SourceSpec{Type: "stub"},
 	}
 	if _, err := svc1.Register(ctx, decl); err != nil {
 		t.Fatalf("Register: %v", err)
@@ -277,13 +272,6 @@ func TestRegistryIsSourceOfTruthAcrossServiceRestart(t *testing.T) {
 	got := list[0]
 	if got.ParallelID != "par2" {
 		t.Fatalf("параллель не пережила рестарт: %+v", got)
-	}
-	rec, ok, err := registry.Get(ctx, "contest01")
-	if err != nil || !ok {
-		t.Fatalf("Get: err=%v ok=%v", err, ok)
-	}
-	if len(rec.Contest.ExcludedProblems) != 2 {
-		t.Fatalf("ExcludedProblems не пережили рестарт: %+v", rec.Contest.ExcludedProblems)
 	}
 
 	if _, err := svc2.Register(ctx, decl); !errors.Is(err, contests.ErrDuplicateContest) {
@@ -352,65 +340,5 @@ func TestRemoveContest(t *testing.T) {
 
 	if len(list) != 0 {
 		t.Fatalf("List: expected 0 contests, got %d", len(list))
-	}
-}
-
-func TestSetExcludedProblems(t *testing.T) {
-	ctx := context.Background()
-	reg := newFakeRegistry()
-	fs := newFakeAnalysisRepository()
-	svc := contests.NewService(reg, fs, "stub")
-
-	decl := contests.Registration{
-		ID: "contest01",
-		Source: &contests.SourceSpec{
-			Type: "stub",
-		},
-	}
-
-	if _, err := svc.Register(ctx, decl); err != nil {
-		t.Fatalf("Register: %v", err)
-	}
-
-	excluded := []domain.ProblemID{"A", "B"}
-	if err := svc.SetExcludedProblems(ctx, "contest01", excluded); err != nil {
-		t.Fatalf("SetExcludedProblems: %v", err)
-	}
-
-	rec, ok, err := reg.Get(ctx, "contest01")
-	if err != nil || !ok {
-		t.Fatalf("Get: err=%v ok=%v", err, ok)
-	}
-	if len(rec.Contest.ExcludedProblems) != 2 {
-		t.Fatalf("ExcludedProblems: got %v want 2 items", len(rec.Contest.ExcludedProblems))
-	}
-}
-
-func TestSetExcludedProblemsDoesNotTriggerRecompute(t *testing.T) {
-	ctx := context.Background()
-	svc, reader, imports, calls := registerWithSubs(t, []domain.Submission{
-		{ID: "1", Contest: "contest01", Problem: "A", Participant: "alice", Lang: domain.LangCPP, Source: []byte("a"), Verdict: domain.VerdictOK},
-		{ID: "2", Contest: "contest01", Problem: "A", Participant: "bob", Lang: domain.LangCPP, Source: []byte("b"), Verdict: domain.VerdictOK},
-	})
-
-	if err := submitAndWait(t, imports, ctx, "contest01"); err != nil {
-		t.Fatalf("Import: %v", err)
-	}
-	afterImport := *calls
-
-	if err := svc.SetExcludedProblems(ctx, "contest01", []domain.ProblemID{"A"}); err != nil {
-		t.Fatalf("SetExcludedProblems: %v", err)
-	}
-
-	if *calls != afterImport {
-		t.Fatalf("SetExcludedProblems не должен триггерить пересчёт: было %d вызовов, стало %d", afterImport, *calls)
-	}
-
-	findings, _, err := reader.GetFindings(ctx, "contest01")
-	if err != nil {
-		t.Fatalf("GetFindings: %v", err)
-	}
-	if len(findings) == 0 {
-		t.Fatal("findings должны остаться от последнего Import (не пересчитаны с учётом нового исключения)")
 	}
 }

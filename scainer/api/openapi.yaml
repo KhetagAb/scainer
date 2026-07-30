@@ -307,37 +307,13 @@ paths:
         - $ref: '#/components/parameters/ContestID'
       responses:
         '200':
-          description: Список задач с информацией об исключении
+          description: Список задач контеста
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/ProblemInfo'
-        '401':
-          $ref: '#/components/responses/ErrorResponse'
-        '404':
-          $ref: '#/components/responses/ErrorResponse'
-        '500':
-          $ref: '#/components/responses/ErrorResponse'
-
-  /api/contests/{id}/excluded-problems:
-    put:
-      operationId: putExcludedProblems
-      summary: Обновить список исключённых задач контеста
-      parameters:
-        - $ref: '#/components/parameters/ContestID'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExcludedProblemsRequest'
-      responses:
-        '204':
-          description: Список исключённых задач успешно обновлен
-        '400':
-          $ref: '#/components/responses/ErrorResponse'
         '401':
           $ref: '#/components/responses/ErrorResponse'
         '404':
@@ -540,9 +516,10 @@ components:
         submissionCount:
           type: integer
           description: Число выгруженных посылок контеста
-        problemCount:
-          type: integer
-          description: Число задач с посылками
+        problems:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProblemInfo'
 
     JobResponse:
       type: object
@@ -727,33 +704,20 @@ components:
 
     ProblemInfo:
       type: object
-      required: [id, name, excluded, submissionCount, pendingCount]
+      required: [id, name, submissionCount, pendingCount]
       properties:
         id:
           type: string
           description: ID задачи
         name:
           type: string
-          description: Имя задачи из посылок
-        excluded:
-          type: boolean
-          description: Исключена ли из анализа
+          description: Короткое имя задачи (буква)
         submissionCount:
           type: integer
           description: Число посылок по этой задаче в store
         pendingCount:
           type: integer
           description: Число посылок со статусом PR (pending review) по этой задаче
-
-    ExcludedProblemsRequest:
-      type: object
-      required: [problems]
-      properties:
-        problems:
-          type: array
-          items:
-            type: string
-          description: Список ID исключённых задач
 
     SubmissionListItem:
       type: object

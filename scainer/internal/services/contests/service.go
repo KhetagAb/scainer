@@ -55,9 +55,8 @@ func (s *Service) Register(ctx context.Context, registration Registration) (Cont
 	}
 
 	contest := Contest{
-		ID:               registration.ID,
-		ParallelID:       registration.ParallelID,
-		ExcludedProblems: registration.ExcludedProblems,
+		ID:         registration.ID,
+		ParallelID: registration.ParallelID,
 	}
 
 	if err := s.registry.Put(ctx, ContestRecord{Contest: contest, Source: *source}); err != nil {
@@ -90,20 +89,6 @@ func (s *Service) RemoveContest(ctx context.Context, id domain.ContestID) error 
 	}
 	if err := s.analysisRepo.Delete(ctx, id); err != nil {
 		return fmt.Errorf("persist analysis removal: %w", err)
-	}
-	return nil
-}
-
-func (s *Service) SetExcludedProblems(ctx context.Context, id domain.ContestID, problems []domain.ProblemID) error {
-	record, err := get(ctx, s.registry, id)
-	if err != nil {
-		return err
-	}
-	contest := record.Contest
-	contest.ExcludedProblems = problems
-
-	if err := s.registry.Put(ctx, ContestRecord{Contest: contest, Source: record.Source}); err != nil {
-		return fmt.Errorf("persist contest: %w", err)
 	}
 	return nil
 }

@@ -204,12 +204,24 @@ components:
       properties:
         contest:
           $ref: "#/components/schemas/ContestBrief"
+        problems:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProblemBrief"
 
     ContestBrief:
       type: object
       properties:
         id: { type: integer }
         name: { type: string }
+
+    ProblemBrief:
+      type: object
+      properties:
+        id: { type: integer }
+        short_name: { type: string }
+        name: { type: string }
+        internal_name: { type: string }
 
     RunStatusReply:
       type: object

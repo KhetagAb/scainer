@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useSearchParams } from "react-router-dom";
 import {
   getContestFindingsOptions,
-  getContestProblemsOptions,
   getContestSubmissionsOptions,
   getContestsOptions,
 } from "@/client/@tanstack/react-query.gen";
@@ -39,16 +38,13 @@ export function useContestPageData({ contestId, onUnauthorized, reviewFilters }:
     ? contestsQuery.data?.find((c) => c.id === contestId)
     : undefined;
 
+  const problems = useMemo(
+    () => (contest?.problems ?? []) as ProblemInfo[],
+    [contest?.problems],
+  );
+
   const findingsQuery = useQuery({
     ...getContestFindingsOptions({
-      path: { id: contestId ?? "" },
-      headers: authHeaders(),
-    }),
-    enabled: Boolean(contestId),
-  });
-
-  const problemsQuery = useQuery({
-    ...getContestProblemsOptions({
       path: { id: contestId ?? "" },
       headers: authHeaders(),
     }),
@@ -84,7 +80,6 @@ export function useContestPageData({ contestId, onUnauthorized, reviewFilters }:
     if (!onReviewPage || !contestId || !submissionsQuery.data || !reviewFilters) return;
 
     const items = submissionsQuery.data;
-    const problems = (problemsQuery.data ?? []) as ProblemInfo[];
     const itemsByProblem = indexSubmissionsByProblem(items);
     const activeProblem = searchParams.get("problem") ?? activeProblemId;
     const nextProblem =
@@ -111,7 +106,7 @@ export function useContestPageData({ contestId, onUnauthorized, reviewFilters }:
     onReviewPage,
     contestId,
     submissionsQuery.data,
-    problemsQuery.data,
+    problems,
     queryClient,
     searchParams,
     activeProblemId,
@@ -119,8 +114,8 @@ export function useContestPageData({ contestId, onUnauthorized, reviewFilters }:
   ]);
 
   const problemSubmissionCounts = useMemo(
-    () => problemSubmissionCountsMap((problemsQuery.data ?? []) as ProblemInfo[]),
-    [problemsQuery.data],
+    () => problemSubmissionCountsMap(problems),
+    [problems],
   );
 
   const handleQueryError = useCallback(() => {
@@ -133,7 +128,7 @@ export function useContestPageData({ contestId, onUnauthorized, reviewFilters }:
     contestsQuery,
     contest,
     findingsQuery,
-    problemsQuery,
+    problems,
     submissionsQuery,
     problemSubmissionCounts,
     activeProblemId,

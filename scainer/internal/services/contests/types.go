@@ -21,18 +21,17 @@ type SourceSpec struct {
 }
 
 type Registration struct {
-	ID               domain.ContestID
-	ParallelID       string
-	Source           *SourceSpec
-	ExcludedProblems []domain.ProblemID
+	ID         domain.ContestID
+	ParallelID string
+	Source     *SourceSpec
 }
 
 type Contest struct {
-	ID               domain.ContestID   `bson:"id"`
-	Name             string             `bson:"name"`
-	ParallelID       string             `bson:"parallel_id"`
-	ExcludedProblems []domain.ProblemID `bson:"excluded_problems"`
-	LastImportedAt   *time.Time         `bson:"last_imported_at,omitempty"`
+	ID             domain.ContestID        `bson:"id"`
+	Name           string                  `bson:"name"`
+	ParallelID     string                  `bson:"parallel_id"`
+	Problems       []domain.ContestProblem `bson:"problems,omitempty"`
+	LastImportedAt *time.Time              `bson:"last_imported_at,omitempty"`
 }
 
 type ContestSummary struct {
@@ -42,13 +41,12 @@ type ContestSummary struct {
 	LastImportedAt  *time.Time
 	ComputedAt      *time.Time
 	SubmissionCount int
-	ProblemCount    int
+	Problems        []ProblemInfo
 }
 
 type ProblemInfo struct {
 	ID              domain.ProblemID
 	Name            string
-	Excluded        bool
 	SubmissionCount int
 	PendingCount    int
 }

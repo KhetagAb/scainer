@@ -1,10 +1,6 @@
 import { useMemo } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import {
-  getContestFindingsOptions,
-  getContestProblemsOptions,
-  getContestsOptions,
-} from "@/client/@tanstack/react-query.gen";
+import { getContestFindingsOptions, getContestsOptions } from "@/client/@tanstack/react-query.gen";
 import type { FindingView, ProblemInfo, ReportData } from "@/client/types.gen";
 import { authHeaders } from "@/features/auth/authStorage";
 import {
@@ -49,18 +45,13 @@ export function useParallelPageData({ parallelId, threshold, onUnauthorized }: O
       ...getContestFindingsOptions({ path: { id: c.id }, headers }),
     })),
   });
-  const problemsQueries = useQueries({
-    queries: parallelContests.map((c) => ({
-      ...getContestProblemsOptions({ path: { id: c.id }, headers }),
-    })),
-  });
 
   const checkUnauthorized = () => {
     if (contestsQuery.isError && (contestsQuery.error as { status?: number })?.status === 401) {
       onUnauthorized();
       return true;
     }
-    for (const q of [...findingsQueries, ...problemsQueries]) {
+    for (const q of findingsQueries) {
       if (q.isError && (q.error as { status?: number })?.status === 401) {
         onUnauthorized();
         return true;
@@ -75,10 +66,9 @@ export function useParallelPageData({ parallelId, threshold, onUnauthorized }: O
         .map((c, i) => {
           const report = findingsQueries[i]?.data as ReportData | undefined;
           const findings = (report?.findings ?? []) as FindingView[];
-          const problems = (problemsQueries[i]?.data ?? []) as ProblemInfo[];
+          const problems = (c.problems ?? []) as ProblemInfo[];
           const findingsQ = findingsQueries[i];
-          const problemsQ = problemsQueries[i];
-          const ready = Boolean(findingsQ?.isSuccess && problemsQ?.isSuccess);
+          const ready = Boolean(findingsQ?.isSuccess);
           const submissionCount = c.submissionCount ?? 0;
           const problemStats = ready
             ? buildProblemSignalStats(problems, findings, threshold)
@@ -86,11 +76,7 @@ export function useParallelPageData({ parallelId, threshold, onUnauthorized }: O
           const statsLoading =
             !ready &&
             !findingsQ?.isError &&
-            !problemsQ?.isError &&
-            (findingsQ?.isPending ||
-              problemsQ?.isPending ||
-              findingsQ?.isFetching ||
-              problemsQ?.isFetching);
+            (findingsQ?.isPending || findingsQ?.isFetching);
 
           return {
             id: c.id,
@@ -106,13 +92,12 @@ export function useParallelPageData({ parallelId, threshold, onUnauthorized }: O
             stats: {
               id: c.id,
               submissionCount,
-              problemCount: c.problemCount,
             },
             problemStats,
           };
         })
         .sort((a, b) => compareContestId(a.id, b.id)),
-    [parallelContests, findingsQueries, problemsQueries, threshold],
+    [parallelContests, findingsQueries, threshold],
   );
 
   return {

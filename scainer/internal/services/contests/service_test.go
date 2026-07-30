@@ -9,11 +9,10 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"scainer/internal/domain"
-	"scainer/internal/services/analyze/selectors"
 	"scainer/internal/services/analyze"
-	"scainer/internal/services/contests"
 	"scainer/internal/services/analyze/detect"
-	"scainer/internal/services/analyze/detect/dummy"
+	"scainer/internal/services/analyze/selectors"
+	"scainer/internal/services/contests"
 	"scainer/internal/services/importer"
 	"scainer/internal/services/scoring"
 	"scainer/pkg/jobs"
@@ -141,9 +140,28 @@ func (d countingDetector) Name() string { return "counting" }
 
 func (d countingDetector) AI() bool { return false }
 
-func (d countingDetector) Analyze(ctx context.Context, u domain.ProblemUnit) ([]domain.Signal, error) {
+func pairSignals(u domain.ProblemUnit, detector string, score float64) []domain.Signal {
+	var out []domain.Signal
+	for i := 0; i < len(u.Subs); i++ {
+		for j := i + 1; j < len(u.Subs); j++ {
+			out = append(out, domain.Signal{
+				Detector: detector,
+				Subject: domain.NewPairSubject(
+					u.Subs[i].Contest,
+					u.Problem,
+					u.Subs[i].Participant,
+					u.Subs[j].Participant,
+				),
+				Score: score,
+			})
+		}
+	}
+	return out
+}
+
+func (d countingDetector) Analyze(_ context.Context, u domain.ProblemUnit) ([]domain.Signal, error) {
 	*d.calls++
-	return dummy.AlwaysProblem{}.Analyze(ctx, u)
+	return pairSignals(u, "counting", 1.0), nil
 }
 
 var _ detect.Detector[domain.ProblemUnit] = countingDetector{}

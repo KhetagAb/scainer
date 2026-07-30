@@ -34,11 +34,6 @@ jplag:
 analyze:
   jobs_max_concurrent: 2
   analyze_concurrency: 3
-aiusage:
-  enabled: false
-openai:
-  base_url: "https://example/v1"
-  model: ""
 `), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +45,6 @@ openai:
 	t.Setenv("MONGODB_HOST", "mongo:27017")
 	t.Setenv("EJUDGE_BASE_URL", "https://ejudge.env")
 	t.Setenv("TEACHERS_LOGINS", "alice;bob")
-	t.Setenv("AIUSAGE_ENABLED", "1")
 
 	cfg, err := configs.LoadConfig(path)
 	if err != nil {
@@ -64,9 +58,6 @@ openai:
 	}
 	if !cfg.Ejudge.Enabled() || cfg.Ejudge.BaseURL != "https://ejudge.env" {
 		t.Fatalf("ejudge: %+v", cfg.Ejudge)
-	}
-	if !cfg.AIUsage.Enabled {
-		t.Fatal("aiusage should be enabled via env")
 	}
 	if len(cfg.TeachersLogins) != 2 || cfg.TeachersLogins[0] != "alice" {
 		t.Fatalf("teachers logins: %+v", cfg.TeachersLogins)
@@ -105,10 +96,6 @@ jplag:
 analyze:
   jobs_max_concurrent: 1
   analyze_concurrency: 1
-aiusage:
-  enabled: false
-openai:
-  base_url: "https://example/v1"
 `), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -165,10 +152,6 @@ jplag:
 analyze:
   jobs_max_concurrent: 1
   analyze_concurrency: 1
-aiusage:
-  enabled: false
-openai:
-  base_url: "https://example/v1"
 `
 	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		t.Fatal(err)

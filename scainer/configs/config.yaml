@@ -24,21 +24,10 @@ jplag:
 
 analyze:
   jobs_max_concurrent: 16
-  # Общий потолок JVM/JPlag/LLM на процесс (не на один job).
+  # Общий потолок JVM/JPlag на процесс (не на один job).
   analyze_concurrency: 4
 
 import_cron:
   enabled: true
   interval: 1m
   masterlogin: khetag_dz
-
-aiusage:
-  enabled: false
-
-openai:
-  base_url: "https://ollamaapi.n.icpc.live/v1"
-  username: ""
-  password: ""
-  api_key: ""
-  timeout: 60s
-  model: ""

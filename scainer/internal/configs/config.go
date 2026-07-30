@@ -23,8 +23,6 @@ type (
 		JPlag             JPlagConfig       `mapstructure:"jplag"`
 		Analyze           AnalyzeConfig     `mapstructure:"analyze"`
 		ImportCron          ImportCronConfig  `mapstructure:"import_cron"`
-		AIUsage           AIUsageConfig     `mapstructure:"aiusage"`
-		OpenAI            OpenAIConfig      `mapstructure:"openai"`
 
 		TeachersLogins []string `mapstructure:"-"`
 	}
@@ -70,18 +68,6 @@ type (
 		MasterLogin  string        `mapstructure:"masterlogin"`
 	}
 
-	AIUsageConfig struct {
-		Enabled bool `mapstructure:"enabled"`
-	}
-
-	OpenAIConfig struct {
-		BaseURL  string        `mapstructure:"base_url"`
-		Username string        `mapstructure:"username"`
-		Password string        `mapstructure:"password"`
-		APIKey   string        `mapstructure:"api_key"`
-		Timeout  time.Duration `mapstructure:"timeout"`
-		Model    string        `mapstructure:"model"`
-	}
 )
 
 func (c AdminConfig) Enabled() bool {
@@ -206,11 +192,4 @@ func bindEnv(v *viper.Viper) {
 	_ = v.BindEnv("import_cron.enabled", "IMPORT_CRON_ENABLED")
 	_ = v.BindEnv("import_cron.interval", "IMPORT_CRON_INTERVAL")
 	_ = v.BindEnv("import_cron.masterlogin", "MASTERLOGIN")
-	_ = v.BindEnv("aiusage.enabled", "AIUSAGE_ENABLED")
-	_ = v.BindEnv("openai.base_url", "OPENAI_BASE_URL")
-	_ = v.BindEnv("openai.username", "OPENAI_USERNAME")
-	_ = v.BindEnv("openai.password", "OPENAI_PASSWORD")
-	_ = v.BindEnv("openai.api_key", "OPENAI_API_KEY")
-	_ = v.BindEnv("openai.timeout", "OPENAI_TIMEOUT")
-	_ = v.BindEnv("openai.model", "OPENAI_MODEL")
 }

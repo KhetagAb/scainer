@@ -13,7 +13,6 @@ import (
 	"scainer/internal/services/analyze"
 	"scainer/internal/services/contests"
 	"scainer/internal/services/analyze/detect"
-	"scainer/internal/services/analyze/detect/dummy"
 	"scainer/internal/services/importer"
 	"scainer/internal/services/scoring"
 	"scainer/pkg/jobs"
@@ -132,9 +131,28 @@ type countingDetector struct {
 func (d countingDetector) Name() string { return "counting" }
 func (d countingDetector) AI() bool     { return false }
 
+func pairSignals(u domain.ProblemUnit, detector string, score float64) []domain.Signal {
+	var out []domain.Signal
+	for i := 0; i < len(u.Subs); i++ {
+		for j := i + 1; j < len(u.Subs); j++ {
+			out = append(out, domain.Signal{
+				Detector: detector,
+				Subject: domain.NewPairSubject(
+					u.Subs[i].Contest,
+					u.Problem,
+					u.Subs[i].Participant,
+					u.Subs[j].Participant,
+				),
+				Score: score,
+			})
+		}
+	}
+	return out
+}
+
 func (d countingDetector) Analyze(ctx context.Context, u domain.ProblemUnit) ([]domain.Signal, error) {
 	*d.calls++
-	return dummy.AlwaysProblem{}.Analyze(ctx, u)
+	return pairSignals(u, "counting", 1.0), nil
 }
 
 func registerWithSubs(t *testing.T, subs []domain.Submission) (*contests.ContestReader, *analyze.Service, *int) {
@@ -213,43 +231,6 @@ func TestRecomputesOnResubmit(t *testing.T) {
 	}
 	if *calls <= afterFirst {
 		t.Fatalf("повторный Submit не пересчитал: было %d, стало %d", afterFirst, *calls)
-	}
-}
-
-func TestUsesOrchestratorDetectors(t *testing.T) {
-	ctx := context.Background()
-	st := store.NewMem()
-	reg := newFakeRegistry()
-	repo := newFakeAnalysisRepository()
-	orch := testOrchestrator(dummy.AlwaysProblem{})
-	scorer := scoring.NewWeighted()
-
-	svc := contests.NewService(reg, repo, "stub")
-	reader := contests.NewContestReader(reg, st, repo, scorer)
-	analyzeSvc := analyze.New(jobs.NewPool(4), analyze.NewRunner(reg, st, repo, orch))
-
-	if _, err := svc.Register(ctx, contests.Registration{
-		ID:     "contest01",
-		Source: &contests.SourceSpec{Type: "stub"},
-	}); err != nil {
-		t.Fatalf("Register: %v", err)
-	}
-	if err := st.Put(ctx, []domain.Submission{
-		{ID: "1", Contest: "contest01", Problem: "A", Participant: "alice", Lang: domain.LangCPP, Source: []byte("a"), Verdict: domain.VerdictOK},
-		{ID: "2", Contest: "contest01", Problem: "A", Participant: "bob", Lang: domain.LangCPP, Source: []byte("b"), Verdict: domain.VerdictOK},
-	}); err != nil {
-		t.Fatalf("Put: %v", err)
-	}
-
-	if err := submitAndWait(t, analyzeSvc, ctx, "contest01"); err != nil {
-		t.Fatalf("Submit: %v", err)
-	}
-	findings, _, err := reader.GetFindings(ctx, "contest01")
-	if err != nil {
-		t.Fatalf("GetFindings: %v", err)
-	}
-	if len(findings) == 0 {
-		t.Fatal("ожидали находки от AlwaysProblem-детектора")
 	}
 }
 

@@ -402,6 +402,96 @@ func TestImport_SkipsRunWithoutProblemKey(t *testing.T) {
 	}
 }
 
+func TestImport_RefreshPendingOnIncremental(t *testing.T) {
+	var runStatusCalls int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Query().Get("action") {
+		case "list-runs-json":
+			writeJSON(w, map[string]any{
+				"ok": true,
+				"result": map[string]any{
+					"runs": []any{},
+				},
+			})
+		case "contest-status-json":
+			writeJSON(w, map[string]any{
+				"ok": true,
+				"result": map[string]any{
+					"contest": map[string]any{"id": 50501, "name": "Тестовый контест"},
+				},
+			})
+		case "run-status-json":
+			runStatusCalls++
+			if r.URL.Query().Get("run_id") != "5" {
+				t.Fatalf("run_id=%s", r.URL.Query().Get("run_id"))
+			}
+			writeJSON(w, map[string]any{
+				"ok": true,
+				"result": map[string]any{
+					"run": map[string]any{
+						"run_id": 5, "status": 0, "status_str": "OK",
+					},
+				},
+			})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(srv.Close)
+
+	client, err := ejudgeapi.New(srv.URL, "tok", time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	imp := &Importer{
+		cfg:            ImportConfig{ContestID: 50501},
+		clientResolver: staticClientResolver{client: client},
+	}
+	st := store.NewMem()
+	ctx := context.Background()
+
+	prSub := domain.Submission{
+		ID:          "ejudge:50501:5",
+		Participant: "alice",
+		Problem:     "A",
+		Contest:     "50501",
+		Lang:        domain.LangCPP,
+		Source:      []byte("src"),
+		Verdict:     domain.VerdictPR,
+		Meta:        map[string]any{"run_id": 5, "contest_id": 50501, "status": 16, "status_str": "PR"},
+	}
+	if err := st.Put(ctx, []domain.Submission{prSub}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SetCursor(ctx, ImportCursorKey(50501), "10"); err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := imp.Import(ctx, st)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if runStatusCalls != 1 {
+		t.Fatalf("runStatusCalls = %d, want 1", runStatusCalls)
+	}
+	if len(res.Submissions) != 1 {
+		t.Fatalf("subs = %+v", res.Submissions)
+	}
+	if res.Submissions[0].Verdict != domain.VerdictOK {
+		t.Fatalf("verdict = %q, want OK", res.Submissions[0].Verdict)
+	}
+	if err := st.Put(ctx, res.Submissions); err != nil {
+		t.Fatal(err)
+	}
+	got, err := st.GetByID(ctx, "ejudge:50501:5")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Verdict != domain.VerdictOK {
+		t.Fatalf("stored verdict = %q, want OK", got.Verdict)
+	}
+}
+
 func writeJSON(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(v)

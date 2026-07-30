@@ -78,8 +78,7 @@ npm run dev   # http://localhost:5173, /api → :8080
 
 
 Основные переменные: `ADMIN_*`, `JWT_*`, `EJUDGE_*`, `MONGO_*` / `MONGODB_*`,
-`STORE_DIR`, `JPLAG_JAR_PATH`, `JOBS_MAX_CONCURRENT`, `ANALYZE_CONCURRENCY`,
-опционально `AIUSAGE_ENABLED` + `OPENAI_*`.
+`STORE_DIR`, `JPLAG_JAR_PATH`, `JOBS_MAX_CONCURRENT`, `ANALYZE_CONCURRENCY`.
 
 ## Команды
 

@@ -7,6 +7,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	ejgen "scainer/generated/ejudge"
 	"scainer/internal/domain"
 	"scainer/internal/services/importer"
 	"scainer/pkg/progress"
@@ -89,10 +90,10 @@ func (i *Importer) Import(ctx context.Context, store importer.Store) (importer.R
 	if err != nil {
 		return importer.Result{}, err
 	}
-	if listReply.Result == nil || listReply.Result.Runs == nil || len(*listReply.Result.Runs) == 0 {
-		return importer.Result{ContestName: contestName}, nil
+	var runs []ejgen.Run
+	if listReply.Result != nil && listReply.Result.Runs != nil {
+		runs = *listReply.Result.Runs
 	}
-	runs := *listReply.Result.Runs
 
 	subs := make([]domain.Submission, 0, len(runs))
 	maxRunID := -1
@@ -139,6 +140,13 @@ func (i *Importer) Import(ctx context.Context, store importer.Store) (importer.R
 			return importer.Result{}, err
 		}
 	}
+
+	refreshed, err := refreshPendingSubmissions(ctx, client, store, contestID)
+	if err != nil {
+		return importer.Result{}, err
+	}
+	subs = append(subs, refreshed...)
+
 	return importer.Result{Submissions: subs, ContestName: contestName}, nil
 }
 
@@ -152,4 +160,39 @@ func countContestSubmissions(ctx context.Context, store importer.Store, contest 
 		n += len(list)
 	}
 	return n
+}
+
+func refreshPendingSubmissions(
+	ctx context.Context,
+	client *ejudgeapi.Client,
+	store importer.Store,
+	contestID int,
+) ([]domain.Submission, error) {
+	byProblem, err := store.ByProblem(ctx, domain.ContestID(strconv.Itoa(contestID)))
+	if err != nil {
+		return nil, err
+	}
+
+	var updated []domain.Submission
+	for _, subs := range byProblem {
+		for _, sub := range subs {
+			if sub.Verdict != domain.VerdictPR {
+				continue
+			}
+			key, err := parseSubmissionKey(sub.ID)
+			if err != nil || key.ContestID != contestID {
+				continue
+			}
+			info, err := client.RunStatus(ctx, key.ContestID, key.RunID)
+			if err != nil {
+				return nil, fmt.Errorf("ejudge run-status run_id=%d: %w", key.RunID, err)
+			}
+			verdict := toDomainVerdict(info.Verdict)
+			if verdict == sub.Verdict {
+				continue
+			}
+			updated = append(updated, submissionWithVerdict(sub, verdict, info.Status))
+		}
+	}
+	return updated, nil
 }

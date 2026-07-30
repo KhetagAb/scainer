@@ -80,7 +80,6 @@ export function subjectTitle(subject: SubjectView, groupBy: GroupBy, groupKey: s
 
 const DETECTOR_LABELS: Record<string, string> = {
   jplag: "Списывание",
-  "aiusage-task": "AI-использование",
   "night-submit": "Ночная посылка",
 };
 

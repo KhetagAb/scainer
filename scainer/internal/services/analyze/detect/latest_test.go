@@ -74,3 +74,22 @@ func TestLatestOkPerParticipant(t *testing.T) {
 		t.Fatalf("carol = %+v", got[1])
 	}
 }
+
+func TestLatestOkPerParticipant_IncludesPR(t *testing.T) {
+	ts := time.Date(2026, 7, 1, 12, 0, 0, 0, time.UTC)
+	subs := []domain.Submission{
+		{ID: "1", Participant: "alice", SubmittedAt: ts, Verdict: domain.VerdictWA},
+		{ID: "2", Participant: "alice", SubmittedAt: ts.Add(time.Hour), Verdict: domain.VerdictPR},
+		{ID: "3", Participant: "bob", SubmittedAt: ts, Verdict: domain.VerdictOK},
+	}
+	got := LatestOkPerParticipant(subs)
+	if len(got) != 2 {
+		t.Fatalf("len = %d, want 2: %+v", len(got), got)
+	}
+	if got[0].ID != "2" || got[0].Verdict != domain.VerdictPR {
+		t.Fatalf("alice = %+v", got[0])
+	}
+	if got[1].ID != "3" {
+		t.Fatalf("bob = %+v", got[1])
+	}
+}

@@ -7,7 +7,6 @@ import (
 	"scainer/internal/domain"
 	"scainer/internal/services/analyze"
 	"scainer/internal/services/analyze/detect"
-	"scainer/internal/services/analyze/detect/dummy"
 	"scainer/internal/services/analyze/selectors"
 	"scainer/internal/services/contests"
 	"scainer/pkg/store"
@@ -44,7 +43,7 @@ func (d countingProblem) AI() bool     { return false }
 
 func (d countingProblem) Analyze(ctx context.Context, u domain.ProblemUnit) ([]domain.Signal, error) {
 	*d.calls++
-	return dummy.AlwaysProblem{}.Analyze(ctx, u)
+	return nil, nil
 }
 
 type countingParticipant struct {
@@ -63,6 +62,27 @@ func putSubs(t *testing.T, ctx context.Context, st *store.Mem, subs []domain.Sub
 	t.Helper()
 	if err := st.Put(ctx, subs); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func participantSelectorOne(contest domain.ContestID) selectors.Selector[domain.ProblemParticipantUnit] {
+	return func(ctx context.Context, store selectors.Store) ([]domain.ProblemParticipantUnit, error) {
+		byProblem, err := store.ByProblem(ctx, contest)
+		if err != nil {
+			return nil, err
+		}
+		for problem, subs := range byProblem {
+			if len(subs) == 0 {
+				continue
+			}
+			s := subs[0]
+			return []domain.ProblemParticipantUnit{{
+				Problem:     problem,
+				Participant: s.Participant,
+				Subs:        []domain.Submission{s},
+			}}, nil
+		}
+		return nil, nil
 	}
 }
 
@@ -200,7 +220,7 @@ func TestOrchestrator_ManualOnlyPreservesOnAuto(t *testing.T) {
 	orch := testRegistry(
 		countingParticipant{calls: calls},
 		analyze.ManualOnly[domain.ProblemParticipantUnit]{Key: analyze.ScopeKeyProblemParticipant},
-		selectors.OkWithLast,
+		participantSelectorOne,
 	)
 	st := store.NewMem()
 	putSubs(t, ctx, st, []domain.Submission{

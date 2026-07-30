@@ -25,16 +25,16 @@ func LatestPerParticipant(subs []domain.Submission) []domain.Submission {
 	return out
 }
 
-// LatestOkPerParticipant — LatestPerParticipant только по OK-посылкам.
+// LatestOkPerParticipant — LatestPerParticipant по OK и PR (pending review).
 func LatestOkPerParticipant(subs []domain.Submission) []domain.Submission {
 	return LatestPerParticipant(filterOK(subs))
 }
 
-// filterOK оставляет посылки с VerdictOK, сохраняя порядок входа.
+// filterOK оставляет посылки с VerdictOK или VerdictPR, сохраняя порядок входа.
 func filterOK(subs []domain.Submission) []domain.Submission {
 	ok := make([]domain.Submission, 0, len(subs))
 	for _, s := range subs {
-		if s.Verdict == domain.VerdictOK {
+		if s.Verdict == domain.VerdictOK || s.Verdict == domain.VerdictPR {
 			ok = append(ok, s)
 		}
 	}

@@ -1,3 +1,4 @@
+import { Sparkles } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { EvidenceView, FindingView, ReportData, SubmissionView } from "@/client/types.gen";
 import {
@@ -245,6 +246,7 @@ function AiBadge() {
       aria-label="Сигнал от AI-детектора"
       onClick={(e) => e.preventDefault()}
     >
+      <Sparkles className="ai-badge__icon" size={16} strokeWidth={2} aria-hidden />
       <span className="ai-badge-tip" role="tooltip">
         <span className="ai-badge-tip-label">AI-детектор</span>
         <span className="ai-badge-tip-text">

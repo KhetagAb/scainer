@@ -1,13 +1,18 @@
 import { X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import type { ProblemStatementExplainView } from "@/client/types.gen";
 import { fetchContestStatement } from "@/features/statements/fetchContestStatement";
+import { fetchProblemStatementExplain } from "@/features/statements/fetchProblemStatementExplain";
+import ProblemStatementExplainPanel from "@/features/statements/ProblemStatementExplainPanel";
 import ProblemStatementViewer from "@/features/statements/ProblemStatementViewer";
+import StatementExplainButton from "@/features/statements/StatementExplainButton";
 
 type Props = {
   open: boolean;
   contestId: string;
   title?: string;
+  problemId?: string | null;
   problemLabel?: string | null;
   onClose: () => void;
 };
@@ -16,6 +21,7 @@ export default function ProblemStatementModal({
   open,
   contestId,
   title,
+  problemId,
   problemLabel,
   onClose,
 }: Props) {
@@ -25,6 +31,12 @@ export default function ProblemStatementModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
+  const [explainOpen, setExplainOpen] = useState(false);
+  const [explainLoading, setExplainLoading] = useState(false);
+  const [explainError, setExplainError] = useState<string | null>(null);
+  const [explainData, setExplainData] = useState<ProblemStatementExplainView | null>(null);
+
+  const explainAvailable = Boolean(problemId?.trim());
 
   useEffect(() => {
     if (open) {
@@ -44,6 +56,10 @@ export default function ProblemStatementModal({
       setPdfData(null);
       setError(null);
       setLoading(false);
+      setExplainOpen(false);
+      setExplainData(null);
+      setExplainError(null);
+      setExplainLoading(false);
       return;
     }
     let cancelled = false;
@@ -67,6 +83,30 @@ export default function ProblemStatementModal({
       cancelled = true;
     };
   }, [open, contestId]);
+
+  useEffect(() => {
+    if (!open || !explainOpen || !problemId?.trim()) return;
+    let cancelled = false;
+    setExplainLoading(true);
+    setExplainError(null);
+    setExplainData(null);
+    void fetchProblemStatementExplain(contestId, problemId)
+      .then((data) => {
+        if (!cancelled) {
+          setExplainData(data);
+          setExplainLoading(false);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setExplainError(err instanceof Error ? err.message : "Не удалось загрузить разбор");
+          setExplainLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, explainOpen, contestId, problemId]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -97,6 +137,10 @@ export default function ProblemStatementModal({
     [onClose],
   );
 
+  const toggleExplain = useCallback(() => {
+    setExplainOpen((prev) => !prev);
+  }, []);
+
   if (!mounted) return null;
 
   const ariaLabel = title ? `Условие — ${title}` : "Условие";
@@ -109,6 +153,9 @@ export default function ProblemStatementModal({
       role="presentation"
       onClick={onBackdropClick}
     >
+      {explainAvailable ? (
+        <StatementExplainButton active={explainOpen} onClick={toggleExplain} />
+      ) : null}
       <button
         ref={closeBtnRef}
         type="button"
@@ -120,7 +167,9 @@ export default function ProblemStatementModal({
       </button>
       <div
         className={
-          "problem-statement-panel" + (visible ? " problem-statement-panel--visible" : "")
+          "problem-statement-panel" +
+          (visible ? " problem-statement-panel--visible" : "") +
+          (explainOpen ? " problem-statement-panel--split" : "")
         }
         role="dialog"
         aria-modal="true"
@@ -129,7 +178,18 @@ export default function ProblemStatementModal({
         {loading ? <p className="problem-statement-panel__status">Загрузка…</p> : null}
         {error ? <p className="problem-statement-panel__error">{error}</p> : null}
         {pdfData && !error ? (
-          <ProblemStatementViewer data={pdfData} problemLabel={problemLabel} />
+          <div className="problem-statement-panel__layout">
+            <div className="problem-statement-panel__main">
+              <ProblemStatementViewer data={pdfData} problemLabel={problemLabel} />
+            </div>
+            {explainOpen ? (
+              <ProblemStatementExplainPanel
+                data={explainData}
+                loading={explainLoading}
+                error={explainError}
+              />
+            ) : null}
+          </div>
         ) : null}
       </div>
     </div>,

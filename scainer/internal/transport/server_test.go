@@ -19,6 +19,7 @@ import (
 	"scainer/internal/services/review"
 	"scainer/internal/services/scoring"
 	"scainer/internal/services/statements"
+	"scainer/internal/services/statements/explain"
 	"scainer/internal/services/teachers"
 	"scainer/internal/transport"
 	"scainer/pkg/auth"
@@ -39,7 +40,7 @@ func testAnalyzeSvc(
 ) *analyze.Service {
 	t.Helper()
 	runner := analyze.NewRunner(reg, st, ar, orch)
-	stmt := statements.NewService(reg, nil, statements.NewProblemStore(t.TempDir()))
+	stmt := statements.NewService(reg, nil, statements.NewProblemStore(t.TempDir()), explain.NewSubmissionLabelResolver(store.NewMem()))
 	return analyze.New(jobs.NewPool(4), analyze.NewRefreshOrchestrator(runner, stmt), reg)
 }
 
@@ -663,7 +664,7 @@ func TestGetContestStatement_notAvailable(t *testing.T) {
 	analyzeSvc := testAnalyzeSvc(t, reg, st, fs, orch)
 	statementsSvc := statements.NewService(reg, map[string]statements.Provider{
 		statements.SourceLksh: &statementStubProvider{},
-	}, nil)
+	}, statements.NewProblemStore(t.TempDir()), explain.NewSubmissionLabelResolver(st))
 
 	if _, err := svc.Register(context.Background(), contests.Registration{
 		ID:     "50501",
@@ -706,7 +707,7 @@ func TestGetContestProblemStatement_notFound(t *testing.T) {
 	analyzeSvc := testAnalyzeSvc(t, reg, st, fs, orch)
 	statementsSvc := statements.NewService(reg, map[string]statements.Provider{
 		statements.SourceLksh: &statementStubProvider{},
-	}, statements.NewProblemStore(t.TempDir()))
+	}, statements.NewProblemStore(t.TempDir()), explain.NewSubmissionLabelResolver(st))
 
 	if _, err := svc.Register(context.Background(), contests.Registration{
 		ID:     "50501",

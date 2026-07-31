@@ -16,6 +16,7 @@ import (
 	"scainer/internal/services/importer"
 	"scainer/internal/services/scoring"
 	"scainer/internal/services/statements"
+	"scainer/internal/services/statements/explain"
 	"scainer/pkg/jobs"
 	"scainer/pkg/store"
 )
@@ -29,7 +30,7 @@ func newTestAnalyzeSvc(
 ) *analyze.Service {
 	t.Helper()
 	runner := analyze.NewRunner(reg, st, ar, orch)
-	stmt := statements.NewService(reg, nil, statements.NewProblemStore(t.TempDir()))
+	stmt := statements.NewService(reg, nil, statements.NewProblemStore(t.TempDir()), explain.NewSubmissionLabelResolver(store.NewMem()))
 	return analyze.New(jobs.NewPool(4), analyze.NewRefreshOrchestrator(runner, stmt), reg)
 }
 

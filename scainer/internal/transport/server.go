@@ -206,6 +206,21 @@ func (s *Server) GetContestProblemStatementPdf(c echo.Context, id server.Contest
 	return nil
 }
 
+func (s *Server) GetContestProblemStatementExplain(c echo.Context, id server.ContestID, problemId server.ProblemID) error {
+	if s.statements == nil {
+		return c.JSON(http.StatusInternalServerError, server.Error{Error: "statements service is not configured"})
+	}
+	ex, err := s.statements.ExplainProblemStatement(c.Request().Context(), domain.ContestID(id), domain.ProblemID(problemId))
+	if err != nil {
+		return problemStatementHTTPError(c, err)
+	}
+	return c.JSON(http.StatusOK, server.ProblemStatementExplainView{
+		Problem:   string(ex.Problem),
+		Title:     ex.Title,
+		Statement: ex.Statement,
+	})
+}
+
 func problemStatementHTTPError(c echo.Context, err error) error {
 	switch {
 	case errors.Is(err, contests.ErrContestNotFound), errors.Is(err, statements.ErrProblemStatementNotFound), errors.Is(err, statements.ErrNotAvailable):

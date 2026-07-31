@@ -27,6 +27,7 @@ import (
 	"scainer/internal/services/review"
 	"scainer/internal/services/scoring"
 	"scainer/internal/services/statements"
+	"scainer/internal/services/statements/explain"
 	"scainer/internal/services/teachers"
 	"scainer/internal/transport"
 	"scainer/pkg/auth"
@@ -91,7 +92,7 @@ func run(cfg *configs.Config) error {
 	}
 
 	runner := analyze.NewRunner(mongo.registry, store, mongo.analysisRepo, orchestrator)
-	statementsSvc := wireStatements(cfg, mongo.registry)
+	statementsSvc := wireStatements(cfg, mongo.registry, store)
 	refreshOrch := analyze.NewRefreshOrchestrator(runner, statementsSvc)
 	svcs := wireServices(cfg, store, mongo, ejGateway, teachersSvc, refreshOrch, pool)
 
@@ -212,12 +213,13 @@ func wireServices(
 	}
 }
 
-func wireStatements(cfg *configs.Config, registry contests.ContestRegistry) *statements.Service {
+func wireStatements(cfg *configs.Config, registry contests.ContestRegistry, submissionStore *store.FS) *statements.Service {
 	lkshClient := lksh.NewClient(cfg.Ejudge.BaseURL, cfg.Ejudge.Timeout)
 	providers := map[string]statements.Provider{
 		statements.SourceLksh: ejudge.NewLkshStatementProvider(lkshClient),
 	}
-	return statements.NewService(registry, providers, statements.NewProblemStore(cfg.Store.Dir))
+	problems := statements.NewProblemStore(cfg.Store.Dir)
+	return statements.NewService(registry, providers, problems, explain.NewSubmissionLabelResolver(submissionStore))
 }
 
 func serveHTTP(hc configs.HTTPConfig, e *echo.Echo) error {

@@ -14,6 +14,7 @@ import (
 	"scainer/internal/services/analyze/detect"
 	"scainer/internal/services/importer"
 	"scainer/internal/services/statements"
+	"scainer/internal/services/statements/explain"
 	"scainer/pkg/jobs"
 	"scainer/pkg/store"
 )
@@ -70,7 +71,7 @@ func TestImportSchedulerQueuesContests(t *testing.T) {
 	st := store.NewMem()
 	orch := analyze.NewOrchestrator(analyze.NewRegistry(detect.NewLimiter(4)))
 	runner := analyze.NewRunner(reg, st, fakeAnalysis{}, orch)
-	stmt := statements.NewService(reg, nil, statements.NewProblemStore(t.TempDir()))
+	stmt := statements.NewService(reg, nil, statements.NewProblemStore(t.TempDir()), explain.NewSubmissionLabelResolver(store.NewMem()))
 	svc := analyze.New(jobs.NewPool(4), analyze.NewRefreshOrchestrator(runner, stmt), reg)
 
 	sched := NewImportScheduler(reg, svc, time.Hour, "cron-user")

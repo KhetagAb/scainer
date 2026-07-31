@@ -364,6 +364,27 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorResponse'
 
+  /api/contests/{id}/problems/{problemId}/statement/explain:
+    get:
+      operationId: getContestProblemStatementExplain
+      summary: AI-explain формализация условия задачи
+      parameters:
+        - $ref: '#/components/parameters/ContestID'
+        - $ref: '#/components/parameters/ProblemID'
+      responses:
+        '200':
+          description: Заголовок и текст условия без примеров
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemStatementExplainView'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ErrorResponse'
+
   /api/contests/{id}/submissions:
     get:
       operationId: getContestSubmissions
@@ -793,6 +814,18 @@ components:
           type: string
         output:
           type: string
+
+    ProblemStatementExplainView:
+      type: object
+      required: [problem, title, statement]
+      properties:
+        problem:
+          type: string
+        title:
+          type: string
+        statement:
+          type: string
+          description: Условие задачи без примеров
 
     SubmissionListItem:
       type: object

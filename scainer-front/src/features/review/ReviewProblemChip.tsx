@@ -4,17 +4,19 @@ import { NavLink } from "react-router-dom";
 type Props = {
   to: string;
   label: string;
+  problemId: string;
   /** Буква задачи из ejudge (ProblemInfo.name) для фильтрации страниц PDF. */
   statementLabel: string;
   count: number;
   active: boolean;
   statementAvailable: boolean;
-  onStatementOpen: (statementLabel: string) => void;
+  onStatementOpen: (problemId: string, statementLabel: string) => void;
 };
 
 export default function ReviewProblemChip({
   to,
   label,
+  problemId,
   statementLabel,
   count,
   active,
@@ -35,7 +37,7 @@ export default function ReviewProblemChip({
       onClick={(e) => {
         if (active && statementAvailable) {
           e.preventDefault();
-          onStatementOpen(statementLabel);
+          onStatementOpen(problemId, statementLabel);
         }
       }}
     >
@@ -52,7 +54,7 @@ export default function ReviewProblemChip({
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              onStatementOpen(statementLabel);
+              onStatementOpen(problemId, statementLabel);
             }}
           >
             Условие

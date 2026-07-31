@@ -5,6 +5,7 @@ import ProblemStatementModal from "@/features/statements/ProblemStatementModal";
 type Props = {
   contestId: string;
   contestName?: string;
+  problemId?: string | null;
   problemLabel?: string | null;
   statementAvailable: boolean;
   open: boolean;
@@ -16,6 +17,7 @@ type Props = {
 export default function ProblemStatementScrollZone({
   contestId,
   contestName,
+  problemId,
   problemLabel,
   statementAvailable,
   open,
@@ -69,6 +71,7 @@ export default function ProblemStatementScrollZone({
           open={open}
           contestId={contestId}
           title={contestName}
+          problemId={problemId}
           problemLabel={problemLabel}
           onClose={onClose}
         />

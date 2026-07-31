@@ -12,3 +12,9 @@ type ProblemStatement struct {
 	Statement string           `json:"statement" yaml:"statement"`
 	Examples  []ProblemExample `json:"examples,omitempty" yaml:"examples,omitempty"`
 }
+
+type ProblemStatementExplain struct {
+	Problem   ProblemID `json:"problem"`
+	Title     string    `json:"title"`
+	Statement string    `json:"statement"`
+}

@@ -26,6 +26,7 @@ export default function ReviewProblemPicker({
   reviewFilters,
 }: Props) {
   const [statementOpen, setStatementOpen] = useState(false);
+  const [statementModalProblemId, setStatementModalProblemId] = useState<string | null>(null);
   const [statementModalLabel, setStatementModalLabel] = useState<string | null>(null);
   const pickerRef = useRef<HTMLUListElement>(null);
   const submissionCounts = useMemo(
@@ -62,13 +63,15 @@ export default function ReviewProblemPicker({
 
   const base = `/contests/${encodeURIComponent(contestId)}`;
 
-  const openStatement = (statementLabel: string) => {
+  const openStatement = (problemId: string, statementLabel: string) => {
+    setStatementModalProblemId(problemId);
     setStatementModalLabel(statementLabel);
     setStatementOpen(true);
   };
 
   const closeStatement = () => {
     setStatementOpen(false);
+    setStatementModalProblemId(null);
     setStatementModalLabel(null);
   };
 
@@ -90,6 +93,7 @@ export default function ReviewProblemPicker({
                   <ReviewProblemChip
                     to={`${base}/review?problem=${encodeURIComponent(p.id)}`}
                     label={label}
+                    problemId={p.id}
                     statementLabel={p.name || p.id}
                     count={count}
                     active={active}
@@ -108,6 +112,7 @@ export default function ReviewProblemPicker({
           open={statementOpen}
           contestId={contestId}
           title={contestName}
+          problemId={statementModalProblemId ?? activeProblemId}
           problemLabel={statementModalLabel ?? activeProblemLabel}
           onClose={closeStatement}
         />

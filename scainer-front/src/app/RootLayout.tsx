@@ -5,6 +5,7 @@ import { authHeaders } from "@/features/auth/authStorage";
 import ImportContestsPanel from "@/features/contests/ui/ImportContestsPanel";
 import { SensitivityProvider } from "@/features/contests/shared/SensitivityContext";
 import AppHeader from "@/app/AppHeader";
+import AiGradientDefs from "@/app/AiGradientDefs";
 
 export default function RootLayout() {
   const location = useLocation();
@@ -13,6 +14,7 @@ export default function RootLayout() {
 
   return (
     <SensitivityProvider>
+      <AiGradientDefs />
       <AppHeader>
         <Outlet />
       </AppHeader>

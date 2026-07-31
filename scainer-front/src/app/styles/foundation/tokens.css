@@ -180,11 +180,13 @@
     oklch(0.92 0.02 25) 100%
   );
 
+  --logo-ai-gradient-from: oklch(0.52 0.14 15);
+  --logo-ai-gradient-to: oklch(0.62 0.14 15);
   --logo-ai-gradient: linear-gradient(
     135deg,
-    oklch(0.52 0.14 15) 0%,
+    var(--logo-ai-gradient-from) 0%,
     var(--accent-violet) 48%,
-    oklch(0.62 0.14 15) 100%
+    var(--logo-ai-gradient-to) 100%
   );
 
   --prism-bg: var(--code-bg);
@@ -456,11 +458,13 @@
     oklch(0.92 0.02 25) 100%
   );
 
+  --logo-ai-gradient-from: oklch(0.52 0.14 15);
+  --logo-ai-gradient-to: var(--accent);
   --logo-ai-gradient: linear-gradient(
     135deg,
-    oklch(0.52 0.14 15) 0%,
+    var(--logo-ai-gradient-from) 0%,
     var(--accent-violet) 48%,
-    var(--accent) 100%
+    var(--logo-ai-gradient-to) 100%
   );
 
   --prism-bg: var(--code-bg);

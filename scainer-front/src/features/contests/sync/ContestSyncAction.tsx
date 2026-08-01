@@ -12,6 +12,8 @@ type Props = {
   progress?: JobProgress;
   batchProgress?: { done: number; total: number } | null;
   disabled?: boolean;
+  fillWidth?: boolean;
+  inTopbar?: boolean;
   onClick: () => void;
   onResync?: () => void;
 };
@@ -44,6 +46,8 @@ export default function ContestSyncAction({
   progress,
   batchProgress,
   disabled,
+  fillWidth = false,
+  inTopbar = false,
   onClick,
   onResync,
 }: Props) {
@@ -85,8 +89,13 @@ export default function ContestSyncAction({
       (barProgress ? formatJobProgress(barProgress) : "Обновляем…");
 
     return (
-      <div className="contest-sync-action-slot">
-        <SyncActionSizer />
+      <div
+        className={
+          "contest-sync-action-slot" +
+          (fillWidth || inTopbar ? " contest-sync-action-slot--fill-width" : "")
+        }
+      >
+        {!fillWidth && !inTopbar ? <SyncActionSizer /> : null}
         <div className="contest-sync-action contest-sync-action--running">
           <JobProgressBar
             progress={barProgress ?? { phase: "importing", done: 0, total: 0 }}
@@ -99,8 +108,9 @@ export default function ContestSyncAction({
   }
 
   const isIconOnly =
-    model.label === "Обновить" &&
-    (model.state === "idle" || model.state === "disabled");
+    inTopbar ||
+    (model.label === "Обновить" &&
+      (model.state === "idle" || model.state === "disabled"));
 
   return (
     <button
@@ -109,7 +119,8 @@ export default function ContestSyncAction({
         "btn btn--primary contest-sync-action" +
         (isIconOnly ? " contest-sync-action--icon-only" : " contest-sync-action--labeled") +
         (isWarn ? " contest-sync-action--warn" : "") +
-        (isDisabled ? " contest-sync-action--disabled" : "")
+        (isDisabled ? " contest-sync-action--disabled" : "") +
+        (fillWidth && !isIconOnly ? " contest-sync-action--fill-width" : "")
       }
       onClick={handleClick}
       disabled={isDisabled}

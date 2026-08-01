@@ -15,9 +15,9 @@ import (
 )
 
 type RunInfo struct {
-	RunID   int
-	Status  int
-	Verdict Verdict
+	RunID     int
+	Status    int
+	StatusStr string // raw ejudge status_str
 }
 
 type RunMessage struct {
@@ -57,10 +57,8 @@ func (c *Client) RunStatus(ctx context.Context, contestID, runID int) (RunInfo, 
 	if run.Status != nil {
 		info.Status = *run.Status
 	}
-	if run.StatusStr != nil && *run.StatusStr != "" {
-		info.Verdict = ParseVerdict(*run.StatusStr)
-	} else {
-		info.Verdict = VerdictFromStatus(info.Status)
+	if run.StatusStr != nil {
+		info.StatusStr = *run.StatusStr
 	}
 	return info, nil
 }
@@ -133,13 +131,9 @@ func (c *Client) SendRunComment(ctx context.Context, contestID, runID int, text 
 	return ensureWriteOK(body, "send-run-comment")
 }
 
-func (c *Client) ChangeRunStatus(ctx context.Context, contestID, runID int, verdict Verdict) error {
-	code, ok := StatusCode(verdict)
-	if !ok {
-		return fmt.Errorf("ejudge: неизвестный вердикт %q", verdict)
-	}
+func (c *Client) ChangeRunStatus(ctx context.Context, contestID, runID, statusCode int) error {
 	rid := runID
-	status := code
+	status := statusCode
 	body, err := c.masterForm(ctx, ejgen.MasterFormFormdataRequestBody{
 		Json:      ejgen.MasterFormFormdataBodyJsonN1,
 		Action:    actionChangeRunStatus,

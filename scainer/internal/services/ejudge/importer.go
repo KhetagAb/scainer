@@ -141,7 +141,7 @@ func (i *Importer) Import(ctx context.Context, store importer.Store) (importer.R
 		}
 	}
 
-	refreshed, err := refreshPendingSubmissions(ctx, client, store, contestID)
+	refreshed, err := refreshNonFinalSubmissions(ctx, client, store, contestID)
 	if err != nil {
 		return importer.Result{}, err
 	}
@@ -181,7 +181,7 @@ func countContestSubmissions(ctx context.Context, store importer.Store, contest 
 	return n
 }
 
-func refreshPendingSubmissions(
+func refreshNonFinalSubmissions(
 	ctx context.Context,
 	client *ejudgeapi.Client,
 	store importer.Store,
@@ -195,7 +195,7 @@ func refreshPendingSubmissions(
 	var updated []domain.Submission
 	for _, subs := range byProblem {
 		for _, sub := range subs {
-			if sub.Verdict != domain.VerdictPR {
+			if !domain.NeedsStatusRefresh(sub.Verdict) {
 				continue
 			}
 			key, err := parseSubmissionKey(sub.ID)
@@ -206,11 +206,8 @@ func refreshPendingSubmissions(
 			if err != nil {
 				return nil, fmt.Errorf("ejudge run-status run_id=%d: %w", key.RunID, err)
 			}
-			verdict := toDomainVerdict(info.Verdict)
-			if verdict == sub.Verdict {
-				continue
-			}
-			updated = append(updated, submissionWithVerdict(sub, verdict, info.Status))
+			verdict := mapToDomainVerdict(info.Status, info.StatusStr)
+			updated = append(updated, submissionWithVerdict(sub, verdict, info.Status, info.StatusStr))
 		}
 	}
 	return updated, nil

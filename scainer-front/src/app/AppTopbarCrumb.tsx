@@ -9,6 +9,7 @@ import {
   compactContestName,
 } from "@/features/contests/shared/contestHelpers";
 import { parallelLabel } from "@/features/contests/shared/parallels";
+import ContestCrumbSwitcher from "@/features/contests/ui/ContestCrumbSwitcher";
 import ProblemStatementModal from "@/features/statements/ProblemStatementModal";
 
 function decodePathSegment(segment: string): string {
@@ -61,7 +62,12 @@ export default function AppTopbarCrumb() {
         <span className="app-topbar__crumb-sep" aria-hidden>
           /
         </span>
-        <span className="app-topbar__crumb-name">{shortName}</span>
+        <ContestCrumbSwitcher
+          currentContestId={contestId}
+          parallelId={parallelId}
+          contests={contestsQuery.data ?? []}
+          displayName={shortName}
+        />
         {statementAvailable ? (
           <>
             <span className="app-topbar__crumb-sep" aria-hidden>

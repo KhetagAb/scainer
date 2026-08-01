@@ -12,14 +12,13 @@ const (
 	VerdictCE      Verdict = "CE"
 	VerdictDQ      Verdict = "DQ"
 	VerdictRJ      Verdict = "RJ"
+	VerdictRT      Verdict = "RT"
+	VerdictIG      Verdict = "IG"
+	VerdictPE      Verdict = "PE"
+	VerdictRU      Verdict = "RU"
 	VerdictUnknown Verdict = "UNKNOWN"
 )
 
-func ParseVerdict(s string) Verdict {
-	switch Verdict(s) {
-	case VerdictOK, VerdictTL, VerdictML, VerdictWA, VerdictPR, VerdictCF, VerdictCE, VerdictDQ, VerdictRJ:
-		return Verdict(s)
-	default:
-		return VerdictUnknown
-	}
+func NeedsStatusRefresh(v Verdict) bool {
+	return v == VerdictPR || v == VerdictRU
 }

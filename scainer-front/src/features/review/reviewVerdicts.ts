@@ -14,6 +14,10 @@ const VERDICT_LABELS: Record<string, string> = {
   ML: "Memory limit",
   CF: "Check failed",
   DQ: "Disqualified",
+  RT: "Run-time error",
+  IG: "Ignored",
+  PE: "Presentation error",
+  RU: "Running",
 };
 
 export function formatVerdictLabel(verdict: string): string {
@@ -31,6 +35,7 @@ export function verdictChipTone(verdict: string): "ok" | "pr" | "fail" | "neutra
   if (!v || v === "—" || v === "-") return "neutral";
   if (v === "OK") return "ok";
   if (v === "PR" || v === "PD") return "pr";
+  if (v === "RU" || v === "CG" || v === "CD") return "neutral";
   if (v === "CE" || v === "CF") return "neutral";
   if (v === "DQ") return "dq";
   return "fail";

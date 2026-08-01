@@ -20,6 +20,7 @@ import (
 	"scainer/internal/repository"
 	"scainer/internal/services/analyze"
 	"scainer/internal/services/contests"
+	"scainer/internal/services/explain"
 	"scainer/internal/services/ejudge"
 	ejgateway "scainer/internal/services/ejudge/gateway"
 	"scainer/internal/services/importer"
@@ -27,11 +28,11 @@ import (
 	"scainer/internal/services/review"
 	"scainer/internal/services/scoring"
 	"scainer/internal/services/statements"
-	"scainer/internal/services/statements/explain"
 	"scainer/internal/services/teachers"
 	"scainer/internal/transport"
 	"scainer/pkg/auth"
 	"scainer/pkg/jobs"
+	"scainer/pkg/llm"
 	"scainer/pkg/lksh"
 	"scainer/pkg/store"
 )
@@ -92,7 +93,8 @@ func run(cfg *configs.Config) error {
 	}
 
 	runner := analyze.NewRunner(mongo.registry, store, mongo.analysisRepo, orchestrator)
-	statementsSvc := wireStatements(cfg, mongo.registry, store)
+	statementsSvc := wireStatements(cfg, mongo.registry)
+	explainSvc := wireExplain(statementsSvc, cfg, store)
 	refreshOrch := analyze.NewRefreshOrchestrator(runner, statementsSvc)
 	svcs := wireServices(cfg, store, mongo, ejGateway, teachersSvc, refreshOrch, pool)
 
@@ -119,7 +121,7 @@ func run(cfg *configs.Config) error {
 	if cfg.Ejudge.Enabled() {
 		ejudgeGw = ejGateway
 	}
-	e := transport.New(svcs.contests, svcs.reader, svcs.analyze, svcs.review, svcs.teachers, svcs.auth, ejudgeGw, statementsSvc).Echo()
+	e := transport.New(svcs.contests, svcs.reader, svcs.analyze, svcs.review, svcs.teachers, svcs.auth, ejudgeGw, statementsSvc, explainSvc).Echo()
 	return serveHTTP(cfg.HTTP, e)
 }
 
@@ -213,13 +215,29 @@ func wireServices(
 	}
 }
 
-func wireStatements(cfg *configs.Config, registry contests.ContestRegistry, submissionStore *store.FS) *statements.Service {
+func wireStatements(cfg *configs.Config, registry contests.ContestRegistry) *statements.Service {
 	lkshClient := lksh.NewClient(cfg.Ejudge.BaseURL, cfg.Ejudge.Timeout)
 	providers := map[string]statements.Provider{
 		statements.SourceLksh: ejudge.NewLkshStatementProvider(lkshClient),
 	}
 	problems := statements.NewProblemStore(cfg.Store.Dir)
-	return statements.NewService(registry, providers, problems, explain.NewSubmissionLabelResolver(submissionStore))
+	return statements.NewService(registry, providers, problems)
+}
+
+func wireExplain(statementsSvc *statements.Service, cfg *configs.Config, submissionStore *store.FS) *explain.Service {
+	problems := statements.NewProblemStore(cfg.Store.Dir)
+	var model llm.Model = llm.Unconfigured{}
+	if m, err := llm.NewOpenAIFromEnv(); err == nil {
+		model = m
+	} else {
+		fmt.Fprintf(os.Stderr, "scainer: llm disabled: %v\n", err)
+	}
+	return explain.New(
+		statementsSvc,
+		problems,
+		explain.NewSubmissionLabelResolver(submissionStore),
+		model,
+	)
 }
 
 func serveHTTP(hc configs.HTTPConfig, e *echo.Echo) error {

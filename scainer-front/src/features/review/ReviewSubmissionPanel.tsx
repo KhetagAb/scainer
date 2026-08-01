@@ -556,7 +556,6 @@ export default function ReviewSubmissionPanel({
             ) : null}
           </div>
         </div>
-        <div className="review-workspace__label-spacer" aria-hidden />
 
         <div className="review-workspace__code" aria-label="Исходный код">
           {findingKey ? (

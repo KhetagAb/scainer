@@ -51,7 +51,7 @@ func TestCreateChatCompletion_OK(t *testing.T) {
 		if r.Method != http.MethodPost || r.URL.Path != "/v1/chat/completions" {
 			t.Errorf("%s %s", r.Method, r.URL.Path)
 		}
-		if r.Header.Get("Authorization") != "Bearer secret" {
+		if r.Header.Get("Authorization") != "Api-Key secret" {
 			t.Errorf("Authorization = %q", r.Header.Get("Authorization"))
 		}
 		var req oaigen.ChatCompletionRequest

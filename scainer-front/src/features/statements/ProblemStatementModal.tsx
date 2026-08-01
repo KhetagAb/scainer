@@ -1,12 +1,13 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { ProblemStatementExplainView } from "@/client/types.gen";
 import { fetchContestStatement } from "@/features/statements/fetchContestStatement";
-import { fetchProblemStatementExplain } from "@/features/statements/fetchProblemStatementExplain";
+import { prefetchProblemStatementExplain } from "@/features/statements/explainQuery";
 import ProblemStatementExplainPanel from "@/features/statements/ProblemStatementExplainPanel";
 import ProblemStatementViewer from "@/features/statements/ProblemStatementViewer";
 import StatementExplainButton from "@/features/statements/StatementExplainButton";
+import { useProblemStatementExplain } from "@/features/statements/useProblemStatementExplain";
 
 type Props = {
   open: boolean;
@@ -25,18 +26,22 @@ export default function ProblemStatementModal({
   problemLabel,
   onClose,
 }: Props) {
+  const queryClient = useQueryClient();
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const [mounted, setMounted] = useState(open);
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
-  const [explainOpen, setExplainOpen] = useState(false);
-  const [explainLoading, setExplainLoading] = useState(false);
-  const [explainError, setExplainError] = useState<string | null>(null);
-  const [explainData, setExplainData] = useState<ProblemStatementExplainView | null>(null);
 
-  const explainAvailable = Boolean(problemId?.trim());
+  const {
+    explainAvailable,
+    explainOpen,
+    formalizationView,
+    toggleExplain,
+    closeOnDelete,
+    setExplainData,
+  } = useProblemStatementExplain({ open, contestId, problemId });
 
   useEffect(() => {
     if (open) {
@@ -56,16 +61,14 @@ export default function ProblemStatementModal({
       setPdfData(null);
       setError(null);
       setLoading(false);
-      setExplainOpen(false);
-      setExplainData(null);
-      setExplainError(null);
-      setExplainLoading(false);
       return;
     }
+
     let cancelled = false;
     setLoading(true);
     setError(null);
     setPdfData(null);
+
     void fetchContestStatement(contestId)
       .then((data) => {
         if (!cancelled) {
@@ -79,34 +82,17 @@ export default function ProblemStatementModal({
           setLoading(false);
         }
       });
+
     return () => {
       cancelled = true;
     };
   }, [open, contestId]);
 
   useEffect(() => {
-    if (!open || !explainOpen || !problemId?.trim()) return;
-    let cancelled = false;
-    setExplainLoading(true);
-    setExplainError(null);
-    setExplainData(null);
-    void fetchProblemStatementExplain(contestId, problemId)
-      .then((data) => {
-        if (!cancelled) {
-          setExplainData(data);
-          setExplainLoading(false);
-        }
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          setExplainError(err instanceof Error ? err.message : "Не удалось загрузить разбор");
-          setExplainLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [open, explainOpen, contestId, problemId]);
+    const problemKey = problemId?.trim();
+    if (!open || !problemKey) return;
+    prefetchProblemStatementExplain(queryClient, contestId, problemKey);
+  }, [open, contestId, problemId, queryClient]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -137,13 +123,10 @@ export default function ProblemStatementModal({
     [onClose],
   );
 
-  const toggleExplain = useCallback(() => {
-    setExplainOpen((prev) => !prev);
-  }, []);
-
   if (!mounted) return null;
 
   const ariaLabel = title ? `Условие — ${title}` : "Условие";
+  const showLayout = !error && (loading || pdfData || explainOpen);
 
   return createPortal(
     <div
@@ -175,18 +158,23 @@ export default function ProblemStatementModal({
         aria-modal="true"
         aria-label={ariaLabel}
       >
-        {loading ? <p className="problem-statement-panel__status">Загрузка…</p> : null}
         {error ? <p className="problem-statement-panel__error">{error}</p> : null}
-        {pdfData && !error ? (
+        {showLayout ? (
           <div className="problem-statement-panel__layout">
             <div className="problem-statement-panel__main">
-              <ProblemStatementViewer data={pdfData} problemLabel={problemLabel} />
+              {pdfData ? (
+                <ProblemStatementViewer data={pdfData} problemLabel={problemLabel} />
+              ) : (
+                <p className="problem-statement-viewer__loading">Загрузка условия…</p>
+              )}
             </div>
-            {explainOpen ? (
+            {explainOpen && problemId?.trim() ? (
               <ProblemStatementExplainPanel
-                data={explainData}
-                loading={explainLoading}
-                error={explainError}
+                contestId={contestId}
+                problemId={problemId}
+                view={formalizationView}
+                onUpdated={setExplainData}
+                onDeleted={closeOnDelete}
               />
             ) : null}
           </div>

@@ -90,7 +90,9 @@ export default function ReviewPage({
     return () => window.clearTimeout(t);
   }, [queue, problemId]);
 
-  const participantFilterActive = reviewFilters.participantQuery.trim().length > 0;
+  const participantFilterActive =
+    reviewFilters.participantFilter.active &&
+    reviewFilters.participantFilter.query.trim().length > 0;
 
   if (submissionsQuery.isLoading) {
     return <div className="page-center">Загрузка посылок…</div>;
@@ -124,7 +126,7 @@ export default function ReviewPage({
         ) : participantFilterActive ? (
           <p>
             По задаче <strong>{problemId}</strong> нет посылок для участника «
-            {reviewFilters.participantQuery.trim()}».
+            {reviewFilters.participantFilter.query.trim()}».
           </p>
         ) : (
           <p>

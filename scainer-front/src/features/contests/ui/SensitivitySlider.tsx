@@ -45,7 +45,7 @@ export default function SensitivitySlider({ threshold, onChange }: Props) {
 
   return (
     <nav
-      className="contest-head__group contest-head__group--sensitivity"
+      className="chrome-segment-group chrome-segment-group--sensitivity contest-head__group contest-head__group--sensitivity"
       role="radiogroup"
       aria-label="Чувствительность"
     >
@@ -57,11 +57,11 @@ export default function SensitivitySlider({ threshold, onChange }: Props) {
             type="button"
             role="radio"
             aria-checked={active}
-            className={`contest-head__group-btn sensitivity-btn${active ? " is-active" : ""}`}
+            className={`chrome-segment-group-btn sensitivity-btn chrome-segment-btn--tip contest-head__group-btn${active ? " is-active" : ""}`}
             aria-label={level.hint}
             onClick={() => onChange(level.value)}
           >
-            <span className={`sensitivity-tip sensitivity-tip--${tipIndex}`} role="tooltip">
+            <span className={`chrome-segment-tip sensitivity-tip sensitivity-tip--${tipIndex}`} role="tooltip">
               {level.hint}
             </span>
             <span className="sensitivity-label" aria-hidden>

@@ -1,6 +1,7 @@
 /* shared/layout.css — .app-shell, .app-topbar, .app-main, .logo, .meta */
 
 .app-shell {
+  position: relative;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -29,6 +30,36 @@
   margin-left: auto;
   min-width: 0;
   align-self: stretch;
+}
+
+.app-topbar--workspace-grid {
+  display: grid;
+  grid-template-columns: var(--review-workspace-cols);
+  column-gap: var(--review-workspace-gap);
+  align-items: stretch;
+  gap: 0;
+}
+
+.app-topbar--workspace-grid .app-topbar__lead {
+  grid-column: 1;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+  overflow: visible;
+}
+
+.app-topbar--workspace-grid .app-topbar__lead .app-topbar__crumb {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.app-topbar--workspace-grid .app-topbar__toolbar {
+  grid-column: 2;
+  margin-left: 0;
+  width: 100%;
+  min-width: 0;
+  justify-content: flex-end;
 }
 
 .app-topbar__crumb {
@@ -74,6 +105,119 @@
   font-size: 1.05rem;
   font-weight: 700;
   color: var(--text);
+}
+
+.app-topbar__crumb-menu-anchor {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.app-topbar__crumb-menu-anchor:hover,
+.app-topbar__crumb-menu-anchor:focus-within,
+.app-topbar__crumb-menu-anchor--open {
+  z-index: 50;
+}
+
+.app-topbar__crumb-menu-anchor:hover::after,
+.app-topbar__crumb-menu-anchor:focus-within::after,
+.app-topbar__crumb-menu-anchor--open::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 0.25rem;
+}
+
+.app-topbar__crumb-name--switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+}
+
+.app-topbar__crumb-name-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-topbar__crumb-chevron {
+  flex-shrink: 0;
+  display: block;
+  width: 0;
+  height: 0;
+  border-left: 0.32rem solid transparent;
+  border-right: 0.32rem solid transparent;
+  border-top: 0.38rem solid currentColor;
+  opacity: 0.65;
+}
+
+.app-topbar__crumb-menu-anchor:hover .app-topbar__crumb-name--switcher,
+.app-topbar__crumb-menu-anchor:focus-within .app-topbar__crumb-name--switcher,
+.app-topbar__crumb-menu-anchor--open .app-topbar__crumb-name--switcher {
+  color: color-mix(in srgb, var(--text) 88%, var(--text-muted));
+}
+
+.app-topbar__crumb-menu {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  z-index: 51;
+  min-width: 10rem;
+  max-width: min(18rem, 70vw);
+  margin: 0;
+  padding: 0.3rem;
+  list-style: none;
+  border: 1px solid var(--border-soft);
+  border-radius: 0.45rem;
+  background: var(--bg);
+  box-shadow: 0 0.35rem 1rem color-mix(in srgb, var(--text) 12%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+
+.app-topbar__crumb-menu--portal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 120;
+}
+
+.app-topbar__crumb-menu-option {
+  display: block;
+  width: 100%;
+  padding: 0.38rem 0.55rem;
+  border: none;
+  border-radius: 0.32rem;
+  background: transparent;
+  font-family: var(--font-head);
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text);
+  text-align: left;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.app-topbar__crumb-menu-option:hover,
+.app-topbar__crumb-menu-option:focus-visible {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  outline: none;
+}
+
+.app-topbar__crumb-menu-option--selected {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  font-weight: 700;
+  cursor: default;
 }
 
 .app-topbar__crumb-statement {
@@ -122,7 +266,8 @@
   padding: 1.1rem var(--page-gutter) 2.75rem;
 }
 
-.app-main:has(> .contest-head--chrome) {
+.app-main:has(> .contest-head--chrome),
+.app-main:has(> .contest-head--review) {
   padding-top: 0;
 }
 

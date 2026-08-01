@@ -28,14 +28,14 @@ func TestParseContestPDF_example10(t *testing.T) {
 	if !strings.Contains(ps.Title, "Ася") {
 		t.Errorf("title = %q", ps.Title)
 	}
-	if !strings.Contains(ps.Statement, "Асяоченьлюбит") {
-		t.Errorf("statement = %q", ps.Statement)
+	if !strings.Contains(ps.RawStatement, "Асяоченьлюбит") {
+		t.Errorf("rawStatement = %q", ps.RawStatement)
 	}
-	if !strings.Contains(ps.Statement, "Перваястрока") {
-		t.Errorf("statement should include input format: %q", ps.Statement)
+	if !strings.Contains(ps.RawStatement, "Перваястрока") {
+		t.Errorf("rawStatement should include input format: %q", ps.RawStatement)
 	}
-	if !strings.Contains(ps.Statement, "Вответекпримеру") {
-		t.Errorf("statement should include notes: %q", ps.Statement)
+	if !strings.Contains(ps.RawStatement, "Вответекпримеру") {
+		t.Errorf("rawStatement should include notes: %q", ps.RawStatement)
 	}
 	if len(ps.Examples) == 0 {
 		t.Fatal("expected examples")

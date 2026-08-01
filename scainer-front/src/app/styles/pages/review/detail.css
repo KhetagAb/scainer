@@ -16,7 +16,7 @@
 }
 
 .review-detail--panel + .review-show-all:not(.review-show-all--empty) {
-  margin-top: var(--review-stack-split-gap);
+  margin-top: var(--review-panel-pad-tail);
 }
 
 .review-detail--placeholder {

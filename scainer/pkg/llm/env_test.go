@@ -12,7 +12,6 @@ func TestLoadEnv_OK(t *testing.T) {
 	t.Setenv(llm.EnvPassword, "p")
 	t.Setenv(llm.EnvTimeout, "5s")
 	t.Setenv(llm.EnvModel, "llama3.2")
-	t.Setenv(llm.EnvAPIKey, "")
 
 	env, err := llm.LoadEnv()
 	if err != nil {
@@ -33,7 +32,6 @@ func TestLoadEnv_DefaultBaseURL(t *testing.T) {
 	t.Setenv(llm.EnvBaseURL, "")
 	t.Setenv(llm.EnvUsername, "u")
 	t.Setenv(llm.EnvPassword, "p")
-	t.Setenv(llm.EnvAPIKey, "")
 	t.Setenv(llm.EnvTimeout, "")
 
 	env, err := llm.LoadEnv()
@@ -54,5 +52,21 @@ func TestLoadEnv_MissingAuth(t *testing.T) {
 	_, err := llm.LoadEnv()
 	if err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+func TestLoadEnv_APIKey(t *testing.T) {
+	t.Setenv(llm.EnvBaseURL, "https://llm.api.cloud.yandex.net/v1")
+	t.Setenv(llm.EnvUsername, "")
+	t.Setenv(llm.EnvPassword, "")
+	t.Setenv(llm.EnvAPIKey, "secret")
+	t.Setenv(llm.EnvModel, "gpt://folder/yandexgpt/latest")
+
+	env, err := llm.LoadEnv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if env.Client.BaseURL() != "https://llm.api.cloud.yandex.net/v1" {
+		t.Fatalf("base = %q", env.Client.BaseURL())
 	}
 }

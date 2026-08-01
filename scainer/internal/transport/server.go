@@ -17,6 +17,7 @@ import (
 	"scainer/internal/domain"
 	"scainer/internal/services/analyze"
 	"scainer/internal/services/contests"
+	"scainer/internal/services/explain"
 	"scainer/internal/services/ejudge/gateway"
 	"scainer/internal/services/review"
 	"scainer/internal/services/statements"
@@ -41,10 +42,11 @@ type Server struct {
 	auth       auth.Service
 	ejudge     ejudgeGateway
 	statements *statements.Service
+	explain    *explain.Service
 }
 
-func New(contestsSvc *contests.Service, reader *contests.ContestReader, analyzeSvc *analyze.Service, reviewSvc *review.Service, teachersSvc *teachers.Service, authSvc auth.Service, ejudgeGw ejudgeGateway, statementsSvc *statements.Service) *Server {
-	return &Server{contests: contestsSvc, reader: reader, analyze: analyzeSvc, review: reviewSvc, teachers: teachersSvc, auth: authSvc, ejudge: ejudgeGw, statements: statementsSvc}
+func New(contestsSvc *contests.Service, reader *contests.ContestReader, analyzeSvc *analyze.Service, reviewSvc *review.Service, teachersSvc *teachers.Service, authSvc auth.Service, ejudgeGw ejudgeGateway, statementsSvc *statements.Service, explainSvc *explain.Service) *Server {
+	return &Server{contests: contestsSvc, reader: reader, analyze: analyzeSvc, review: reviewSvc, teachers: teachersSvc, auth: authSvc, ejudge: ejudgeGw, statements: statementsSvc, explain: explainSvc}
 }
 
 func (s *Server) Echo() *echo.Echo {
@@ -64,8 +66,6 @@ func (s *Server) Echo() *echo.Echo {
 	e.Use(metrics.HTTPMiddleware())
 	e.GET("/metrics", echo.WrapHandler(metrics.Handler()))
 	server.RegisterHandlers(e, s)
-	// SSE вне OpenAPI/codegen (text/event-stream не в ServerInterface).
-	e.GET("/api/jobs/:jobId/events", s.getJobEvents)
 	return e
 }
 
@@ -207,18 +207,80 @@ func (s *Server) GetContestProblemStatementPdf(c echo.Context, id server.Contest
 }
 
 func (s *Server) GetContestProblemStatementExplain(c echo.Context, id server.ContestID, problemId server.ProblemID) error {
-	if s.statements == nil {
-		return c.JSON(http.StatusInternalServerError, server.Error{Error: "statements service is not configured"})
+	if s.explain == nil {
+		return c.JSON(http.StatusInternalServerError, server.Error{Error: "explain service is not configured"})
 	}
-	ex, err := s.statements.ExplainProblemStatement(c.Request().Context(), domain.ContestID(id), domain.ProblemID(problemId))
+	ex, err := s.explain.Explain(c.Request().Context(), domain.ContestID(id), domain.ProblemID(problemId))
 	if err != nil {
-		return problemStatementHTTPError(c, err)
+		return explainStatementHTTPError(c, err)
 	}
-	return c.JSON(http.StatusOK, server.ProblemStatementExplainView{
+	return c.JSON(http.StatusOK, toProblemStatementExplainView(ex))
+}
+
+func (s *Server) PatchContestProblemStatementExplain(c echo.Context, id server.ContestID, problemId server.ProblemID) error {
+	if s.explain == nil {
+		return c.JSON(http.StatusInternalServerError, server.Error{Error: "explain service is not configured"})
+	}
+	var body server.UpdateProblemStatementExplainRequest
+	if err := c.Bind(&body); err != nil {
+		return c.JSON(http.StatusBadRequest, server.Error{Error: "invalid request body"})
+	}
+	ex, err := s.explain.Update(
+		c.Request().Context(),
+		domain.ContestID(id),
+		domain.ProblemID(problemId),
+		body.Title,
+		body.Statement,
+	)
+	if err != nil {
+		return explainStatementHTTPError(c, err)
+	}
+	return c.JSON(http.StatusOK, toProblemStatementExplainView(ex))
+}
+
+func (s *Server) DeleteContestProblemStatementExplain(c echo.Context, id server.ContestID, problemId server.ProblemID) error {
+	if s.explain == nil {
+		return c.JSON(http.StatusInternalServerError, server.Error{Error: "explain service is not configured"})
+	}
+	if err := s.explain.Delete(
+		c.Request().Context(),
+		domain.ContestID(id),
+		domain.ProblemID(problemId),
+	); err != nil {
+		return explainStatementHTTPError(c, err)
+	}
+	return c.NoContent(http.StatusNoContent)
+}
+
+func toProblemStatementExplainView(ex domain.ProblemStatementExplain) server.ProblemStatementExplainView {
+	view := server.ProblemStatementExplainView{
 		Problem:   string(ex.Problem),
 		Title:     ex.Title,
 		Statement: ex.Statement,
-	})
+		Source:    server.ProblemStatementExplainViewSource(ex.Source),
+	}
+	if ex.Model != "" {
+		view.Model = &ex.Model
+	}
+	if ex.Prompt != "" {
+		view.Prompt = &ex.Prompt
+	}
+	return view
+}
+
+func explainStatementHTTPError(c echo.Context, err error) error {
+	switch {
+	case errors.Is(err, contests.ErrContestNotFound),
+		errors.Is(err, explain.ErrNotFound),
+		errors.Is(err, statements.ErrNotAvailable):
+		return c.JSON(http.StatusNotFound, server.Error{Error: "problem statement not found"})
+	case errors.Is(err, explain.ErrNotConfigured):
+		return c.JSON(http.StatusServiceUnavailable, server.Error{Error: "AI не настроен на сервере"})
+	case errors.Is(err, explain.ErrLLM):
+		return c.JSON(http.StatusBadGateway, server.Error{Error: "не удалось формализовать условие через AI"})
+	default:
+		return c.JSON(http.StatusInternalServerError, server.Error{Error: "failed to load problem statement"})
+	}
 }
 
 func problemStatementHTTPError(c echo.Context, err error) error {
@@ -236,10 +298,10 @@ func toProblemStatementView(ps domain.ProblemStatement) server.ProblemStatementV
 		ex = append(ex, server.ProblemExampleView{Input: e.Input, Output: e.Output})
 	}
 	return server.ProblemStatementView{
-		Problem:   string(ps.Problem),
-		Title:     ps.Title,
-		Statement: ps.Statement,
-		Examples:  &ex,
+		Problem:      string(ps.Problem),
+		Title:        ps.Title,
+		RawStatement: ps.RawStatement,
+		Examples:     &ex,
 	}
 }
 
@@ -489,9 +551,8 @@ func (s *Server) GetJob(c echo.Context, jobId string) error {
 	return c.JSON(http.StatusOK, toJobState(st))
 }
 
-func (s *Server) getJobEvents(c echo.Context) error {
-	jobID := c.Param("jobId")
-	events, cancel, ok := s.analyze.SubscribeJob(jobID)
+func (s *Server) GetJobEvents(c echo.Context, jobId string) error {
+	events, cancel, ok := s.analyze.SubscribeJob(jobId)
 	if !ok {
 		return c.JSON(http.StatusNotFound, server.Error{Error: "job not found"})
 	}

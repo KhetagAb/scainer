@@ -11,8 +11,6 @@ import (
 	"scainer/internal/domain"
 	"scainer/internal/services/contests"
 	"scainer/internal/services/statements"
-	"scainer/internal/services/statements/explain"
-	"scainer/pkg/store"
 )
 
 func TestRefreshContestStatements(t *testing.T) {
@@ -31,7 +29,7 @@ func TestRefreshContestStatements(t *testing.T) {
 
 	svc := statements.NewService(reg, map[string]statements.Provider{
 		statements.SourceLksh: &fileProvider{data: data},
-	}, store, explain.NewSubmissionLabelResolver(store.NewMem()))
+	}, store)
 
 	if err := svc.RefreshContestStatements(context.Background(), "50506"); err != nil {
 		t.Fatal(err)

@@ -8,7 +8,6 @@ import (
 
 	ejgen "scainer/generated/ejudge"
 	"scainer/internal/domain"
-	ejudgeapi "scainer/pkg/ejudge"
 )
 
 var defaultLangMap = map[string]domain.Lang{
@@ -118,13 +117,15 @@ func guessLang(langName string) domain.Lang {
 }
 
 func mapVerdict(run ejgen.Run) domain.Verdict {
-	if run.StatusStr != nil && *run.StatusStr != "" {
-		return toDomainVerdict(ejudgeapi.ParseVerdict(*run.StatusStr))
-	}
+	status := 0
 	if run.Status != nil {
-		return toDomainVerdict(ejudgeapi.VerdictFromStatus(*run.Status))
+		status = *run.Status
 	}
-	return domain.VerdictUnknown
+	statusStr := ""
+	if run.StatusStr != nil {
+		statusStr = *run.StatusStr
+	}
+	return mapToDomainVerdict(status, statusStr)
 }
 
 func mapParticipant(run ejgen.Run) (domain.ParticipantID, error) {

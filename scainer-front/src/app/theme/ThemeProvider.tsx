@@ -9,22 +9,17 @@ import {
 } from "react";
 import {
   applyThemeToDocument,
-  persistPalette,
   persistThemePreference,
-  readPalette,
   readThemePreference,
   resolveTheme,
-  type PaletteId,
   type ResolvedTheme,
   type ThemePreference,
 } from "@/app/theme/themePreferences";
 
 type ThemeContextValue = {
-  palette: PaletteId;
   preference: ThemePreference;
   resolved: ResolvedTheme;
   revision: number;
-  setPalette: (palette: PaletteId) => void;
   setPreference: (preference: ThemePreference) => void;
 };
 
@@ -45,16 +40,14 @@ function withColorTransition(run: () => void): void {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [palette, setPaletteState] = useState<PaletteId>(() => readPalette());
   const [preference, setPreferenceState] = useState<ThemePreference>(() => readThemePreference());
   const [resolved, setResolved] = useState<ResolvedTheme>(() => resolveTheme(readThemePreference()));
   const [revision, setRevision] = useState(0);
 
-  const apply = useCallback((p: PaletteId, pref: ThemePreference, animate: boolean) => {
+  const apply = useCallback((pref: ThemePreference, animate: boolean) => {
     const next = resolveTheme(pref);
     const run = () => {
-      applyThemeToDocument(p, next);
-      setPaletteState(p);
+      applyThemeToDocument(next);
       setPreferenceState(pref);
       setResolved(next);
       setRevision((r) => r + 1);
@@ -64,13 +57,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const p = readPalette();
     const pref = readThemePreference();
-    const resolved = resolveTheme(pref);
-    applyThemeToDocument(p, resolved);
-    setPaletteState(p);
+    const next = resolveTheme(pref);
+    applyThemeToDocument(next);
     setPreferenceState(pref);
-    setResolved(resolved);
+    setResolved(next);
   }, []);
 
   useEffect(() => {
@@ -78,33 +69,25 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const onChange = () => {
       const next = resolveTheme("system");
-      applyThemeToDocument(palette, next);
+      applyThemeToDocument(next);
       setResolved(next);
       setRevision((r) => r + 1);
     };
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
-  }, [palette, preference]);
-
-  const setPalette = useCallback(
-    (p: PaletteId) => {
-      persistPalette(p);
-      apply(p, preference, true);
-    },
-    [apply, preference],
-  );
+  }, [preference]);
 
   const setPreference = useCallback(
     (pref: ThemePreference) => {
       persistThemePreference(pref);
-      apply(palette, pref, true);
+      apply(pref, true);
     },
-    [apply, palette],
+    [apply],
   );
 
   const value = useMemo(
-    () => ({ palette, preference, resolved, revision, setPalette, setPreference }),
-    [palette, preference, resolved, revision, setPalette, setPreference],
+    () => ({ preference, resolved, revision, setPreference }),
+    [preference, resolved, revision, setPreference],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

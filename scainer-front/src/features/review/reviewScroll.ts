@@ -26,10 +26,24 @@ function lockScrollFor(ms: number) {
 /** Fixed duration — native smooth scales with distance and feels sluggish on long stacks. */
 const REVIEW_SCROLL_MS = 450;
 
-/** Smooth scroll to a review panel; respects scroll-margin and prefers-reduced-motion. */
+function readStickyScrollOffset(): number {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(
+    "--review-sticky-scroll-offset",
+  );
+  const parsed = parseFloat(raw);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function reviewScrollTargetTop(el: HTMLElement): number {
+  const anchorTop = readStickyScrollOffset();
+  const labelRow = el.querySelector<HTMLElement>(".review-workspace__label-row");
+  const scrollEl = labelRow ?? el.querySelector<HTMLElement>(".review-workspace__code") ?? el;
+  return Math.max(0, scrollEl.getBoundingClientRect().top + window.scrollY - anchorTop);
+}
+
+/** Smooth scroll to a review panel; label row aligns with sticky chrome. */
 export function scrollToReviewPanel(el: HTMLElement) {
-  const marginTop = parseFloat(getComputedStyle(el).scrollMarginTop) || 0;
-  const targetTop = Math.max(0, el.getBoundingClientRect().top + window.scrollY - marginTop);
+  const targetTop = reviewScrollTargetTop(el);
   const startY = window.scrollY;
   const distance = targetTop - startY;
 

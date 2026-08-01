@@ -10,8 +10,6 @@ import (
 	"scainer/internal/domain"
 	"scainer/internal/services/contests"
 	"scainer/internal/services/statements"
-	"scainer/internal/services/statements/explain"
-	substore "scainer/pkg/store"
 )
 
 func TestIngestAndGetProblemStatement(t *testing.T) {
@@ -21,7 +19,7 @@ func TestIngestAndGetProblemStatement(t *testing.T) {
 	reg.byID["50506"] = contests.ContestRecord{
 		Contest: contests.Contest{ID: "50506"},
 	}
-	svc := statements.NewService(reg, nil, store, explain.NewSubmissionLabelResolver(substore.NewMem()))
+	svc := statements.NewService(reg, nil, store)
 
 	pdfPath := filepath.Join("..", "..", "..", "examples", "10.pdf")
 	f, err := os.Open(pdfPath)
@@ -38,8 +36,8 @@ func TestIngestAndGetProblemStatement(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(ps.Statement, "Асяоченьлюбит") {
-		t.Errorf("statement: %q", ps.Statement)
+	if !strings.Contains(ps.RawStatement, "Асяоченьлюбит") {
+		t.Errorf("rawStatement: %q", ps.RawStatement)
 	}
 
 	body, err := svc.OpenProblemStatementPDF(context.Background(), "50506", "G")

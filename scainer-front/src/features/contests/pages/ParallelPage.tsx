@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import helpIconUrl from "@/assets/help-icon.png";
 import ContestCard from "@/features/contests/cards/ContestCard";
@@ -7,10 +7,10 @@ import ContestLegendModal, {
   wasContestLegendSeen,
 } from "@/features/contests/legend/ContestLegendModal";
 import { useParallelPageData } from "@/features/contests/pages/useParallelPageData";
+import { useRegisterAppChrome } from "@/features/contests/shared/AppChromeContext";
 import { UNGROUPED_PARALLEL } from "@/features/contests/shared/contestHelpers";
 import { useSensitivity } from "@/features/contests/shared/SensitivityContext";
 import AddContestForm from "@/features/contests/ui/AddContestForm";
-import ContestHeadToolbar from "@/features/contests/ui/ContestHeadToolbar";
 import { buildParallelSyncAction } from "@/features/contests/sync/contestDataStatus";
 import ContestSyncAction from "@/features/contests/sync/ContestSyncAction";
 import { useParallelSync } from "@/features/contests/sync/useParallelSync";
@@ -36,6 +36,29 @@ export default function ParallelPage({ onUnauthorized }: Props) {
 
   const { syncJobs } = useParallelSync({ contestIds, onUnauthorized });
 
+  const syncAction = buildParallelSyncAction(parallelContests, {
+    busy: syncJobs.isBusy,
+  });
+
+  const handleStartAll = useCallback(() => {
+    syncJobs.startAll();
+  }, [syncJobs]);
+
+  const syncNode = useMemo(
+    () => (
+      <ContestSyncAction
+        model={syncAction}
+        batchProgress={syncJobs.batchProgress}
+        disabled={syncJobs.isBusy}
+        inTopbar
+        onClick={handleStartAll}
+      />
+    ),
+    [syncAction, syncJobs.batchProgress, syncJobs.isBusy, handleStartAll],
+  );
+
+  useRegisterAppChrome(syncNode);
+
   if (!parallelIdParam) {
     navigate("/", { replace: true });
     return null;
@@ -52,27 +75,11 @@ export default function ParallelPage({ onUnauthorized }: Props) {
   checkUnauthorized();
 
   const canAdd = parallelId !== UNGROUPED_PARALLEL;
-  const syncAction = buildParallelSyncAction(parallelContests, {
-    busy: syncJobs.isBusy,
-  });
 
   return (
     <>
-      <div className="contest-head contest-head--chrome">
-        <ContestHeadToolbar
-          sync={
-            <ContestSyncAction
-              model={syncAction}
-              batchProgress={syncJobs.batchProgress}
-              disabled={syncJobs.isBusy}
-              onClick={() => syncJobs.startAll()}
-            />
-          }
-        />
-      </div>
-
       {syncJobs.error && (
-        <p className="contest-head-error">
+        <p className="contest-head-error contest-head-error--standalone">
           Не удалось обновить: {syncJobs.error}
         </p>
       )}

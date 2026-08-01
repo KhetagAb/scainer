@@ -11,8 +11,12 @@ function isPendingReviewVerdict(verdict: string): boolean {
   return v === "PR" || v === "PD";
 }
 
-export function matchesParticipantQuery(participant: string, query: string): boolean {
-  const q = query.trim();
+export function matchesParticipantQuery(
+  participant: string,
+  filter: ReviewFiltersInput["participantFilter"],
+): boolean {
+  if (!filter.active) return true;
+  const q = filter.query.trim();
   if (!q) return true;
   if (q.length >= 2 && q.startsWith("/") && q.endsWith("/")) {
     try {
@@ -36,7 +40,7 @@ export function matchesSubmission(
 ): boolean {
   return (
     matchesVerdictFilter(item.verdict, filters.verdictFilter) &&
-    matchesParticipantQuery(item.participant, filters.participantQuery)
+    matchesParticipantQuery(item.participant, filters.participantFilter)
   );
 }
 
@@ -87,7 +91,7 @@ export function hasHiddenSubmissions(
   return problemItems.some(
     (s) =>
       !matchesVerdictFilter(s.verdict, filters.verdictFilter) &&
-      matchesParticipantQuery(s.participant, filters.participantQuery),
+      matchesParticipantQuery(s.participant, filters.participantFilter),
   );
 }
 

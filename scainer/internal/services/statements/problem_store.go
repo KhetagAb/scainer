@@ -13,7 +13,10 @@ import (
 	storefs "scainer/pkg/store/fs"
 )
 
-var ErrProblemStatementNotFound = errors.New("problem statement not found")
+var (
+	ErrProblemStatementNotFound = errors.New("problem statement not found")
+	ErrFormalizationNotFound    = errors.New("problem statement formalization not found")
+)
 
 const problemStatementsDir = "problem-statements"
 
@@ -34,6 +37,10 @@ func (s *ProblemStore) contestDir(contestID domain.ContestID) string {
 
 func (s *ProblemStore) yamlPath(contestID domain.ContestID, problemID domain.ProblemID) string {
 	return filepath.Join(s.contestDir(contestID), storefs.SanitizeFileName(string(problemID))+".yaml")
+}
+
+func (s *ProblemStore) formalizationPath(contestID domain.ContestID, problemID domain.ProblemID) string {
+	return filepath.Join(s.contestDir(contestID), storefs.SanitizeFileName(string(problemID))+"-explain.yaml")
 }
 
 func (s *ProblemStore) pdfPath(contestID domain.ContestID, problemID domain.ProblemID) string {
@@ -148,4 +155,48 @@ func (s *ProblemStore) ProblemPDFPath(contestID domain.ContestID, problemID doma
 		return ""
 	}
 	return s.pdfPath(contestID, problemID)
+}
+
+func (s *ProblemStore) GetFormalization(contestID domain.ContestID, problemID domain.ProblemID) (domain.ProblemStatementFormalization, error) {
+	if s == nil {
+		return domain.ProblemStatementFormalization{}, ErrFormalizationNotFound
+	}
+	data, err := os.ReadFile(s.formalizationPath(contestID, problemID))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return domain.ProblemStatementFormalization{}, ErrFormalizationNotFound
+		}
+		return domain.ProblemStatementFormalization{}, err
+	}
+	var f domain.ProblemStatementFormalization
+	if err := yaml.Unmarshal(data, &f); err != nil {
+		return domain.ProblemStatementFormalization{}, fmt.Errorf("problem store: formalization yaml: %w", err)
+	}
+	return f, nil
+}
+
+func (s *ProblemStore) SaveFormalization(f domain.ProblemStatementFormalization) error {
+	if s == nil {
+		return fmt.Errorf("problem store: not configured")
+	}
+	data, err := yaml.Marshal(f)
+	if err != nil {
+		return err
+	}
+	path := s.formalizationPath(f.Contest, f.Problem)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	return storefs.WriteFileAtomic(path, data, 0o644)
+}
+
+func (s *ProblemStore) DeleteFormalization(contestID domain.ContestID, problemID domain.ProblemID) error {
+	if s == nil {
+		return fmt.Errorf("problem store: not configured")
+	}
+	err := os.Remove(s.formalizationPath(contestID, problemID))
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
 }

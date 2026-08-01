@@ -1,9 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useRef, useState } from "react";
 import {
   formatVerdictFilterChipLabel,
   REVIEW_VERDICT_OPTIONS,
   sortVerdicts,
+  VERDICT_FILTER_CHIP_MAX_LABEL,
   verdictFilterShortCode,
   type ReviewVerdictFilter,
 } from "@/features/review/reviewFilterUtils";
@@ -14,15 +14,8 @@ type Props = {
   onChange: (value: ReviewVerdictFilter) => void;
 };
 
-type MenuPosition = {
-  top: number;
-  left: number;
-  minWidth: number;
-};
-
 export default function ReviewVerdictFilterChip({ value, onChange }: Props) {
-  const [open, setOpen] = useState(false);
-  const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
+  const [touchOpen, setTouchOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const chipTone =
     value.active && value.verdicts.length === 1
@@ -30,38 +23,11 @@ export default function ReviewVerdictFilterChip({ value, onChange }: Props) {
       : null;
   const label = formatVerdictFilterChipLabel(value.verdicts);
 
-  useLayoutEffect(() => {
-    if (!open || !rootRef.current) {
-      setMenuPosition(null);
-      return;
-    }
-
-    const updatePosition = () => {
-      const rect = rootRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      setMenuPosition({
-        top: rect.bottom + 4,
-        left: rect.left,
-        minWidth: rect.width,
-      });
-    };
-
-    updatePosition();
-    window.addEventListener("resize", updatePosition);
-    window.addEventListener("scroll", updatePosition, true);
-    return () => {
-      window.removeEventListener("resize", updatePosition);
-      window.removeEventListener("scroll", updatePosition, true);
-    };
-  }, [open]);
-
   useEffect(() => {
-    if (!open) return;
+    if (!touchOpen) return;
     const onDocClick = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (rootRef.current?.contains(target)) return;
-      if (target instanceof Element && target.closest(".review-filter-chip__menu")) return;
-      setOpen(false);
+      if (rootRef.current?.contains(e.target as Node)) return;
+      setTouchOpen(false);
     };
     const id = window.setTimeout(() => {
       document.addEventListener("mousedown", onDocClick);
@@ -70,7 +36,7 @@ export default function ReviewVerdictFilterChip({ value, onChange }: Props) {
       window.clearTimeout(id);
       document.removeEventListener("mousedown", onDocClick);
     };
-  }, [open]);
+  }, [touchOpen]);
 
   const toggleActive = () => onChange({ ...value, active: !value.active });
 
@@ -93,94 +59,97 @@ export default function ReviewVerdictFilterChip({ value, onChange }: Props) {
     }
 
     onChange({ active: true, verdicts: [verdict] });
-    setOpen(false);
+    setTouchOpen(false);
   };
 
-  const menu =
-    open && menuPosition
-      ? createPortal(
-          <ul
-            className="review-filter-chip__menu review-filter-chip__menu--portal"
-            role="listbox"
-            aria-label="Вердикт посылки"
-            aria-multiselectable="true"
-            style={{
-              top: menuPosition.top,
-              left: menuPosition.left,
-              minWidth: menuPosition.minWidth,
-            }}
-          >
-            {REVIEW_VERDICT_OPTIONS.map((v) => {
-              const optionTone = verdictChipTone(v);
-              const optionLabel = formatVerdictLabel(v);
-              const selected = value.verdicts.some(
-                (code) => code.trim().toUpperCase() === v,
-              );
-              return (
-                <li key={v} role="presentation">
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={selected}
-                    className={[
-                      "review-filter-chip__option",
-                      `review-filter-chip__option--${optionTone}`,
-                      selected ? "review-filter-chip__option--selected" : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                    onClick={(e) =>
-                      selectVerdict(v, e.metaKey || e.ctrlKey)
-                    }
-                  >
-                    <span className="review-filter-chip__option-code">
-                      {verdictFilterShortCode(v)}
-                    </span>
-                    <span className="review-filter-chip__option-label">{optionLabel}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>,
-          document.body,
-        )
-      : null;
+  const onPickerClick = () => {
+    if (window.matchMedia("(hover: hover)").matches) return;
+    setTouchOpen((open) => !open);
+  };
 
   return (
-    <>
-      <div
-        ref={rootRef}
-        className={[
-          "review-filter-chip",
-          chipTone ? `review-filter-chip--${chipTone}` : "",
-          value.active ? "review-filter-chip--active" : "review-filter-chip--inactive",
-          open ? "review-filter-chip--open" : "",
-        ]
-          .filter(Boolean)
-          .join(" ")}
+    <div
+      ref={rootRef}
+      className={[
+        "review-filter-chip",
+        "review-filter-chip--verdict",
+        chipTone ? `review-filter-chip--${chipTone}` : "",
+        value.active ? "review-filter-chip--active" : "review-filter-chip--inactive",
+        touchOpen ? "review-filter-chip--menu-open" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      <button
+        type="button"
+        className="review-filter-chip__body review-filter-chip__body--static"
+        aria-pressed={value.active}
+        title={value.active ? "Отключить фильтр по вердикту" : "Включить фильтр по вердикту"}
+        onClick={toggleActive}
       >
-        <button
-          type="button"
-          className="review-filter-chip__body"
-          aria-pressed={value.active}
-          title={value.active ? "Отключить фильтр по вердикту" : "Включить фильтр по вердикту"}
-          onClick={toggleActive}
-        >
-          {label}
-        </button>
-        <button
-          type="button"
-          className="review-filter-chip__toggle"
-          aria-expanded={open}
+        Статус
+      </button>
+      <div className="review-filter-chip__menu-anchor">
+        <span
+          className="review-filter-chip__picker"
+          role="button"
+          tabIndex={0}
           aria-haspopup="listbox"
+          aria-expanded={touchOpen}
           aria-label="Выбрать вердикт"
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={() => setOpen((v) => !v)}
+          onClick={onPickerClick}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onPickerClick();
+            }
+          }}
         >
+          <span className="review-filter-chip__picker-label-stack">
+            <span className="review-filter-chip__picker-label-sizer" aria-hidden>
+              {VERDICT_FILTER_CHIP_MAX_LABEL}
+            </span>
+            <span className="review-filter-chip__picker-label">{label}</span>
+          </span>
           <span className="review-filter-chip__chevron" aria-hidden />
-        </button>
+        </span>
+        <ul
+          className="review-filter-chip__menu"
+          role="listbox"
+          aria-label="Вердикт посылки"
+          aria-multiselectable="true"
+        >
+          {REVIEW_VERDICT_OPTIONS.map((v) => {
+            const optionTone = verdictChipTone(v);
+            const optionLabel = formatVerdictLabel(v);
+            const selected = value.verdicts.some(
+              (code) => code.trim().toUpperCase() === v,
+            );
+            return (
+              <li key={v} role="presentation">
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  className={[
+                    "review-filter-chip__option",
+                    `review-filter-chip__option--${optionTone}`,
+                    selected ? "review-filter-chip__option--selected" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  onClick={(e) => selectVerdict(v, e.metaKey || e.ctrlKey)}
+                >
+                  <span className="review-filter-chip__option-code">
+                    {verdictFilterShortCode(v)}
+                  </span>
+                  <span className="review-filter-chip__option-label">{optionLabel}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       </div>
-      {menu}
-    </>
+    </div>
   );
 }

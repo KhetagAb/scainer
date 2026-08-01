@@ -16,6 +16,7 @@ import {
 } from "@/features/review/reviewModel";
 import type { ReviewFiltersInput } from "@/features/review/reviewFilterUtils";
 import { prefetchSubmissionComments } from "@/features/review/reviewPrefetch";
+import { prefetchProblemStatementExplain } from "@/features/statements/explainQuery";
 
 const PREFETCH_QUEUE_LIMIT = 12;
 
@@ -112,6 +113,11 @@ export function useContestPageData({ contestId, onUnauthorized, reviewFilters }:
     activeProblemId,
     reviewFilters,
   ]);
+
+  useEffect(() => {
+    if (!onReviewPage || !contestId || !activeProblemId || !contest?.parallelId) return;
+    prefetchProblemStatementExplain(queryClient, contestId, activeProblemId);
+  }, [onReviewPage, contestId, activeProblemId, contest?.parallelId, queryClient]);
 
   const problemSubmissionCounts = useMemo(
     () => problemSubmissionCountsMap(problems),

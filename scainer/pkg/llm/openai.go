@@ -4,24 +4,24 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	oaigen "scainer/generated/openai"
 	"scainer/pkg/llm/openai"
 )
-
-const promptAttempts = 3
-
-type IntelligenceModel interface {
-	Prompt(ctx context.Context, prompt string) (string, error)
-}
 
 type OpenAI struct {
 	client *openai.Client
 	model  string
 }
 
-var _ IntelligenceModel = (*OpenAI)(nil)
+var _ Model = (*OpenAI)(nil)
+
+func (m *OpenAI) ModelName() string {
+	if m == nil {
+		return ""
+	}
+	return m.model
+}
 
 func NewOpenAI(client *openai.Client, model string) (*OpenAI, error) {
 	if client == nil {
@@ -43,27 +43,6 @@ func NewOpenAIFromEnv() (*OpenAI, error) {
 }
 
 func (m *OpenAI) Prompt(ctx context.Context, prompt string) (string, error) {
-	var last error
-	for attempt := 1; attempt <= promptAttempts; attempt++ {
-		out, err := m.promptOnce(ctx, prompt)
-		if err == nil {
-			return out, nil
-		}
-		last = err
-		if attempt == promptAttempts {
-			break
-		}
-		delay := time.Duration(attempt) * 500 * time.Millisecond
-		select {
-		case <-ctx.Done():
-			return "", ctx.Err()
-		case <-time.After(delay):
-		}
-	}
-	return "", last
-}
-
-func (m *OpenAI) promptOnce(ctx context.Context, prompt string) (string, error) {
 	resp, err := m.client.CreateChatCompletionWithResponse(ctx, oaigen.ChatCompletionRequest{
 		Model: m.model,
 		Messages: []oaigen.ChatMessage{{
@@ -85,4 +64,26 @@ func (m *OpenAI) promptOnce(ctx context.Context, prompt string) (string, error) 
 		return "", fmt.Errorf("llm: пустое сообщение ассистента")
 	}
 	return msg.Content, nil
+}
+
+func (m *OpenAI) PromptStream(ctx context.Context, prompt string) (<-chan StreamChunk, error) {
+	deltas, errCh := m.client.StreamChatCompletion(ctx, m.model, prompt)
+	out := make(chan StreamChunk, 32)
+	go func() {
+		defer close(out)
+		for delta := range deltas {
+			select {
+			case <-ctx.Done():
+				out <- StreamChunk{Err: ctx.Err()}
+				return
+			case out <- StreamChunk{Text: delta}:
+			}
+		}
+		if err := <-errCh; err != nil {
+			out <- StreamChunk{Err: err}
+			return
+		}
+		out <- StreamChunk{Done: true}
+	}()
+	return out, nil
 }

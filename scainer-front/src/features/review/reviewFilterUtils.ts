@@ -4,6 +4,7 @@ import {
   matchesSubmission,
   matchesVerdictFilter,
 } from "@/features/review/reviewModel";
+import { formatVerdictLabel } from "@/features/review/reviewVerdicts";
 import {
   REVIEW_VERDICT_OPTIONS,
   type ReviewFiltersInput,
@@ -45,8 +46,14 @@ export function verdictFilterShortCode(verdict: string): string {
   return v;
 }
 
+/** Самая длинная подпись одного вердикта — для фиксированной ширины чипа «Статус». */
+export const VERDICT_FILTER_CHIP_MAX_LABEL = REVIEW_VERDICT_OPTIONS.map(formatVerdictLabel).reduce(
+  (longest, label) => (label.length > longest.length ? label : longest),
+  "",
+);
+
 export function formatVerdictFilterChipLabel(verdicts: string[]): string {
-  return sortVerdicts(verdicts).map(verdictFilterShortCode).join(", ");
+  return sortVerdicts(verdicts).map(formatVerdictLabel).join(", ");
 }
 
 export function verdictFiltersEqual(a: ReviewVerdictFilter, b: ReviewVerdictFilter): boolean {
@@ -60,6 +67,7 @@ export function verdictFiltersEqual(a: ReviewVerdictFilter, b: ReviewVerdictFilt
 export function filtersEqual(a: ReviewFiltersInput, b: ReviewFiltersInput): boolean {
   return (
     verdictFiltersEqual(a.verdictFilter, b.verdictFilter) &&
-    a.participantQuery === b.participantQuery
+    a.participantFilter.active === b.participantFilter.active &&
+    a.participantFilter.query === b.participantFilter.query
   );
 }

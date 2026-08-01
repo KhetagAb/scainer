@@ -33,7 +33,7 @@ func LoadEnv() (*Env, error) {
 	user := os.Getenv(EnvUsername)
 	pass := os.Getenv(EnvPassword)
 	apiKey := os.Getenv(EnvAPIKey)
-	if user == "" && pass == "" && apiKey == "" {
+	if (user == "" || pass == "") && apiKey == "" {
 		return nil, errors.New("llm: задайте " + EnvUsername + "/" + EnvPassword + " или " + EnvAPIKey)
 	}
 
@@ -50,7 +50,7 @@ func LoadEnv() (*Env, error) {
 		client *openai.Client
 		err    error
 	)
-	if user != "" || pass != "" {
+	if user != "" && pass != "" {
 		client, err = openai.New(baseURL, user, pass, timeout)
 	} else {
 		client, err = openai.NewWithAPIKey(baseURL, apiKey, timeout)

@@ -3,6 +3,7 @@
 .review-stack {
   --review-panel-pad-tail: 1.5rem;
   --review-stack-split-gap: 0.5rem;
+  --review-show-all-pad-y: 1.75rem;
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -15,7 +16,7 @@
   gap: 0.75rem;
   width: 100%;
   margin: 0;
-  padding: 0.35rem 0;
+  padding: 0;
   border: none;
   background: transparent;
   cursor: pointer;
@@ -23,6 +24,10 @@
   transition: color 0.15s ease;
   user-select: none;
   -webkit-user-select: none;
+}
+
+.review-show-all:not(.review-show-all--empty) {
+  padding-block: var(--review-show-all-pad-y);
 }
 
 .review-show-all__rule {

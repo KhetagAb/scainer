@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -52,21 +51,10 @@ func TestOpenAI_Prompt(t *testing.T) {
 	}
 }
 
-func TestOpenAI_PromptRetriesTransientHTTPError(t *testing.T) {
-	var calls atomic.Int32
+func TestOpenAI_PromptStream(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		n := calls.Add(1)
-		if n < 3 {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest)
-			_, _ = w.Write([]byte(`{"error":{"message":"invalid character '\\x00' looking for beginning of value"}}`))
-			return
-		}
-		msg := oaigen.ChatMessage{Role: "assistant", Content: "ok"}
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(oaigen.ChatCompletionResponse{
-			Choices: &[]oaigen.ChatCompletionChoice{{Message: &msg}},
-		})
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = w.Write(openai.FormatChatCompletionSSE("hel", "lo"))
 	}))
 	t.Cleanup(srv.Close)
 
@@ -78,15 +66,23 @@ func TestOpenAI_PromptRetriesTransientHTTPError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := model.Prompt(context.Background(), "hello")
+
+	chunks, err := model.PromptStream(context.Background(), "hello")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got != "ok" {
-		t.Fatalf("got %q", got)
+	var got strings.Builder
+	for chunk := range chunks {
+		if chunk.Err != nil {
+			t.Fatal(chunk.Err)
+		}
+		if chunk.Done {
+			break
+		}
+		got.WriteString(chunk.Text)
 	}
-	if calls.Load() != 3 {
-		t.Fatalf("calls = %d, want 3", calls.Load())
+	if got.String() != "hello" {
+		t.Fatalf("got %q", got.String())
 	}
 }
 

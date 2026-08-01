@@ -500,6 +500,90 @@ func TestImport_RefreshPendingOnIncremental(t *testing.T) {
 	if got.Verdict != domain.VerdictOK {
 		t.Fatalf("stored verdict = %q, want OK", got.Verdict)
 	}
+	if got.Meta["ejudge_status_str"] != "OK" {
+		t.Fatalf("ejudge_status_str = %#v", got.Meta["ejudge_status_str"])
+	}
+}
+
+func TestImport_RefreshRunningOnIncremental(t *testing.T) {
+	var runStatusCalls int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Query().Get("action") {
+		case "list-runs-json":
+			writeJSON(w, map[string]any{
+				"ok":     true,
+				"result": map[string]any{"runs": []any{}},
+			})
+		case "contest-status-json":
+			writeJSON(w, map[string]any{
+				"ok": true,
+				"result": map[string]any{
+					"contest": map[string]any{"id": 50501, "name": "Тестовый контест"},
+				},
+			})
+		case "run-status-json":
+			runStatusCalls++
+			if r.URL.Query().Get("run_id") != "8" {
+				t.Fatalf("run_id=%s", r.URL.Query().Get("run_id"))
+			}
+			writeJSON(w, map[string]any{
+				"ok": true,
+				"result": map[string]any{
+					"run": map[string]any{
+						"run_id": 8, "status": 16, "status_str": "PR",
+					},
+				},
+			})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(srv.Close)
+
+	client, err := ejudgeapi.New(srv.URL, "tok", time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	imp := &Importer{
+		cfg:            ImportConfig{ContestID: 50501},
+		clientResolver: staticClientResolver{client: client},
+	}
+	st := store.NewMem()
+	ctx := context.Background()
+
+	ruSub := domain.Submission{
+		ID:          "ejudge:50501:8",
+		Participant: "bob",
+		Problem:     "A",
+		Contest:     "50501",
+		Lang:        domain.LangCPP,
+		Source:      []byte("src"),
+		Verdict:     domain.VerdictRU,
+		Meta:        map[string]any{"run_id": 8, "contest_id": 50501, "status": 98, "status_str": "CG", "ejudge_status_str": "CG"},
+	}
+	if err := st.Put(ctx, []domain.Submission{ruSub}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SetCursor(ctx, ImportCursorKey(50501), "10"); err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := imp.Import(ctx, st)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if runStatusCalls != 1 {
+		t.Fatalf("runStatusCalls = %d, want 1", runStatusCalls)
+	}
+	if len(res.Submissions) != 1 {
+		t.Fatalf("subs = %+v", res.Submissions)
+	}
+	if res.Submissions[0].Verdict != domain.VerdictPR {
+		t.Fatalf("verdict = %q, want PR", res.Submissions[0].Verdict)
+	}
+	if res.Submissions[0].Meta["ejudge_status_str"] != "PR" {
+		t.Fatalf("ejudge_status_str = %#v", res.Submissions[0].Meta["ejudge_status_str"])
+	}
 }
 
 func writeJSON(w http.ResponseWriter, v any) {

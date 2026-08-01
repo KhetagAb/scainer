@@ -2,11 +2,11 @@ package domain
 
 import "testing"
 
-func TestParseVerdict(t *testing.T) {
-	if ParseVerdict("OK") != VerdictOK || ParseVerdict("WA") != VerdictWA || ParseVerdict("RJ") != VerdictRJ || ParseVerdict("PR") != VerdictPR {
-		t.Fatal("known")
+func TestNeedsStatusRefresh(t *testing.T) {
+	if !NeedsStatusRefresh(VerdictPR) || !NeedsStatusRefresh(VerdictRU) {
+		t.Fatal("PR/RU")
 	}
-	if ParseVerdict("CE") != VerdictCE || ParseVerdict("RT") != VerdictUnknown || ParseVerdict("PD") != VerdictUnknown || ParseVerdict("AC") != VerdictUnknown || ParseVerdict("") != VerdictUnknown {
-		t.Fatal("unknown")
+	if NeedsStatusRefresh(VerdictOK) {
+		t.Fatal("OK final")
 	}
 }

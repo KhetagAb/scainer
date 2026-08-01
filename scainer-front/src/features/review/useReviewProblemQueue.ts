@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { SubmissionListItem } from "@/client/types.gen";
 import {
   hasHiddenSubmissions,
@@ -26,39 +26,41 @@ export function useReviewProblemQueue({
   reviewFilters,
   isLoading,
 }: Options) {
-  const deferredFilters = useDeferredValue(reviewFilters);
   const [sessionProblemId, setSessionProblemId] = useState<string | null>(null);
   const [sessionQueue, setSessionQueue] = useState<SubmissionListItem[]>([]);
   const prevFiltersRef = useRef(reviewFilters);
+  const prevProblemIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!problemId) {
       setSessionProblemId(null);
       setSessionQueue([]);
+      prevProblemIdRef.current = null;
       return;
     }
     if (isLoading) return;
 
-    const problemChanged = sessionProblemId !== problemId;
-    const filtersChanged = !filtersEqual(prevFiltersRef.current, deferredFilters);
-    prevFiltersRef.current = deferredFilters;
+    const filtersChanged = !filtersEqual(prevFiltersRef.current, reviewFilters);
+    const problemChanged = prevProblemIdRef.current !== problemId;
 
-    if (!problemChanged && !filtersChanged && sessionProblemId === problemId) return;
+    if (!problemChanged && !filtersChanged) return;
 
-    setSessionQueue(queueForProblem(problemItems, deferredFilters));
+    setSessionQueue(queueForProblem(problemItems, reviewFilters));
     setSessionProblemId(problemId);
-  }, [problemId, sessionProblemId, problemItems, isLoading, deferredFilters]);
+    prevFiltersRef.current = reviewFilters;
+    prevProblemIdRef.current = problemId;
+  }, [problemId, problemItems, isLoading, reviewFilters]);
 
   const queue = useMemo(() => {
     if (!problemId) return [];
     if (sessionProblemId === problemId) return sessionQueue;
-    return queueForProblem(problemItems, deferredFilters);
-  }, [problemId, sessionProblemId, sessionQueue, problemItems, deferredFilters]);
+    return queueForProblem(problemItems, reviewFilters);
+  }, [problemId, sessionProblemId, sessionQueue, problemItems, reviewFilters]);
 
   const hiddenOnProblem = useMemo(
     () => hasHiddenSubmissions(problemItems, reviewFilters),
     [problemItems, reviewFilters],
   );
 
-  return { queue, deferredFilters, hiddenOnProblem };
+  return { queue, hiddenOnProblem };
 }

@@ -14,6 +14,9 @@ export const REVIEW_VERDICT_OPTIONS = [
   "OK",
   "RJ",
   "WA",
+  "RT",
+  "IG",
+  "PE",
   "TL",
   "ML",
   "CE",
@@ -23,7 +26,17 @@ export const REVIEW_VERDICT_OPTIONS = [
 
 export type ReviewVerdictOption = (typeof REVIEW_VERDICT_OPTIONS)[number];
 
+export type ReviewParticipantFilter = {
+  active: boolean;
+  query: string;
+};
+
+export const DEFAULT_PARTICIPANT_FILTER: ReviewParticipantFilter = {
+  active: true,
+  query: "",
+};
+
 export type ReviewFiltersInput = {
   verdictFilter: ReviewVerdictFilter;
-  participantQuery: string;
+  participantFilter: ReviewParticipantFilter;
 };

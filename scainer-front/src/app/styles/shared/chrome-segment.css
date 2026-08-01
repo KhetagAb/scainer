@@ -1,0 +1,101 @@
+/* shared/chrome-segment.css — segmented icon/text controls (topbar + contest-head) */
+
+.chrome-segment-group,
+.contest-head__group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  margin-left: 0.25rem;
+  padding: 0.1rem;
+  height: 1.5rem;
+  box-sizing: border-box;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-chip);
+  vertical-align: middle;
+}
+
+.chrome-segment-group-btn,
+.contest-head__group-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius-chip) - 0.05rem);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.chrome-segment-group-btn:hover,
+.contest-head__group-btn:hover {
+  color: var(--text);
+}
+
+.chrome-segment-group-btn.is-active,
+.contest-head__group-btn.is-active {
+  color: var(--text);
+  background: var(--surface-head);
+  border-color: var(--border);
+}
+
+.chrome-segment-group-btn:focus-visible,
+.contest-head__group-btn:focus-visible {
+  outline: 2px solid var(--chip-border);
+  outline-offset: 1px;
+}
+
+.chrome-segment-tip,
+.sensitivity-tip {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  right: 0;
+  left: auto;
+  z-index: 60;
+  width: max-content;
+  max-width: min(13.5rem, calc(100vw - var(--page-gutter) - 0.5rem));
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius-card) - 0.05rem);
+  background: var(--bg-raised);
+  box-shadow: var(--shadow-lg);
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--text-muted);
+  text-align: left;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-0.2rem);
+  transition:
+    opacity 0.14s ease,
+    transform 0.14s ease,
+    visibility 0.14s;
+}
+
+.chrome-segment-tip::after,
+.sensitivity-tip::after {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: auto;
+  border: 5px solid transparent;
+  filter: drop-shadow(0 -1px 0 var(--border));
+  border-bottom-color: var(--bg-raised);
+}
+
+.chrome-segment-btn--tip:hover .chrome-segment-tip,
+.chrome-segment-btn--tip:focus-visible .chrome-segment-tip,
+.sensitivity-btn:hover .sensitivity-tip,
+.sensitivity-btn:focus-visible .sensitivity-tip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}

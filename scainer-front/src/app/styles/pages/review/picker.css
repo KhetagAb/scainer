@@ -1,10 +1,63 @@
 /* Review problem picker (/contests/:id/review) */
 
 .review-picker-row {
+  display: grid;
+  grid-template-columns: var(--review-workspace-cols);
+  column-gap: var(--review-workspace-gap);
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.review-picker-scroll {
+  grid-column: 1;
+  min-width: 0;
+}
+
+.review-picker-filters {
+  grid-column: 2;
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 0.45rem;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  padding-inline: var(--review-side-panel-inline);
+  box-sizing: border-box;
+}
+
+.review-picker-filters .review-filter-chip--participant-input {
+  flex: 1 1 0;
+  min-width: 6.5rem;
+  max-width: none;
+}
+
+.review-picker-filters .review-filter-chip--verdict {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 900px) {
+  .review-picker-row {
+    grid-template-columns: 1fr;
+    row-gap: 0.45rem;
+  }
+
+  .review-picker-scroll,
+  .review-picker-filters {
+    grid-column: 1;
+  }
+
+  .review-picker-filters {
+    padding-inline: 0;
+  }
+}
+
+.review-picker-filters .review-filter-chip {
+  opacity: 1;
+  min-height: var(--contest-review-filters-height);
+  box-shadow: 0 0.12rem 0.45rem color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+.review-picker-filters .review-filter-chip--inactive {
+  background: var(--bg);
 }
 
 .review-picker {

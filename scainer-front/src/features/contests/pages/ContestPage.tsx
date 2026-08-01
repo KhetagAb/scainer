@@ -1,11 +1,11 @@
 import { useCallback, useMemo } from "react";
 import { Outlet, useNavigate, useParams } from "react-router-dom";
 import type { SubmissionListItem } from "@/client/types.gen";
+import { useRegisterAppChrome } from "@/features/contests/shared/AppChromeContext";
 import { useContestPageData } from "@/features/contests/pages/useContestPageData";
 import ContestSyncAction from "@/features/contests/sync/ContestSyncAction";
 import { useContestSync } from "@/features/contests/sync/useContestSync";
 import { useSensitivity } from "@/features/contests/shared/SensitivityContext";
-import ContestHeadToolbar from "@/features/contests/ui/ContestHeadToolbar";
 import FindingsGroupTabs from "@/features/findings/FindingsGroupTabs";
 import ReviewProblemPicker from "@/features/review/ReviewProblemPicker";
 import { useReviewFilters } from "@/features/review/useReviewFilters";
@@ -23,13 +23,13 @@ export default function ContestPage({ onUnauthorized }: Props) {
   const {
     verdictFilter,
     setVerdictFilter,
-    participantQuery,
-    setParticipantQuery,
+    participantFilter,
+    setParticipantFilter,
   } = useReviewFilters(contestId);
 
   const reviewFiltersForData = useMemo<ReviewFiltersInput>(
-    () => ({ verdictFilter, participantQuery }),
-    [verdictFilter, participantQuery],
+    () => ({ verdictFilter, participantFilter }),
+    [verdictFilter, participantFilter],
   );
 
   const pageData = useContestPageData({
@@ -63,22 +63,41 @@ export default function ContestPage({ onUnauthorized }: Props) {
   });
 
   const reviewFiltersForUi = useMemo<ReviewFiltersInput>(
-    () => ({
-      verdictFilter,
-      participantQuery: jobBusy ? "" : participantQuery,
-    }),
-    [verdictFilter, participantQuery, jobBusy],
+    () => ({ verdictFilter, participantFilter }),
+    [verdictFilter, participantFilter],
   );
 
   const handleStartSync = useCallback(() => {
-    setParticipantQuery("");
+    setParticipantFilter({ ...participantFilter, query: "" });
     startSync();
-  }, [setParticipantQuery, startSync]);
+  }, [setParticipantFilter, participantFilter, startSync]);
 
   const handleStartResync = useCallback(() => {
-    setParticipantQuery("");
+    setParticipantFilter({ ...participantFilter, query: "" });
     startResync();
-  }, [setParticipantQuery, startResync]);
+  }, [setParticipantFilter, participantFilter, startResync]);
+
+  const syncNode = useMemo(
+    () => (
+      <ContestSyncAction
+        model={syncAction}
+        progress={progress ?? undefined}
+        disabled={jobBusy}
+        inTopbar
+        onClick={handleStartSync}
+        onResync={handleStartResync}
+      />
+    ),
+    [
+      syncAction,
+      progress,
+      jobBusy,
+      handleStartSync,
+      handleStartResync,
+    ],
+  );
+
+  useRegisterAppChrome(syncNode);
 
   if (!contestId) {
     navigate("/", { replace: true });
@@ -100,21 +119,11 @@ export default function ContestPage({ onUnauthorized }: Props) {
 
   return (
     <>
-      <div
-        className={
-          "contest-head" +
-          (onFindingsPage || onReviewPage ? " contest-head--chrome" : "") +
-          (onReviewPage ? " contest-head--review" : "")
-        }
-        {...(onReviewPage ? { "data-contest-head": true } : {})}
-      >
-        {onFindingsPage ? (
-          <div className="contest-head__findings-tabs">
-            <FindingsGroupTabs groupBy={groupBy} onChange={setGroupBy} />
-          </div>
-        ) : null}
-
-        {onReviewPage ? (
+      {onReviewPage ? (
+        <div
+          className="contest-head contest-head--chrome contest-head--review"
+          data-contest-head
+        >
           <div className="contest-head__review-nav">
             <ReviewProblemPicker
               contestId={contestId}
@@ -124,28 +133,20 @@ export default function ContestPage({ onUnauthorized }: Props) {
               activeProblemId={activeProblemId}
               statementAvailable={Boolean(contest.parallelId)}
               reviewFilters={reviewFiltersForUi}
+              verdictFilter={verdictFilter}
+              onVerdictFilterChange={setVerdictFilter}
+              participantFilter={participantFilter}
+              onParticipantFilterChange={setParticipantFilter}
             />
           </div>
-        ) : null}
-
-        <ContestHeadToolbar
-          showSensitivity={onFindingsPage || onReviewPage}
-          verdictFilter={onReviewPage ? verdictFilter : undefined}
-          onVerdictFilterChange={onReviewPage ? setVerdictFilter : undefined}
-          participantQuery={onReviewPage ? participantQuery : undefined}
-          onParticipantQueryChange={onReviewPage ? setParticipantQuery : undefined}
-          hideParticipantFilter={onReviewPage && jobBusy}
-          sync={
-            <ContestSyncAction
-              model={syncAction}
-              progress={progress ?? undefined}
-              disabled={jobBusy}
-              onClick={handleStartSync}
-              onResync={handleStartResync}
-            />
-          }
-        />
-      </div>
+        </div>
+      ) : onFindingsPage ? (
+        <div className="contest-head contest-head--chrome">
+          <div className="contest-head__findings-tabs">
+            <FindingsGroupTabs groupBy={groupBy} onChange={setGroupBy} />
+          </div>
+        </div>
+      ) : null}
 
       {jobError && (
         <p className="contest-head-error">

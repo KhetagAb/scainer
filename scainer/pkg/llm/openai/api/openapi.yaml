@@ -8,7 +8,6 @@ servers:
   - url: /
 security:
   - BasicAuth: []
-  - BearerAuth: []
 paths:
   /models:
     get:
@@ -81,9 +80,6 @@ components:
     BasicAuth:
       type: http
       scheme: basic
-    BearerAuth:
-      type: http
-      scheme: bearer
 
   schemas:
     Model:

@@ -24,8 +24,8 @@ func parseProblemFields(problemID domain.ProblemID, text string) domain.ProblemS
 	exIdx := strings.Index(text, markerExamples)
 	if exIdx < 0 {
 		start := statementBodyStart(text)
-		ps.Statement = strings.TrimSpace(text[start:])
-		trimNextProblem(&ps.Statement)
+		ps.RawStatement = strings.TrimSpace(text[start:])
+		trimNextProblem(&ps.RawStatement)
 		return ps
 	}
 
@@ -46,8 +46,8 @@ func parseProblemFields(problemID domain.ProblemID, text string) domain.ProblemS
 		ps.Examples = parseExamples(rest)
 	}
 
-	ps.Statement = stmt
-	trimNextProblem(&ps.Statement)
+	ps.RawStatement = stmt
+	trimNextProblem(&ps.RawStatement)
 	return ps
 }
 

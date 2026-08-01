@@ -1,0 +1,159 @@
+/* shared/app-topbar-tools.css — radar + settings over review right rail */
+
+.app-topbar__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  flex: 0 0 auto;
+  min-width: 0;
+  align-self: stretch;
+}
+
+.app-topbar--workspace-grid .app-topbar__tools--contest {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: none;
+}
+
+.app-topbar__right-rail {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  width: 100%;
+  min-width: 0;
+  padding-inline: var(--review-side-panel-inline);
+  box-sizing: border-box;
+}
+
+.app-topbar__sync-slot {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.app-topbar__sync-slot:has(.contest-sync-action-slot--fill-width) {
+  flex: 1 1 auto;
+  min-width: 3rem;
+}
+
+.app-shell--contest-chrome .app-topbar__sync-slot .contest-sync-action-slot--fill-width {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+}
+
+.app-shell--contest-chrome
+  .app-topbar__sync-slot
+  .contest-sync-action-slot--fill-width
+  > .contest-sync-action--running {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+}
+
+.app-shell--contest-chrome
+  .app-topbar__sync-slot
+  .contest-sync-action-slot--fill-width
+  .import-progress-bar--sync {
+  width: 100%;
+}
+
+.app-topbar__right-rail .chrome-segment-group--sensitivity,
+.app-topbar__right-rail .chrome-segment-group--theme {
+  flex: 0 0 auto;
+}
+
+.app-topbar__right-rail .contest-sync-action--labeled {
+  max-width: min(100%, 11rem);
+}
+
+.app-topbar__right-rail .contest-sync-action__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Theme segment in topbar */
+.chrome-segment-group--theme {
+  margin-left: 0;
+  height: var(--app-chrome-trailing-size);
+  padding: 0.15rem;
+  gap: 0.12rem;
+}
+
+.chrome-segment-group--theme .chrome-segment-group-btn {
+  width: calc(var(--app-chrome-trailing-size) - 0.3rem);
+  height: calc(var(--app-chrome-trailing-size) - 0.3rem);
+}
+
+.chrome-segment-group--theme .chrome-segment-group-btn.is-active {
+  color: var(--accent-violet);
+  background: color-mix(in srgb, var(--accent-violet) 12%, var(--surface-head));
+  border-color: color-mix(in srgb, var(--accent-violet) 45%, var(--border));
+}
+
+.theme-segment-btn__glyph {
+  width: var(--app-chrome-trailing-glyph);
+  height: var(--app-chrome-trailing-glyph);
+  flex-shrink: 0;
+}
+
+.theme-segment-btn {
+  position: relative;
+}
+
+.theme-segment-tip--0 {
+  right: calc(-2 * (var(--app-chrome-trailing-size) - 0.18rem + 0.12rem));
+}
+
+.theme-segment-tip--0::after {
+  right: calc(
+    2 * (var(--app-chrome-trailing-size) - 0.18rem + 0.12rem) +
+      (var(--app-chrome-trailing-size) - 0.3rem) * 0.5 - 5px
+  );
+}
+
+.theme-segment-tip--1 {
+  right: calc(-1 * (var(--app-chrome-trailing-size) - 0.18rem + 0.12rem));
+}
+
+.theme-segment-tip--1::after {
+  right: calc(
+    (var(--app-chrome-trailing-size) - 0.18rem + 0.12rem) +
+      (var(--app-chrome-trailing-size) - 0.3rem) * 0.5 - 5px
+  );
+}
+
+.theme-segment-tip--2 {
+  right: 0;
+}
+
+.theme-segment-tip--2::after {
+  right: calc((var(--app-chrome-trailing-size) - 0.3rem) * 0.5 - 5px);
+}
+
+@media (max-width: 900px) {
+  .app-topbar--workspace-grid {
+    grid-template-columns: 1fr;
+    row-gap: 0.45rem;
+    height: auto;
+    min-height: var(--app-topbar-height);
+    padding-block: 0.35rem;
+  }
+
+  .app-topbar--workspace-grid .app-topbar__lead,
+  .app-topbar--workspace-grid .app-topbar__toolbar {
+    grid-column: 1;
+  }
+
+  .app-topbar__right-rail {
+    flex-wrap: wrap;
+    row-gap: 0.4rem;
+  }
+
+  .app-topbar__sync-slot:has(.contest-sync-action-slot--fill-width) {
+    flex: 1 1 100%;
+  }
+}

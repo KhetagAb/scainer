@@ -8,16 +8,12 @@
     <title>scAIner</title>
     <script>
       (function () {
-        var palette = localStorage.getItem("scainer-palette");
-        if (palette !== "creme") palette = "arctic";
         var pref = localStorage.getItem("scainer-theme");
         if (pref !== "light" && pref !== "dark" && pref !== "system") pref = "system";
         var dark =
           pref === "dark" ||
           (pref === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-        var root = document.documentElement;
-        root.dataset.palette = palette;
-        root.dataset.theme = dark ? "dark" : "light";
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
       })();
     </script>
   </head>

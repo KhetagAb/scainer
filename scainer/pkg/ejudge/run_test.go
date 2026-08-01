@@ -32,7 +32,7 @@ func TestRunStatus(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info.RunID != 7 || info.Status != 17 || info.Verdict != ejudge.VerdictRJ {
+	if info.RunID != 7 || info.Status != 17 || info.StatusStr != "RJ" {
 		t.Fatalf("got %+v", info)
 	}
 }
@@ -76,7 +76,7 @@ func TestChangeRunStatus(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := c.ChangeRunStatus(context.Background(), 42, 7, ejudge.VerdictOK); err != nil {
+	if err := c.ChangeRunStatus(context.Background(), 42, 7, 0); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(gotBody, "action=67") || !strings.Contains(gotBody, "status=0") {
@@ -95,7 +95,7 @@ func TestChangeRunStatus_EmptyJSONBody(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := c.ChangeRunStatus(context.Background(), 42, 7, ejudge.VerdictOK); err != nil {
+	if err := c.ChangeRunStatus(context.Background(), 42, 7, 0); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -111,7 +111,7 @@ func TestChangeRunStatus_APIError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = c.ChangeRunStatus(context.Background(), 42, 7, ejudge.VerdictRJ)
+	err = c.ChangeRunStatus(context.Background(), 42, 7, 17)
 	if err == nil || !strings.Contains(err.Error(), "denied") {
 		t.Fatalf("err=%v", err)
 	}

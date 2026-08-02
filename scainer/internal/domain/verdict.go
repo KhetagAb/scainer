@@ -20,5 +20,5 @@ const (
 )
 
 func NeedsStatusRefresh(v Verdict) bool {
-	return v == VerdictPR || v == VerdictRU
+	return v == VerdictPR || v == VerdictRU || v == VerdictCF
 }

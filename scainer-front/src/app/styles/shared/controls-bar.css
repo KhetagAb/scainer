@@ -21,13 +21,15 @@
   border-left: none;
 }
 
-.page-corner-actions {
+.page-corner-actions,
+.app-corner-dock {
   position: fixed;
   right: var(--page-gutter);
-  bottom: 1.5rem;
+  bottom: 1.25rem;
   z-index: 40;
   display: flex;
-  align-items: center;
+  flex-direction: row;
+  align-items: flex-end;
   gap: 0.45rem;
 }
 
@@ -36,20 +38,28 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  flex: 0 0 auto;
+  width: var(--app-chrome-trailing-size);
+  height: var(--app-chrome-trailing-size);
   padding: 0;
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: 50%;
-  background: var(--surface);
-  color: var(--text-faint);
+  background: transparent;
+  color: color-mix(in srgb, var(--text-muted) 62%, transparent);
   cursor: pointer;
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
+  transition:
+    color 160ms ease,
+    background 180ms ease,
+    border-color 180ms ease,
+    box-shadow 220ms ease;
 }
 
 .page-help-btn:hover {
   color: var(--text-muted);
-  border-color: var(--text-faint);
+  background: var(--bg-raised);
+  border-color: var(--border);
+  box-shadow: var(--shadow-lg);
 }
 
 .page-help-btn:focus-visible {
@@ -59,8 +69,8 @@
 
 .page-help-btn__glyph {
   display: block;
-  width: 1.1rem;
-  height: 1.1rem;
+  width: var(--app-chrome-trailing-glyph);
+  height: var(--app-chrome-trailing-glyph);
   background: currentColor;
   -webkit-mask-position: center;
   mask-position: center;

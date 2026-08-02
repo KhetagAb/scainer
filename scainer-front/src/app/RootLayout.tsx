@@ -1,34 +1,15 @@
-import { Outlet, useLocation } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
-import { getContestsQueryKey } from "@/client/@tanstack/react-query.gen";
-import { authHeaders } from "@/features/auth/authStorage";
-import ImportContestsPanel from "@/features/contests/ui/ImportContestsPanel";
+import { Outlet } from "react-router-dom";
 import { AppChromeProvider } from "@/features/contests/shared/AppChromeContext";
 import { SensitivityProvider } from "@/features/contests/shared/SensitivityContext";
 import AppHeader from "@/app/AppHeader";
 
 export default function RootLayout() {
-  const location = useLocation();
-  const queryClient = useQueryClient();
-  const showImport = location.pathname === "/";
-
   return (
     <SensitivityProvider>
       <AppChromeProvider>
         <AppHeader>
           <Outlet />
         </AppHeader>
-        {showImport ? (
-          <div className="import-dock">
-            <ImportContestsPanel
-              onSuccess={() => {
-                void queryClient.invalidateQueries({
-                  queryKey: getContestsQueryKey({ headers: authHeaders() }),
-                });
-              }}
-            />
-          </div>
-        ) : null}
       </AppChromeProvider>
     </SensitivityProvider>
   );

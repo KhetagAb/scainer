@@ -4,17 +4,6 @@
   --contest-sensitivity-step: calc(var(--contest-sensitivity-btn-width) + 0.12rem);
   margin-left: 0;
   min-width: var(--contest-sensitivity-width);
-  height: var(--app-chrome-trailing-size);
-  padding: 0.15rem;
-  gap: 0.12rem;
-}
-
-.contest-head__group--sensitivity .contest-head__group-btn {
-  flex: 0 0 var(--contest-sensitivity-btn-width);
-  width: var(--contest-sensitivity-btn-width);
-  min-width: var(--contest-sensitivity-btn-width);
-  height: calc(var(--app-chrome-trailing-size) - 0.3rem);
-  padding: 0;
 }
 
 .contest-head__group--sensitivity .sensitivity-btn {

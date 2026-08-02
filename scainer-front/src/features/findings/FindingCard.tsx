@@ -466,14 +466,6 @@ export function ReportMeta({ note }: { note?: string }) {
   return <p className="meta">{note || ""}</p>;
 }
 
-export function Logo() {
-  return (
-    <h1 className="logo" aria-label="scAIner">
-      sc<span className="logo-ai">AI</span>ner
-    </h1>
-  );
-}
-
 export function useFilteredVisibility(
   findings: FindingView[],
   threshold: number

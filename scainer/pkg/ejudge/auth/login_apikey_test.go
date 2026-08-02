@@ -47,6 +47,32 @@ func TestMasterSessionLogin_PlaceholderRejected(t *testing.T) {
 	}
 }
 
+func TestServeControlSessionLogin_OK(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/cgi-bin/serve-control" {
+			http.NotFound(w, r)
+			return
+		}
+		if r.Method == http.MethodPost {
+			if got := r.FormValue("submit"); got != "Log in" {
+				t.Fatalf("submit=%q", got)
+			}
+			http.Redirect(w, r, "/cgi-bin/serve-control?SID=abc123def456", http.StatusFound)
+			return
+		}
+		_, _ = w.Write([]byte(`<a href="?SID=abc123def456">ok</a>`))
+	}))
+	t.Cleanup(srv.Close)
+
+	session, err := auth.ServeControlSessionLogin(context.Background(), srv.URL, "alice", "secret", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if session.SID != "abc123def456" {
+		t.Fatalf("SID=%q", session.SID)
+	}
+}
+
 func TestCreateAPIKey_OK(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/cgi-bin/new-master" {

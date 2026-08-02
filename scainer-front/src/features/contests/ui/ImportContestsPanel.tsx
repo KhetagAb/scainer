@@ -1,192 +1,180 @@
-import { useState } from "react";
+import { Radar } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useMutation } from "@tanstack/react-query";
-import { postContestsMutation } from "@/client/@tanstack/react-query.gen";
+import type { ImportContestsResponse } from "@/client/types.gen";
+import { postParallelsImportMutation } from "@/client/@tanstack/react-query.gen";
 import { authHeaders } from "@/features/auth/authStorage";
-import {
-  parseEjudgeContestTable,
-  parallelLabel,
-  type ParsedImportRow,
-  type SkippedImportRow,
-} from "@/features/contests/shared/parallels";
 import { UNGROUPED_PARALLEL } from "@/features/contests/shared/contestHelpers";
+import JobProgressBar from "@/features/contests/jobs/JobProgressBar";
+import { parallelLabel } from "@/features/contests/shared/parallels";
+
+const parallelsImportMutationOptions = postParallelsImportMutation();
 
 type Props = {
   onSuccess: () => void;
 };
 
-type ImportOutcome = { row: ParsedImportRow; kind: "added" | "duplicate" | "error" };
-
-type Step = "paste" | "preview" | "done";
+type Step = "loading" | "done" | "error";
 
 export default function ImportContestsPanel({ onSuccess }: Props) {
   const [isOpen, setIsOpen] = useState(false);
-  const [raw, setRaw] = useState("");
-  const [step, setStep] = useState<Step>("paste");
-  const [rows, setRows] = useState<ParsedImportRow[]>([]);
-  const [skipped, setSkipped] = useState<SkippedImportRow[]>([]);
-  const [isImporting, setIsImporting] = useState(false);
-  const [outcomes, setOutcomes] = useState<ImportOutcome[]>([]);
+  const [step, setStep] = useState<Step>("loading");
+  const [result, setResult] = useState<ImportContestsResponse | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const cancelledRef = useRef(false);
+  const pendingRefreshRef = useRef(false);
+  const importStartedRef = useRef(false);
+  const onSuccessRef = useRef(onSuccess);
 
-  const mutation = useMutation(postContestsMutation());
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+  }, [onSuccess]);
 
-  const close = () => {
-    setIsOpen(false);
-    setRaw("");
-    setStep("paste");
-    setRows([]);
-    setSkipped([]);
-    setOutcomes([]);
-  };
+  const { mutateAsync } = useMutation(parallelsImportMutationOptions);
 
-  const handleParse = () => {
-    const result = parseEjudgeContestTable(raw);
-    setRows(result.rows);
-    setSkipped(result.skipped);
-    setStep("preview");
-  };
-
-  const handleConfirm = async () => {
-    setIsImporting(true);
-    const results: ImportOutcome[] = [];
-    for (const row of rows) {
-      try {
-        await mutation.mutateAsync({
-          body: { id: row.id, parallelId: row.parallelId },
-          headers: authHeaders(),
-        });
-        results.push({ row, kind: "added" });
-      } catch (e) {
-        const isDuplicate = (e as { status?: number })?.status === 400;
-        results.push({ row, kind: isDuplicate ? "duplicate" : "error" });
-      }
+  const runImport = useCallback(async () => {
+    cancelledRef.current = false;
+    setStep("loading");
+    setErrorMessage(null);
+    setResult(null);
+    try {
+      const data = await mutateAsync({
+        body: {},
+        headers: authHeaders(),
+      });
+      if (cancelledRef.current) return;
+      pendingRefreshRef.current = true;
+      setResult(data);
+      setStep("done");
+    } catch {
+      if (cancelledRef.current) return;
+      setErrorMessage("Не удалось импортировать контесты из ejudge");
+      setStep("error");
     }
-    setIsImporting(false);
-    setOutcomes(results);
-    setStep("done");
-    onSuccess();
-  };
+  }, [mutateAsync]);
+
+  const close = useCallback(() => {
+    cancelledRef.current = true;
+    const shouldRefresh = pendingRefreshRef.current;
+    pendingRefreshRef.current = false;
+    setIsOpen(false);
+    setStep("loading");
+    setResult(null);
+    setErrorMessage(null);
+    if (shouldRefresh) {
+      onSuccessRef.current();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      importStartedRef.current = false;
+      return;
+    }
+    if (importStartedRef.current) return;
+    importStartedRef.current = true;
+    void runImport();
+  }, [isOpen, runImport]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || step !== "loading") return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isOpen, step, close]);
 
   if (!isOpen) {
     return (
-      <button type="button" className="btn import-dock__btn" onClick={() => setIsOpen(true)}>
-        Импорт
+      <button
+        type="button"
+        className="app-topbar-trailing-btn chrome-segment-btn--tip"
+        aria-label="Импорт контестов"
+        onClick={() => setIsOpen(true)}
+      >
+        <span className="chrome-segment-tip app-topbar-trailing-btn__tip" role="tooltip">
+          Импорт контестов из ejudge
+        </span>
+        <Radar className="app-topbar-trailing-btn__glyph" strokeWidth={2} aria-hidden />
       </button>
     );
   }
 
-  return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && step !== "done" && close()}>
-      <div className="form-card modal-card">
-        {step === "paste" && (
-          <>
-            <p className="control-group__label" style={{ marginBottom: "0.5rem" }}>
-              Вставьте табличку списка контестов из ejudge
-            </p>
-            <textarea
-              value={raw}
-              onChange={(e) => setRaw(e.target.value)}
-              rows={10}
-              placeholder={"2\t50050\tЛКШ.2026.Параллель R.Template\t...\n3\t50051\tЛКШ.2026.Параллель R.День 01.Разнобой\t..."}
-              style={{
-                width: "100%",
-                boxSizing: "border-box",
-                fontFamily: "var(--font-body)",
-                padding: "0.5rem 0.65rem",
-                border: "1px solid var(--chip-border)",
-                borderRadius: "var(--radius-chip)",
-                marginBottom: "1rem",
-              }}
+  return createPortal(
+    <div
+      className="modal-overlay"
+      onClick={(e) => e.target === e.currentTarget && step !== "loading" && close()}
+    >
+      <div className="form-card modal-card import-panel__card">
+        {step === "loading" && (
+          <div className="import-panel__loading">
+            <JobProgressBar
+              progress={null}
+              label="Загружаем из ejudge…"
+              className="import-progress-bar--modal"
             />
-            <div className="form-actions">
-              <button type="button" className="btn btn--primary" disabled={!raw.trim()} onClick={handleParse}>
-                Разобрать
-              </button>
-              <button type="button" className="btn btn--ghost" onClick={close}>
-                Отмена
-              </button>
-            </div>
-          </>
+          </div>
         )}
 
-        {step === "preview" && (
+        {step === "error" && (
           <>
-            <p className="control-group__label" style={{ marginBottom: "0.5rem" }}>
-              Будет импортировано: {rows.length}. Пропущено: {skipped.length}.
-            </p>
-            <div className="modal-card__scroll">
-              <ul className="contest-list">
-                {rows.map((r) => (
-                  <li key={r.id} className="contest-row">
-                    <div>
-                      <div className="contest-row__id">{r.name}</div>
-                      <div className="contest-row__meta">ID: {r.id}</div>
-                    </div>
-                    <span className="chip contest-chip">
-                      {parallelLabel(r.parallelId, UNGROUPED_PARALLEL)}
-                    </span>
-                  </li>
-                ))}
-                {skipped.map((s) => (
-                  <li key={s.id} className="contest-row contest-row--skipped">
-                    <div>
-                      <div className="contest-row__id">{s.name}</div>
-                      <div className="contest-row__meta">ID: {s.id}</div>
-                    </div>
-                    <span className="chip">пропущено: {s.reason}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <p className="import-panel__summary login-error">{errorMessage}</p>
             <div className="form-actions">
               <button
                 type="button"
                 className="btn btn--primary"
-                disabled={rows.length === 0 || isImporting}
-                onClick={() => void handleConfirm()}
+                onClick={() => {
+                  importStartedRef.current = true;
+                  void runImport();
+                }}
               >
-                {isImporting ? "Импортирую…" : `Импортировать ${rows.length} контестов`}
+                Повторить
               </button>
-              <button type="button" className="btn btn--ghost" onClick={() => setStep("paste")} disabled={isImporting}>
-                Назад
-              </button>
-              <button type="button" className="btn btn--ghost" onClick={close} disabled={isImporting}>
-                Отмена
+              <button type="button" className="btn btn--ghost" onClick={close}>
+                Закрыть
               </button>
             </div>
           </>
         )}
 
-        {step === "done" && (
+        {step === "done" && result && (
           <>
-            <p className="control-group__label" style={{ marginBottom: "0.5rem" }}>
-              Импортировано: {outcomes.filter((o) => o.kind === "added").length}
-              {outcomes.some((o) => o.kind === "duplicate")
-                ? `, уже были добавлены: ${outcomes.filter((o) => o.kind === "duplicate").length}`
-                : ""}
-              {outcomes.some((o) => o.kind === "error")
-                ? `, с ошибкой: ${outcomes.filter((o) => o.kind === "error").length}`
-                : ""}
+            <p className="import-panel__summary">
+              Импортировано: {result.added.length}
+              {result.duplicates.length > 0 ? `, уже были добавлены: ${result.duplicates.length}` : ""}
+              {result.skipped.length > 0 ? `, пропущено: ${result.skipped.length}` : ""}
             </p>
             <div className="modal-card__scroll">
-              <ul className="contest-list">
-                {outcomes.map((o) => (
-                  <li
-                    key={o.row.id}
-                    className={`contest-row${
-                      o.kind === "error" ? " contest-row--error" : o.kind === "duplicate" ? " contest-row--skipped" : ""
-                    }`}
-                  >
-                    <div>
-                      <div className="contest-row__id">{o.row.name}</div>
-                      <div className="contest-row__meta">
-                        ID: {o.row.id} · {parallelLabel(o.row.parallelId, UNGROUPED_PARALLEL)}
-                        {o.kind === "duplicate" ? " · уже был добавлен" : ""}
-                        {o.kind === "error" ? " · ошибка" : ""}
+              {result.added.length > 0 ? (
+                <ul className="contest-list">
+                  {result.added.map((row) => (
+                    <li key={row.id} className="contest-row">
+                      <div>
+                        <div className="contest-row__id">{row.name}</div>
+                        <div className="contest-row__meta">ID: {row.id}</div>
                       </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                      <span className="chip contest-chip">
+                        {parallelLabel(row.parallelId, UNGROUPED_PARALLEL)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="muted" style={{ margin: 0 }}>
+                  Новых контестов нет.
+                </p>
+              )}
             </div>
             <div className="form-actions">
               <button type="button" className="btn" onClick={close}>
@@ -196,6 +184,7 @@ export default function ImportContestsPanel({ onSuccess }: Props) {
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

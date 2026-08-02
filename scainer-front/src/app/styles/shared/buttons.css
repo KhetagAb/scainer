@@ -1,33 +1,4 @@
-/* shared/buttons.css — .btn + variants, .header-actions */
-
-/* --- app shell / login / contests (поверх report look) --- */
-
-.logo-link .logo {
-  margin: 0;
-}
-
-.app-topbar .logo {
-  line-height: 1;
-  display: flex;
-  align-items: center;
-}
-
-.app-topbar .header-actions {
-  align-items: center;
-}
-
-.header-actions {
-  margin-left: auto;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 0.5rem 0.85rem;
-}
-
-.header-actions .muted {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
+/* shared/buttons.css — .btn + variants */
 
 .btn {
   appearance: none;

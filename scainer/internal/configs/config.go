@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/robfig/cron/v3"
 	"github.com/spf13/viper"
 )
 
@@ -22,7 +23,8 @@ type (
 		Ejudge            EjudgeConfig      `mapstructure:"ejudge"`
 		JPlag             JPlagConfig       `mapstructure:"jplag"`
 		Analyze           AnalyzeConfig     `mapstructure:"analyze"`
-		ImportCron          ImportCronConfig  `mapstructure:"import_cron"`
+		ImportCron          ImportCronConfig         `mapstructure:"import_cron"`
+		ParallelsCron      ParallelsCronConfig      `mapstructure:"parallels_cron"`
 
 		TeachersLogins []string `mapstructure:"-"`
 	}
@@ -66,6 +68,11 @@ type (
 		Enabled      bool          `mapstructure:"enabled"`
 		Interval     time.Duration `mapstructure:"interval"`
 		MasterLogin  string        `mapstructure:"masterlogin"`
+	}
+
+	ParallelsCronConfig struct {
+		Enabled  bool   `mapstructure:"enabled"`
+		Schedule string `mapstructure:"schedule"`
 	}
 
 )
@@ -158,6 +165,14 @@ func (c *Config) validate() error {
 	if c.ImportCron.Enabled && strings.TrimSpace(c.ImportCron.MasterLogin) == "" {
 		return fmt.Errorf("import_cron.masterlogin обязателен при import_cron.enabled")
 	}
+	if c.ParallelsCron.Enabled {
+		if err := validateParallelsSchedule(c.ParallelsCron.Schedule); err != nil {
+			return fmt.Errorf("parallels_cron.schedule: %w", err)
+		}
+		if strings.TrimSpace(c.ImportCron.MasterLogin) == "" {
+			return fmt.Errorf("import_cron.masterlogin обязателен при parallels_cron.enabled")
+		}
+	}
 	if strings.TrimSpace(c.JPlag.JarPath) == "" {
 		return fmt.Errorf("jplag.jar_path обязателен")
 	}
@@ -171,6 +186,19 @@ func (c *Config) validate() error {
 	}
 	if len(c.TeachersLogins) == 0 {
 		return fmt.Errorf("нужен TEACHERS_LOGINS (хотя бы один логин)")
+	}
+	return nil
+}
+
+var parallelsSchedulerParser = cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
+
+func validateParallelsSchedule(schedule string) error {
+	schedule = strings.TrimSpace(schedule)
+	if schedule == "" {
+		schedule = "0 9 * * *"
+	}
+	if _, err := parallelsSchedulerParser.Parse(schedule); err != nil {
+		return fmt.Errorf("invalid cron schedule %q: %w", schedule, err)
 	}
 	return nil
 }
@@ -192,4 +220,6 @@ func bindEnv(v *viper.Viper) {
 	_ = v.BindEnv("import_cron.enabled", "IMPORT_CRON_ENABLED")
 	_ = v.BindEnv("import_cron.interval", "IMPORT_CRON_INTERVAL")
 	_ = v.BindEnv("import_cron.masterlogin", "MASTERLOGIN")
+	_ = v.BindEnv("parallels_cron.enabled", "PARALLELS_CRON_ENABLED")
+	_ = v.BindEnv("parallels_cron.schedule", "PARALLELS_CRON_SCHEDULE")
 }

@@ -5,10 +5,10 @@ type Props = {
   className?: string;
 };
 
-export function ContestSyncIcon({ size = 20, className }: Props) {
+export function ContestSyncIcon({ size, className }: Props) {
   return (
     <Radar
-      size={size}
+      {...(size !== undefined ? { size } : {})}
       className={className}
       strokeWidth={2}
       aria-hidden

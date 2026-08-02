@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { clearToken, setToken } from "@/features/auth/authStorage";
 import { useSession } from "@/features/auth/SessionProvider";
-import { Logo } from "@/features/findings/FindingCard";
+import { Logo } from "@/app/Logo";
 
 type LoginResponse = { access_token: string; expires_in: number };
 type ErrorBody = { error?: string };

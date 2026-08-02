@@ -6,6 +6,7 @@ import { client } from "@/client/client.gen";
 import { ApiError, normalizeApiError } from "@/lib/apiError";
 import { SessionProvider } from "@/features/auth/SessionProvider";
 import { ThemeProvider } from "@/app/theme/ThemeProvider";
+import { AppCornerProvider } from "@/app/AppCornerContext";
 import { clearToken } from "@/features/auth/authStorage";
 import "@/app/styles.css";
 
@@ -36,7 +37,9 @@ createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={queryClient}>
       <SessionProvider>
         <ThemeProvider>
-          <App />
+          <AppCornerProvider>
+            <App />
+          </AppCornerProvider>
         </ThemeProvider>
       </SessionProvider>
     </QueryClientProvider>

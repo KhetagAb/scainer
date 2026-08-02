@@ -90,6 +90,28 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorResponse'
 
+  /api/parallels/import:
+    post:
+      operationId: postParallelsImport
+      summary: Импортировать контесты из ejudge serve-control
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportContestsRequest'
+      responses:
+        '200':
+          description: Результат импорта
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportContestsResponse'
+        '401':
+          $ref: '#/components/responses/ErrorResponse'
+        '503':
+          $ref: '#/components/responses/ErrorResponse'
+
   /api/contests/{id}:
     patch:
       operationId: patchContest
@@ -841,6 +863,49 @@ components:
           type: string
           nullable: true
           description: ID параллели (напр. 3, 10, R, F, X)
+
+    ImportContestsRequest:
+      type: object
+      properties: {}
+
+    ImportContestsResponse:
+      type: object
+      required: [added, duplicates, skipped]
+      properties:
+        added:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportedContestEntry'
+        duplicates:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportedContestEntry'
+        skipped:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkippedContestEntry'
+
+    ImportedContestEntry:
+      type: object
+      required: [id, name, parallelId]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        parallelId:
+          type: string
+
+    SkippedContestEntry:
+      type: object
+      required: [id, name, reason]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        reason:
+          type: string
 
     ProblemInfo:
       type: object

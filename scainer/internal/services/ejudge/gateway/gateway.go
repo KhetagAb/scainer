@@ -11,6 +11,7 @@ import (
 	"scainer/pkg/auth"
 	"scainer/pkg/ejudge"
 	ejauth "scainer/pkg/ejudge/auth"
+	"scainer/pkg/ejudge/servecontrol"
 )
 
 type teacherRepository interface {
@@ -142,6 +143,29 @@ func (g *Gateway) BrowserLogin(ctx context.Context, contestID int) (BrowserLogin
 		Password:  rec.Password,
 		ContestID: contestID,
 	}, true, nil
+}
+
+func (g *Gateway) ListContests(ctx context.Context) ([]servecontrol.Brief, error) {
+	if g.baseURL == "" {
+		return nil, fmt.Errorf("ejudge gateway: base URL not configured")
+	}
+	login, ok := auth.LoginFrom(ctx)
+	if !ok || login == "" {
+		return nil, ErrNoLogin
+	}
+	rec, found, err := g.teachers.Get(ctx, login)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, ErrTeacherNotFound
+	}
+
+	sess, err := ejauth.ServeControlSessionLogin(ctx, g.baseURL, login, rec.Password, g.timeout)
+	if err != nil {
+		return nil, err
+	}
+	return servecontrol.ListContests(ctx, sess, g.timeout)
 }
 
 func (g *Gateway) ensureAPIKey(ctx context.Context, login string) error {

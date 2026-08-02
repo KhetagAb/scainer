@@ -22,6 +22,7 @@ import (
 	"scainer/internal/services/teachers"
 	"scainer/internal/transport"
 	"scainer/pkg/auth"
+	"scainer/pkg/ejudge/servecontrol"
 	"scainer/pkg/jobs"
 	"scainer/pkg/store"
 )
@@ -569,6 +570,10 @@ func (s stubEjudgeGateway) BrowserLogin(_ context.Context, contestID int) (gatew
 }
 
 func (stubEjudgeGateway) EnsureAPIKey(context.Context) error { return nil }
+
+func (stubEjudgeGateway) ListContests(context.Context) ([]servecontrol.Brief, error) {
+	return nil, nil
+}
 
 func TestGetAuthMe_UsernameOnly(t *testing.T) {
 	authSvc := testAuth()

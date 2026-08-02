@@ -8,6 +8,7 @@ import ContestLegendModal, {
 } from "@/features/contests/legend/ContestLegendModal";
 import { useParallelPageData } from "@/features/contests/pages/useParallelPageData";
 import { useRegisterAppChrome } from "@/features/contests/shared/AppChromeContext";
+import { useRegisterAppCorner } from "@/app/AppCornerContext";
 import { UNGROUPED_PARALLEL } from "@/features/contests/shared/contestHelpers";
 import { useSensitivity } from "@/features/contests/shared/SensitivityContext";
 import AddContestForm from "@/features/contests/ui/AddContestForm";
@@ -58,6 +59,27 @@ export default function ParallelPage({ onUnauthorized }: Props) {
   );
 
   useRegisterAppChrome(syncNode);
+
+  const cornerNode = useMemo(
+    () => (
+      <button
+        type="button"
+        className="page-help-btn"
+        aria-label="Что означают % и цвета на карточке контеста"
+        title="Справка по карточке контеста"
+        onClick={() => setLegendOpen(true)}
+      >
+        <span
+          className="page-help-btn__glyph"
+          style={{ maskImage: `url(${helpIconUrl})`, WebkitMaskImage: `url(${helpIconUrl})` }}
+          aria-hidden
+        />
+      </button>
+    ),
+    [],
+  );
+
+  useRegisterAppCorner(cornerNode);
 
   if (!parallelIdParam) {
     navigate("/", { replace: true });
@@ -117,21 +139,6 @@ export default function ParallelPage({ onUnauthorized }: Props) {
 
       {rows.length === 0 && !canAdd && <p className="empty-state">Нет контестов</p>}
 
-      <div className="page-corner-actions">
-        <button
-          type="button"
-          className="page-help-btn"
-          aria-label="Что означают % и цвета на карточке контеста"
-          title="Справка по карточке контеста"
-          onClick={() => setLegendOpen(true)}
-        >
-          <span
-            className="page-help-btn__glyph"
-            style={{ maskImage: `url(${helpIconUrl})`, WebkitMaskImage: `url(${helpIconUrl})` }}
-            aria-hidden
-          />
-        </button>
-      </div>
       <ContestLegendModal open={legendOpen} onClose={closeLegend} />
     </>
   );

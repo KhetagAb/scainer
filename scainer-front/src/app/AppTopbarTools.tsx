@@ -1,7 +1,11 @@
 import { useLocation } from "react-router-dom";
-import ThemeSegmentControl from "@/app/theme/ThemeSegmentControl";
+import { useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { getContestsQueryKey } from "@/client/@tanstack/react-query.gen";
+import { authHeaders } from "@/features/auth/authStorage";
 import { useAppChromeSync } from "@/features/contests/shared/AppChromeContext";
 import { useSensitivity } from "@/features/contests/shared/SensitivityContext";
+import ImportContestsPanel from "@/features/contests/ui/ImportContestsPanel";
 import SensitivitySlider from "@/features/contests/ui/SensitivitySlider";
 
 function isContestChromeRoute(pathname: string): boolean {
@@ -10,9 +14,16 @@ function isContestChromeRoute(pathname: string): boolean {
 
 export default function AppTopbarTools() {
   const { pathname } = useLocation();
+  const queryClient = useQueryClient();
   const showContestTools = isContestChromeRoute(pathname);
+  const showImport = pathname === "/";
   const sync = useAppChromeSync();
   const { threshold, setThreshold } = useSensitivity();
+  const onImportSuccess = useCallback(() => {
+    void queryClient.invalidateQueries({
+      queryKey: getContestsQueryKey({ headers: authHeaders() }),
+    });
+  }, [queryClient]);
 
   return (
     <div className="app-topbar__tools app-topbar__tools--contest">
@@ -23,7 +34,7 @@ export default function AppTopbarTools() {
         {showContestTools ? (
           <SensitivitySlider threshold={threshold} onChange={setThreshold} />
         ) : null}
-        <ThemeSegmentControl />
+        {showImport ? <ImportContestsPanel onSuccess={onImportSuccess} /> : null}
       </div>
     </div>
   );

@@ -799,13 +799,33 @@ a.parallel-card__chip:focus-visible {
   padding: 2rem 0;
 }
 
-.import-dock {
-  position: fixed;
-  right: calc(var(--page-gutter) + var(--app-chrome-trailing-size));
-  bottom: var(--page-gutter);
-  z-index: 20;
+.import-panel__card {
+  margin-bottom: 0;
+  min-width: min(24rem, 100%);
 }
 
-.import-dock__btn {
-  box-shadow: var(--shadow-md);
+.import-panel__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+  padding: 0.15rem 0;
 }
+
+.import-panel__summary {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.import-progress-bar.import-progress-bar--modal {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  height: 2.15rem;
+}
+

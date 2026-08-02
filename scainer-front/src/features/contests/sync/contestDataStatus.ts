@@ -1,4 +1,4 @@
-export const IMPORT_STALE_MS = 10 * 60 * 1000;
+export const IMPORT_STALE_MS = 3 * 60 * 1000;
 
 export type SyncActionState = "idle" | "warn" | "running" | "disabled";
 
@@ -14,6 +14,8 @@ export type SyncActionModel = {
   label: string;
   hint: string;
   warnReason?: SyncWarnReason;
+  /** Подробности для tooltip (например, «12 сек. назад»). */
+  warnDetail?: string;
 };
 
 const SYNC_HINT =
@@ -21,6 +23,87 @@ const SYNC_HINT =
 const SYNC_IDLE_LABEL = "Обновить";
 export const SYNC_WARN_LOAD_LABEL = "Синхронизировать посылки";
 export const SYNC_WARN_ANALYZE_LABEL = "Актуализировать анализ";
+
+export function syncWarnReasonLabel(reason: SyncWarnReason): string {
+  switch (reason) {
+    case "no_import":
+      return "Посылки не загружались";
+    case "import_stale":
+      return "Посылки давно не обновлялись";
+    case "analyze_stale":
+      return "Анализ отстаёт";
+  }
+}
+
+export function formatTimeAgo(iso: string | null | undefined, now = Date.now()): string | null {
+  if (!iso) return null;
+  const at = new Date(iso).getTime();
+  if (Number.isNaN(at)) return null;
+  const sec = Math.max(0, Math.floor((now - at) / 1000));
+  if (sec < 60) return `${sec} сек. назад`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min} мин. назад`;
+  const hours = Math.floor(min / 60);
+  if (hours < 48) return `${hours} ч. назад`;
+  const days = Math.floor(hours / 24);
+  return `${days} д. назад`;
+}
+
+function syncWarnReasonDetail(
+  reason: SyncWarnReason,
+  contest: ContestFreshness,
+  now = Date.now(),
+): string {
+  switch (reason) {
+    case "no_import":
+      return "Посылки ещё не загружались из ejudge.";
+    case "import_stale": {
+      const ago = formatTimeAgo(contest.lastImportedAt, now);
+      return ago ? `Последнее обновление: ${ago}.` : "Последнее обновление неизвестно.";
+    }
+    case "analyze_stale": {
+      const importAgo = formatTimeAgo(contest.lastImportedAt, now);
+      const analyzeAgo = contest.computedAt
+        ? formatTimeAgo(contest.computedAt, now)
+        : null;
+      if (importAgo && analyzeAgo) {
+        return `Посылки: ${importAgo}. Анализ: ${analyzeAgo}.`;
+      }
+      if (analyzeAgo) return `Анализ: ${analyzeAgo}.`;
+      return "Анализ ещё не запускался после последней загрузки.";
+    }
+  }
+}
+
+function pickDetailContest(
+  contests: ContestFreshness[],
+  reason: SyncWarnReason,
+): ContestFreshness {
+  if (contests.length === 1) return contests[0]!;
+
+  if (reason === "no_import") {
+    return contests.find((c) => !c.lastImportedAt) ?? contests[0]!;
+  }
+
+  if (reason === "import_stale") {
+    let picked = contests[0]!;
+    let oldest = Infinity;
+    for (const c of contests) {
+      if (!c.lastImportedAt) continue;
+      const t = new Date(c.lastImportedAt).getTime();
+      if (!Number.isNaN(t) && t < oldest) {
+        oldest = t;
+        picked = c;
+      }
+    }
+    return picked;
+  }
+
+  for (const c of contests) {
+    if (isAnalysisStale(c.lastImportedAt, c.computedAt)) return c;
+  }
+  return contests[0]!;
+}
 
 export const RESYNC_HINT =
   "Удалить все посылки и сигналы, затем заново загрузить из ejudge и пересчитать детекторы.";
@@ -104,6 +187,7 @@ export function buildSyncAction(
       label: warn.label,
       hint: SYNC_HINT,
       warnReason: warn.warnReason,
+      warnDetail: syncWarnReasonDetail(warn.warnReason, contest, opts?.now),
     };
   }
 
@@ -132,11 +216,13 @@ export function buildParallelSyncAction(
 
   const warn = pickParallelWarnReason(contests, opts?.now);
   if (warn) {
+    const detailContest = pickDetailContest(contests, warn.warnReason);
     return {
       state: "warn",
       label: warn.label,
       hint: SYNC_HINT,
       warnReason: warn.warnReason,
+      warnDetail: syncWarnReasonDetail(warn.warnReason, detailContest, opts?.now),
     };
   }
 

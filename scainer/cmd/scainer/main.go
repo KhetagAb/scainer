@@ -117,6 +117,29 @@ func run(cfg *configs.Config) error {
 		fmt.Fprintf(os.Stderr, "scainer: import_cron every %s as masterlogin %s\n", cfg.ImportCron.Interval, masterLogin)
 	}
 
+	if cfg.ParallelsCron.Enabled {
+		if !cfg.Ejudge.Enabled() {
+			return fmt.Errorf("parallels_cron: ejudge is not configured")
+		}
+		masterLogin := strings.TrimSpace(cfg.ImportCron.MasterLogin)
+		schedule := cfg.ParallelsCron.Schedule
+		cancel, err := cron.StartParallelsScheduler(
+			cronCtx,
+			svcs.contests,
+			ejGateway.ListContests,
+			schedule,
+			masterLogin,
+		)
+		if err != nil {
+			return fmt.Errorf("parallels_cron: %w", err)
+		}
+		defer cancel()
+		if strings.TrimSpace(schedule) == "" {
+			schedule = cron.DefaultParallelsSchedule
+		}
+		fmt.Fprintf(os.Stderr, "scainer: parallels_cron %q as masterlogin %s\n", schedule, masterLogin)
+	}
+
 	var ejudgeGw *ejgateway.Gateway
 	if cfg.Ejudge.Enabled() {
 		ejudgeGw = ejGateway

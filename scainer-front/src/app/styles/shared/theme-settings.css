@@ -1,144 +1,133 @@
-/* shared/theme-settings.css — inline theme controls in topbar */
+/* shared/theme-settings.css — floating theme picker (bottom-right dock) */
 
-.theme-settings {
-  --theme-panel-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --theme-panel-ease-in: cubic-bezier(0.4, 0, 0.2, 1);
+.theme-floating {
+  --theme-floating-btn: calc(var(--app-chrome-trailing-size) - 0.3rem);
+  --theme-floating-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --theme-floating-anchor: var(--app-chrome-trailing-size);
 
   position: relative;
-  display: flex;
-  align-items: center;
-  flex: 0 0 auto;
-  align-self: stretch;
+  flex: 0 0 var(--theme-floating-anchor);
+  width: var(--theme-floating-anchor);
+  height: var(--theme-floating-anchor);
 }
 
-.theme-settings__panel {
+.theme-floating::before {
+  content: "";
   position: absolute;
-  right: 100%;
-  top: 50%;
-  z-index: 35;
+  right: 0;
+  bottom: 100%;
+  width: var(--theme-floating-anchor);
+  height: 0.35rem;
+}
+
+.theme-floating__menu {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.65rem;
-  padding-right: 0.45rem;
-  white-space: nowrap;
-  opacity: 0;
-  transform: translateY(-50%) translateX(0.35rem);
-  pointer-events: none;
-  visibility: hidden;
-  transition:
-    opacity 180ms var(--theme-panel-ease-in),
-    transform 280ms var(--theme-panel-ease-in),
-    visibility 0ms linear 280ms;
-}
-
-.theme-settings:hover .theme-settings__panel,
-.theme-settings:focus-within .theme-settings__panel {
-  opacity: 1;
-  transform: translateY(-50%) translateX(0);
-  pointer-events: auto;
-  visibility: visible;
-  transition:
-    opacity 240ms var(--theme-panel-ease-out) 30ms,
-    transform 320ms var(--theme-panel-ease-out),
-    visibility 0ms;
-}
-
-.theme-settings:hover .theme-settings__trigger,
-.theme-settings:focus-within .theme-settings__trigger {
-  color: var(--text-secondary);
-  border-color: transparent;
+  flex-direction: column;
+  gap: 0.12rem;
+  margin-bottom: 0.35rem;
+  padding: 0.15rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-chip);
   background: transparent;
-  transition: color 200ms ease;
+  box-shadow: none;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition:
+    opacity 180ms ease,
+    transform 220ms var(--theme-floating-ease),
+    visibility 0ms linear 200ms,
+    background 180ms ease,
+    border-color 180ms ease,
+    box-shadow 220ms ease;
 }
 
-.theme-settings__trigger {
+.theme-floating:hover .theme-floating__menu,
+.theme-floating:focus-within .theme-floating__menu {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+  background: var(--bg-raised);
+  border-color: var(--border);
+  box-shadow: var(--shadow-lg);
+  transition:
+    opacity 180ms ease,
+    transform 220ms var(--theme-floating-ease),
+    visibility 0ms,
+    background 180ms ease,
+    border-color 180ms ease,
+    box-shadow 220ms ease;
+}
+
+.theme-floating__trigger,
+.theme-floating__option {
+  appearance: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 auto;
-  width: var(--app-chrome-trailing-size);
-  height: var(--app-chrome-trailing-size);
+  width: var(--theme-floating-btn);
+  height: var(--theme-floating-btn);
   padding: 0;
-  border-color: transparent;
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius-chip) - 0.05rem);
   background: transparent;
-  color: var(--text-muted);
-  cursor: default;
-  transition: color 200ms ease;
+  color: color-mix(in srgb, var(--text-muted) 62%, transparent);
+  cursor: pointer;
+  transition:
+    color 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 180ms ease;
 }
 
-.theme-settings__trigger .btn--icon__glyph {
+.theme-floating__trigger {
+  position: absolute;
+  right: calc((var(--theme-floating-anchor) - var(--theme-floating-btn)) / 2);
+  bottom: calc((var(--theme-floating-anchor) - var(--theme-floating-btn)) / 2);
+}
+
+.theme-floating:hover .theme-floating__trigger,
+.theme-floating:focus-within .theme-floating__trigger {
+  color: var(--text-muted);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.theme-floating__trigger:hover {
+  color: var(--text-muted);
+}
+
+.theme-floating__option {
+  color: var(--text-muted);
+}
+
+.theme-floating__option:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.theme-floating__option.is-active {
+  color: var(--accent-violet);
+  background: color-mix(in srgb, var(--accent-violet) 12%, var(--surface-head));
+  border-color: color-mix(in srgb, var(--accent-violet) 45%, var(--border));
+}
+
+.theme-floating__trigger:focus-visible,
+.theme-floating__option:focus-visible {
+  outline: 2px solid var(--chip-border);
+  outline-offset: 1px;
+}
+
+.theme-floating__glyph {
   width: var(--app-chrome-trailing-glyph);
   height: var(--app-chrome-trailing-glyph);
-}
-
-.theme-settings__section {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.35rem;
-  min-width: 0;
-}
-
-.theme-settings__label {
-  margin: 0;
-  font-family: var(--font-ui);
-  font-size: 0.62rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-
-.theme-settings__group {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: 0.15rem;
-}
-
-.theme-settings__icon-group {
-  gap: 0.15rem;
-}
-
-.theme-settings__icon-group .theme-settings__icon-btn {
-  width: 1.95rem;
-  height: 1.95rem;
-  border-color: transparent;
-  background: transparent;
-  color: var(--text-muted);
-  opacity: 0.45;
-}
-
-.theme-settings__icon-group .theme-settings__icon-btn .btn--icon__glyph {
-  width: 1.05rem;
-  height: 1.05rem;
-}
-
-.theme-settings__icon-group .theme-settings__icon-btn:hover:not(:disabled):not(.theme-settings__icon-btn--active) {
-  opacity: 0.75;
-  color: var(--text-secondary);
-  border-color: transparent;
-  background: color-mix(in srgb, var(--bg-hover) 70%, transparent);
-}
-
-.theme-settings__icon-group .theme-settings__icon-btn--active {
-  opacity: 1;
-  color: var(--accent-on);
-  background: var(--accent);
-  border-color: var(--accent);
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--accent) 35%, transparent);
-}
-
-.theme-settings__icon-group .theme-settings__icon-btn--active .btn--icon__glyph {
-  stroke-width: 2.25px;
-}
-
-.theme-settings__icon-btn:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 1px;
+  flex-shrink: 0;
 }
 
 /* Smooth transition on explicit theme switch */
@@ -155,13 +144,10 @@ html.theme-transition *::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .theme-settings__panel {
+  .theme-floating__menu,
+  .theme-floating__trigger,
+  .theme-floating__option {
     transition: none;
-  }
-
-  .theme-settings:hover .theme-settings__panel,
-  .theme-settings:focus-within .theme-settings__panel {
-    transform: translateY(-50%);
   }
 
   html.theme-transition,
@@ -169,5 +155,29 @@ html.theme-transition *::after {
   html.theme-transition *::before,
   html.theme-transition *::after {
     transition: none !important;
+  }
+}
+
+@media (hover: hover) {
+  .theme-floating:not(:hover) .theme-floating__menu {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(4px);
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+  }
+}
+
+@media (hover: none) {
+  .theme-floating:not(:focus-within) .theme-floating__menu {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(4px);
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
   }
 }

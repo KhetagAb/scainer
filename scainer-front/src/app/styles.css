@@ -13,6 +13,7 @@
 @import "./styles/shared/theme-settings.css";
 @import "./styles/shared/chrome-segment.css";
 @import "./styles/shared/layout.css";
+@import "./styles/shared/app-header.css";
 @import "./styles/shared/app-topbar-tools.css";
 @import "./styles/shared/contest-head.css";
 @import "./styles/shared/controls-bar.css";

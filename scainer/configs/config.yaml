@@ -31,3 +31,7 @@ import_cron:
   enabled: true
   interval: 1m
   masterlogin: khetag_dz
+
+parallels_cron:
+  enabled: true
+  schedule: "0 9 * * *"

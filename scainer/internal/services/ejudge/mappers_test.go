@@ -34,7 +34,13 @@ func TestVerdictFromEjudgeStatus(t *testing.T) {
 	if verdictFromEjudgeStatus(9) != domain.VerdictIG {
 		t.Fatal("IG")
 	}
-	for _, code := range []int{20, 21, 22, 95, 96, 97, 98, 99} {
+	if verdictFromEjudgeStatus(15) != domain.VerdictRU {
+		t.Fatal("WT code")
+	}
+	if verdictFromEjudgeStatus(23) != domain.VerdictPR {
+		t.Fatal("SM code")
+	}
+	for _, code := range []int{6, 20, 21, 22, 95, 96, 97, 98, 99} {
 		if verdictFromEjudgeStatus(code) != domain.VerdictRU {
 			t.Fatalf("running code %d", code)
 		}
@@ -62,10 +68,13 @@ func TestParseEjudgeStatusStr(t *testing.T) {
 	if parseEjudgeStatusStr("PT") != domain.VerdictWA {
 		t.Fatal("PT -> WA")
 	}
-	for _, s := range []string{"CG", "CD", "AV", "VS", "VT", "EM", "RU"} {
+	for _, s := range []string{"CG", "CD", "AV", "VS", "VT", "EM", "RU", "WT", "CF"} {
 		if parseEjudgeStatusStr(s) != domain.VerdictRU {
 			t.Fatalf("%s -> RU", s)
 		}
+	}
+	if parseEjudgeStatusStr("SM") != domain.VerdictPR {
+		t.Fatal("SM -> PR")
 	}
 	if parseEjudgeStatusStr("AC") != domain.VerdictUnknown || parseEjudgeStatusStr("PD") != domain.VerdictUnknown ||
 		parseEjudgeStatusStr("") != domain.VerdictUnknown {

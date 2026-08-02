@@ -16,8 +16,8 @@
   border-radius: var(--radius-card);
 }
 
-.login-card .logo {
-  font-size: 1.75rem;
+.login-card .app-logo {
+  height: 1.75rem;
   margin-bottom: 0.35rem;
 }
 

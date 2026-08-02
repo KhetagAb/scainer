@@ -20,8 +20,9 @@ const (
 )
 
 var (
-	ErrSIDNotFound = errors.New("ejudge: SID not found in login response")
-	ErrInvalidSID  = errors.New("ejudge: invalid SID")
+	ErrSIDNotFound           = errors.New("ejudge: SID not found in login response")
+	ErrInvalidSID            = errors.New("ejudge: invalid SID")
+	ErrServeControlLoginFailed = errors.New("ejudge: serve-control login failed")
 )
 
 var sidParamRe = regexp.MustCompile(`(?i)SID=([0-9a-fA-F]+)`)
@@ -40,6 +41,58 @@ func MasterSessionLogin(ctx context.Context, baseURL, login, password string) (S
 // ContestSessionLogin — логин в конкретный контест (для contest-status с каталогом задач).
 func ContestSessionLogin(ctx context.Context, baseURL, login, password string, contestID int) (Session, error) {
 	return sessionLogin(ctx, baseURL, login, password, contestID)
+}
+
+// ServeControlSessionLogin — логин в serve-control (MASTER_LOGIN, список контестов).
+// Отличается от new-master: другой CGI и форма; SID от new-master сюда не подходит.
+func ServeControlSessionLogin(ctx context.Context, baseURL, login, password string, timeout time.Duration) (Session, error) {
+	baseURL = strings.TrimRight(baseURL, "/")
+	if login == "" || password == "" {
+		return Session{}, ErrServeControlLoginFailed
+	}
+	if timeout <= 0 {
+		timeout = 30 * time.Second
+	}
+
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		return Session{}, err
+	}
+	client := &http.Client{Timeout: timeout, Jar: jar}
+
+	form := url.Values{}
+	form.Set("login", login)
+	form.Set("password", password)
+	form.Set("submit", "Log in")
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/cgi-bin/serve-control", strings.NewReader(form.Encode()))
+	if err != nil {
+		return Session{}, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return Session{}, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if err != nil {
+		return Session{}, err
+	}
+
+	sid := parseSID(string(body))
+	if sid == "" && resp.Request != nil && resp.Request.URL != nil {
+		sid = parseSID(resp.Request.URL.String())
+	}
+	if sid == "" || sid == placeholderSID {
+		return Session{}, ErrServeControlLoginFailed
+	}
+	if strings.Contains(string(body), "Log in") && strings.Contains(string(body), "Password") {
+		return Session{}, ErrServeControlLoginFailed
+	}
+	return Session{SID: sid, jar: jar, base: baseURL}, nil
 }
 
 func sessionLogin(ctx context.Context, baseURL, login, password string, contestID int) (Session, error) {

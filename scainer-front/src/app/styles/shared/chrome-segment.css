@@ -49,6 +49,25 @@
   outline-offset: 1px;
 }
 
+.chrome-segment-group.chrome-segment-group--sensitivity,
+.contest-head__group.contest-head__group--sensitivity {
+  height: var(--app-chrome-trailing-size);
+  min-height: var(--app-chrome-trailing-size);
+  max-height: var(--app-chrome-trailing-size);
+  padding: 0.15rem;
+  gap: 0.12rem;
+  box-sizing: border-box;
+}
+
+.chrome-segment-group.chrome-segment-group--sensitivity .chrome-segment-group-btn,
+.chrome-segment-group.chrome-segment-group--sensitivity .contest-head__group-btn {
+  flex: 0 0 var(--contest-sensitivity-btn-width);
+  width: var(--contest-sensitivity-btn-width);
+  min-width: var(--contest-sensitivity-btn-width);
+  height: calc(var(--app-chrome-trailing-size) - 0.3rem);
+  max-height: calc(var(--app-chrome-trailing-size) - 0.3rem);
+}
+
 .chrome-segment-tip,
 .sensitivity-tip {
   position: absolute;

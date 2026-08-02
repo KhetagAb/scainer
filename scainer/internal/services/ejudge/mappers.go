@@ -34,15 +34,17 @@ func ejudgeStatusAlias(s string) string {
 		return string(domain.VerdictRJ)
 	case "PT":
 		return string(domain.VerdictWA)
-	case "CG", "CD", "AV", "VS", "VT", "EM":
+	case "CG", "CD", "AV", "VS", "VT", "EM", "WT", "CF":
 		return string(domain.VerdictRU)
+	case "SM":
+		return string(domain.VerdictPR)
 	}
 	return ""
 }
 
 func isRunningEjudgeStatus(code int) bool {
 	switch code {
-	case 20, 21, 22, 95, 96, 97, 98, 99:
+	case 6, 20, 21, 22, 95, 96, 97, 98, 99:
 		return true
 	default:
 		return false
@@ -67,8 +69,6 @@ func verdictFromEjudgeStatus(code int) domain.Verdict {
 		return domain.VerdictPE
 	case 5: // WA
 		return domain.VerdictWA
-	case 6: // CF
-		return domain.VerdictCF
 	case 7: // PT — partial solution
 		return domain.VerdictWA
 	case 9: // IG
@@ -79,10 +79,14 @@ func verdictFromEjudgeStatus(code int) domain.Verdict {
 		return domain.VerdictML
 	case 14: // SV
 		return domain.VerdictRJ
+	case 15: // WT — waiting for testing
+		return domain.VerdictRU
 	case 16: // PR
 		return domain.VerdictPR
 	case 17: // RJ
 		return domain.VerdictRJ
+	case 23: // SM — summoned for review
+		return domain.VerdictPR
 	default:
 		return domain.VerdictUnknown
 	}

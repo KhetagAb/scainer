@@ -23,6 +23,7 @@ import (
 	"scainer/internal/services/statements"
 	"scainer/internal/services/teachers"
 	"scainer/pkg/auth"
+	"scainer/pkg/ejudge/servecontrol"
 	"scainer/pkg/jobs"
 	"scainer/pkg/metrics"
 	scainermw "scainer/pkg/middleware"
@@ -31,6 +32,7 @@ import (
 type ejudgeGateway interface {
 	BrowserLogin(ctx context.Context, contestID int) (gateway.BrowserLogin, bool, error)
 	EnsureAPIKey(ctx context.Context) error
+	ListContests(ctx context.Context) ([]servecontrol.Brief, error)
 }
 
 type Server struct {
@@ -341,6 +343,56 @@ func (s *Server) PostContests(c echo.Context) error {
 		return mapContestErr(c, err)
 	}
 	return c.JSON(http.StatusOK, toContestInfo(summary))
+}
+
+func (s *Server) PostParallelsImport(c echo.Context) error {
+	if s.ejudge == nil {
+		return c.JSON(http.StatusServiceUnavailable, server.Error{Error: "ejudge is not configured"})
+	}
+	ctx := c.Request().Context()
+	result, err := s.contests.ImportFromEjudge(ctx, s.ejudge.ListContests)
+	if err != nil {
+		if errors.Is(err, gateway.ErrNoLogin) {
+			return c.JSON(http.StatusUnauthorized, server.Error{Error: "unauthorized"})
+		}
+		if errors.Is(err, gateway.ErrTeacherNotFound) {
+			return c.JSON(http.StatusServiceUnavailable, server.Error{Error: "ejudge login unavailable"})
+		}
+		return c.JSON(http.StatusServiceUnavailable, server.Error{Error: "ejudge import unavailable"})
+	}
+	return c.JSON(http.StatusOK, toImportContestsResponse(result))
+}
+
+func toImportContestsResponse(result contests.EjudgeImportResult) server.ImportContestsResponse {
+	return server.ImportContestsResponse{
+		Added:      toImportedContestEntries(result.Added),
+		Duplicates: toImportedContestEntries(result.Duplicates),
+		Skipped:    toSkippedContestEntries(result.Skipped),
+	}
+}
+
+func toImportedContestEntries(entries []contests.CatalogEntry) []server.ImportedContestEntry {
+	out := make([]server.ImportedContestEntry, 0, len(entries))
+	for _, e := range entries {
+		out = append(out, server.ImportedContestEntry{
+			Id:         e.ID,
+			Name:       e.Name,
+			ParallelId: e.ParallelID,
+		})
+	}
+	return out
+}
+
+func toSkippedContestEntries(entries []contests.CatalogEntry) []server.SkippedContestEntry {
+	out := make([]server.SkippedContestEntry, 0, len(entries))
+	for _, e := range entries {
+		out = append(out, server.SkippedContestEntry{
+			Id:     e.ID,
+			Name:   e.Name,
+			Reason: e.Reason,
+		})
+	}
+	return out
 }
 
 func (s *Server) PatchContest(c echo.Context, id server.ContestID) error {
